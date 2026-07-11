@@ -74,22 +74,25 @@
             justify-content: center;
             z-index: 1000;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            padding: 20px 0;
         }
 
         .login-card {
             width: 90%;
-            max-width: 420px;
+            max-width: 440px;
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
-            padding: 40px 30px;
+            padding: 35px 25px;
             border-radius: 24px;
             text-align: center;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            margin: auto;
         }
 
         .login-logo {
-            font-size: 72px;
-            margin-bottom: 20px;
+            font-size: 64px;
+            margin-bottom: 15px;
             color: var(--accent);
             display: inline-block;
             animation: float 4s ease-in-out infinite;
@@ -102,9 +105,9 @@
         }
 
         .login-card h1 {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 800;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             letter-spacing: -0.5px;
             background: linear-gradient(135deg, #fff 0%, #a0a5b5 100%);
             -webkit-background-clip: text;
@@ -113,9 +116,48 @@
 
         .login-card p {
             color: var(--text-muted);
-            font-size: 14px;
-            margin-bottom: 25px;
+            font-size: 13.5px;
+            margin-bottom: 20px;
             line-height: 1.5;
+        }
+
+        .instruction-box {
+            background: rgba(36, 129, 204, 0.08);
+            border: 1px solid rgba(36, 129, 204, 0.2);
+            border-radius: 14px;
+            padding: 15px;
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .instruction-box ol {
+            margin-left: 18px;
+            margin-top: 8px;
+            color: var(--text-main);
+        }
+
+        .instruction-box li {
+            margin-bottom: 6px;
+        }
+
+        .token-link-btn {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent);
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 5px;
+            border: 1px solid rgba(36, 129, 204, 0.3);
+            transition: all 0.2s;
+        }
+
+        .token-link-btn:hover {
+            background: var(--accent);
+            color: white;
         }
 
         .login-input {
@@ -157,44 +199,6 @@
         }
         .btn:active { transform: scale(0.98); }
         .btn:disabled { background: #2c3245; color: #5a627a; cursor: not-allowed; box-shadow: none; }
-
-        .vk-btn {
-            background: var(--vk-color);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0, 119, 255, 0.3);
-        }
-
-        .vk-btn:hover {
-            background: var(--vk-hover);
-            box-shadow: 0 6px 20px rgba(0, 119, 255, 0.45);
-        }
-
-        .divider {
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .divider:not(:empty)::before {
-            margin-right: .25em;
-        }
-
-        .divider:not(:empty)::after {
-            margin-left: .25em;
-        }
 
         .error-log {
             color: var(--error);
@@ -825,16 +829,21 @@
             <div class="login-logo">🔒</div>
             <h1>Graph VK Crypt Client</h1>
             <p>Сквозное AES-256 шифрование сообщений, голосовых и файлов.</p>
+            
+            <div class="instruction-box">
+                <b>Инструкция получения токена:</b>
+                <ol>
+                    <li>Нажмите на ссылку ниже для получения токена:
+                        <br>
+                        <a href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,photos,video,docs,status,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
+                    </li>
+                    <li>В открывшемся окне разрешите доступ.</li>
+                    <li>Вас перенаправит на пустую страницу. <b>Полностью скопируйте адрес этой страницы из адресной строки браузера</b> (там должно быть написанно <code>oauth.vk.com/blank.html#access_token=...</code>) и вставьте её целиком в поле ввода ниже!</li>
+                </ol>
+            </div>
+
             <input type="password" id="crypt-key-field" class="login-input" placeholder="Ключ шифрования (придумайте пароль)">
-            <button class="btn vk-btn" id="vk-oauth-btn" onclick="loginWithVk()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;">
-                    <path d="M22.015 12c0-5.53-4.486-10-10.015-10S2 6.47 2 12s4.486 10 10.015 10c1.07 0 2.103-.17 3.07-.482v-2.738c-.917.26-1.895.405-2.92.405-4.24 0-7.68-3.32-7.68-7.41 0-4.088 3.44-7.408 7.68-7.408s7.682 3.32 7.682 7.408c0 1.258-.216 2.45-.604 3.528l2.428 1.28c.844-1.464 1.339-3.158 1.339-4.983z"/>
-                    <path d="M15.547 11.5c.29-.18.528-.465.656-.81.127-.346.12-.727-.02-1.07s-.42-.613-.787-.768c-.366-.154-.772-.158-1.14-.012l-5.636 2.25c-.246.098-.44.29-.544.536s-.103.52-.005.766c.098.246.29.44.536.544.246.104.52.103.766.005l5.174-2.07c.2-.08.4-.04.55.11.15.15.16.36.03.53l-3.565 4.636c-.165.215-.22.49-.153.75s.235.483.46.613c.224.13.498.147.74.047s.418-.305.492-.566l1.41-4.814c.057-.195.18-.363.344-.473z"/>
-                </svg>
-                ВОЙТИ ЧЕРЕЗ VK ID
-            </button>
-            <div class="divider">или вручную по токену</div>
-            <input type="password" id="token-field" class="login-input" placeholder="Введите токен VK">
+            <input type="text" id="token-field" class="login-input" placeholder="Вставьте скопированную ссылку или токен">
             <button class="btn" id="login-action-btn" onclick="tryLogin()">ВОЙТИ</button>
             <div id="login-error" class="error-log"></div>
         </div>
@@ -945,18 +954,6 @@
         };
 
         window.onload = function() {
-            if (window.location.hash) {
-                const params = new URLSearchParams(window.location.hash.substring(1));
-                const token = params.get('access_token');
-                const savedCryptKey = safeStorage.get("temp_crypt_key");
-                
-                if (token && savedCryptKey) {
-                    safeStorage.set("saved_vk_token", token);
-                    safeStorage.set("saved_crypt_key", savedCryptKey);
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
-            }
-
             const savedToken = safeStorage.get("saved_vk_token");
             const savedCryptKey = safeStorage.get("saved_crypt_key");
             const savedChats = safeStorage.get("saved_vk_chats");
@@ -1096,23 +1093,24 @@
                     if (document.body.contains(script)) {
                         document.body.removeChild(script);
                     }
-                    reject(new Error("Ошибка выполнения сетевого запроса VK API."));
+                    reject(new Error("Не удалось связаться с серверами VK. Ошибка запроса."));
                 };
                 
                 document.body.appendChild(script);
             });
         }
 
-        function loginWithVk() {
-            const cryptField = document.getElementById('crypt-key-field');
-            const cryptKey = cryptField.value.trim();
-            if (!cryptKey) {
-                showLoginError("Пожалуйста, сначала укажите Ключ шифрования (пароль), чтобы защитить переписку!");
-                return;
+        function extractToken(input) {
+            if (!input) return "";
+            if (input.includes("access_token=")) {
+                try {
+                    const hashParams = new URLSearchParams(input.split('#')[1] || input.split('?')[1]);
+                    return hashParams.get("access_token") || input;
+                } catch (e) {
+                    return input;
+                }
             }
-            safeStorage.set("temp_crypt_key", cryptKey);
-            const redirectUri = window.location.href.split('#')[0];
-            window.location.href = `https://oauth.vk.com/authorize?client_id=2685278&scope=messages,photos,video,docs,status,offline&redirect_uri=${encodeURIComponent(redirectUri)}&display=page&response_type=token`;
+            return input;
         }
 
         async function tryLogin(tokenOverride = null, cryptOverride = null) {
@@ -1121,7 +1119,8 @@
             const loginBtn = document.getElementById('login-action-btn');
             const errorDiv = document.getElementById('login-error');
             
-            const token = tokenOverride || inputField.value.trim();
+            let tokenInput = tokenOverride || inputField.value.trim();
+            const token = extractToken(tokenInput);
             const cryptKey = cryptOverride || cryptField.value.trim();
 
             if (!token || !cryptKey) {
