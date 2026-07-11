@@ -932,21 +932,18 @@
 
     <div class="modal-overlay" id="profile-modal">
         <div class="modal">
-            <div class="modal-header">Настройки шифрования чата</div>
+            <div class="modal-header">Настройки шифрования</div>
             <div class="modal-content-scroll modal-profile-info">
                 <div class="avatar" id="profile-modal-avatar">?</div>
                 <p><b>Имя</b> <span id="profile-modal-name"></span></p>
                 <p><b>Chat ID</b> <span id="profile-modal-id"></span></p>
-                <p><b>Тип чата</b> <span id="profile-modal-type"></span></p>
                 
-                <div style="margin-top: 15px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 14px; border: 1px solid var(--border-color);">
+                <div style="margin-top: 15px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 14px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn" style="background: var(--vk-color); font-size: 14px;" onclick="initiateDHHandshake()">🔑 Автоматический обмен ключами E2E (DH)</button>
+                    <div style="text-align: center; color: var(--text-muted); font-size: 11px;">Или установите единый общий пароль вручную:</div>
                     <p>
-                        <b>Пароль для исходящих сообщений (мой)</b>
-                        <input type="password" id="chat-out-key-field" class="inline-input" placeholder="Пароль шифрования" oninput="updateChatKeysConfig()">
-                    </p>
-                    <p style="margin-top: 10px;">
-                        <b>Пароль для входящих сообщений (собеседник)</b>
-                        <input type="password" id="chat-in-key-field" class="inline-input" placeholder="Пароль дешифрования" oninput="updateChatKeysConfig()">
+                        <b>Общий ключ шифрования для этого чата</b>
+                        <input type="password" id="chat-shared-key-field" class="inline-input" placeholder="Общий пароль для шифрации и дешифрации" oninput="updateChatSharedKey()">
                     </p>
                 </div>
             </div>
@@ -1247,8 +1244,7 @@
                             type: peerInfo.type,
                             messages: [],
                             lastTime: lastTime,
-                            outKey: "",
-                            inKey: "",
+                            sharedKey: "",
                             useCrypt: true
                         };
                     } else {
@@ -1261,7 +1257,7 @@
                     if (!isDup) {
                         let textDecrypted = lastMsgObj.text;
                         if (lastMsgObj.text.startsWith("🔒")) {
-                            textDecrypted = await decryptText(lastMsgObj.text, chats[peerId].inKey || chats[peerId].outKey);
+                            textDecrypted = await decryptText(lastMsgObj.text, chats[peerId].sharedKey);
                         }
                         chats[peerId].messages.push({
                             id: lastMsgObj.id,
@@ -1320,15 +1316,20 @@
                                                 type: 'private',
                                                 messages: [],
                                                 lastTime: timeMs,
-                                                outKey: "",
-                                                inKey: "",
+                                                sharedKey: "",
                                                 useCrypt: true
                                             };
                                         }
 
+                                        if (rawText.startsWith("📦[E2E_DH_")) {
+                                            await handleDHMessage(peerId, rawText);
+                                            triggered = true;
+                                            continue;
+                                        }
+
                                         let text = rawText;
                                         if (rawText.startsWith("🔒")) {
-                                            text = await decryptText(rawText, out ? (chats[peerId].outKey || chats[peerId].inKey) : (chats[peerId].inKey || chats[peerId].outKey));
+                                            text = await decryptText(rawText, chats[peerId].sharedKey);
                                         }
 
                                         const isDup = chats[peerId].messages.some(m => m.id === msgId);
@@ -1362,6 +1363,118 @@
             }
         }
 
+        async function initiateDHHandshake() {
+            if (!currentChatId || !chats[currentChatId]) return;
+            const peerId = currentChatId;
+            try {
+                const keypair = await window.crypto.subtle.generateKey(
+                    { name: "ECDH", namedCurve: "P-256" },
+                    false,
+                    ["deriveKey", "deriveBits"]
+                );
+
+                const exportedPriv = await window.crypto.subtle.exportKey("jwk", keypair.privateKey);
+                safeStorage.set(`dh_priv_${peerId}`, JSON.stringify(exportedPriv));
+
+                const exportedPub = await window.crypto.subtle.exportKey("spki", keypair.publicKey);
+                const pubBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(exportedPub)));
+
+                const randomId = Math.floor(Math.random() * 2000000000);
+                await vkCall("messages.send", {
+                    peer_id: peerId,
+                    random_id: randomId,
+                    message: `📦[E2E_DH_INIT]:${pubBase64}`
+                });
+
+                alert("Запрос E2E обмена отправлен собеседнику!");
+                closeProfileModal();
+            } catch (e) {
+                alert("Ошибка генерации ключей: " + e.message);
+            }
+        }
+
+        async function handleDHMessage(peerId, rawText) {
+            try {
+                if (rawText.startsWith("📦[E2E_DH_INIT]:")) {
+                    const peerPubBase64 = rawText.split(":")[1];
+                    const peerPubBytes = new Uint8Array(atob(peerPubBase64).split("").map(c => c.charCodeAt(0)));
+                    
+                    const peerPublicKey = await window.crypto.subtle.importKey(
+                        "spki", peerPubBytes, { name: "ECDH", namedCurve: "P-256" }, false, []
+                    );
+
+                    const keypair = await window.crypto.subtle.generateKey(
+                        { name: "ECDH", namedCurve: "P-256" },
+                        false,
+                        ["deriveKey", "deriveBits"]
+                    );
+
+                    const sharedBits = await window.crypto.subtle.deriveBits(
+                        { name: "ECDH", public: peerPublicKey },
+                        keypair.privateKey,
+                        256
+                    );
+
+                    const derivedHex = Array.from(new Uint8Array(sharedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    chats[peerId].sharedKey = derivedHex;
+                    chats[peerId].useCrypt = true;
+                    saveState();
+
+                    const exportedPub = await window.crypto.subtle.exportKey("spki", keypair.publicKey);
+                    const pubBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(exportedPub)));
+
+                    const randomId = Math.floor(Math.random() * 2000000000);
+                    await vkCall("messages.send", {
+                        peer_id: peerId,
+                        random_id: randomId,
+                        message: `📦[E2E_DH_RESP]:${pubBase64}`
+                    });
+
+                    chats[peerId].messages.push({
+                        id: randomId,
+                        text: "🔒 Автоматически установлена E2E защита!",
+                        time: Date.now(),
+                        out: false,
+                        attachments: []
+                    });
+
+                } else if (rawText.startsWith("📦[E2E_DH_RESP]:")) {
+                    const peerPubBase64 = rawText.split(":")[1];
+                    const peerPubBytes = new Uint8Array(atob(peerPubBase64).split("").map(c => c.charCodeAt(0)));
+
+                    const peerPublicKey = await window.crypto.subtle.importKey(
+                        "spki", peerPubBytes, { name: "ECDH", namedCurve: "P-256" }, false, []
+                    );
+
+                    const savedPrivJwk = safeStorage.get(`dh_priv_${peerId}`);
+                    if (!savedPrivJwk) return;
+
+                    const privateKey = await window.crypto.subtle.importKey(
+                        "jwk", JSON.parse(savedPrivJwk), { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
+                    );
+
+                    const sharedBits = await window.crypto.subtle.deriveBits(
+                        { name: "ECDH", public: peerPublicKey },
+                        privateKey,
+                        256
+                    );
+
+                    const derivedHex = Array.from(new Uint8Array(sharedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    chats[peerId].sharedKey = derivedHex;
+                    chats[peerId].useCrypt = true;
+                    saveState();
+
+                    chats[peerId].messages.push({
+                        id: Math.floor(Math.random() * 2000000000),
+                        text: "🔒 Автоматически установлена E2E защита!",
+                        time: Date.now(),
+                        out: true,
+                        attachments: []
+                    });
+                }
+            } catch (e) {}
+        }
+
         async function uploadFileToVk(file, isVoice = false) {
             const serverMethod = "docs.getMessagesUploadServer";
             const params = { peer_id: currentChatId };
@@ -1374,9 +1487,9 @@
             let finalName = file.name;
 
             const chat = chats[currentChatId];
-            if (chat && chat.useCrypt && chat.outKey) {
+            if (chat && chat.useCrypt && chat.sharedKey) {
                 const arrayBuf = await file.arrayBuffer();
-                const encryptedBuf = await encryptBinary(arrayBuf, chat.outKey);
+                const encryptedBuf = await encryptBinary(arrayBuf, chat.sharedKey);
                 fileDataBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
                 finalName = file.name + '.enc';
             } else {
@@ -1436,7 +1549,7 @@
                 const randomId = Math.floor(Math.random() * 2000000000);
                 
                 const chat = chats[targetId];
-                const msgBody = (chat && chat.useCrypt && chat.outKey) ? "🔒[Зашифрованное голосовое сообщение]" : "Голосовое сообщение";
+                const msgBody = (chat && chat.useCrypt && chat.sharedKey) ? "🔒[Зашифрованное голосовое сообщение]" : "Голосовое сообщение";
 
                 await vkCall("messages.send", {
                     peer_id: targetId,
@@ -1475,9 +1588,9 @@
                 const chat = chats[targetId];
                 let finalMessage = text;
 
-                if (chat && chat.useCrypt && chat.outKey) {
+                if (chat && chat.useCrypt && chat.sharedKey) {
                     if (text) {
-                        finalMessage = await encryptText(text, chat.outKey);
+                        finalMessage = await encryptText(text, chat.sharedKey);
                     } else {
                         finalMessage = "🔒[Файл]";
                     }
@@ -1778,7 +1891,7 @@
                 timeSpan.innerText = timeStr;
                 div.appendChild(timeSpan);
 
-                const decryptKey = msg.out ? (chat.outKey || chat.inKey) : (chat.inKey || chat.outKey);
+                const decryptKey = chat.sharedKey;
 
                 if (msg.attachments && msg.attachments.length > 0) {
                     msg.attachments.forEach(attach => {
@@ -1834,20 +1947,17 @@
             
             document.getElementById('profile-modal-name').innerText = chat.name;
             document.getElementById('profile-modal-id').innerText = chat.id;
-            document.getElementById('profile-modal-type').innerText = chat.type;
             
-            document.getElementById('chat-out-key-field').value = chat.outKey || "";
-            document.getElementById('chat-in-key-field').value = chat.inKey || "";
+            document.getElementById('chat-shared-key-field').value = chat.sharedKey || "";
 
             updateAvatarUI(chat.id, chat.name, 'profile-modal-avatar');
 
             document.getElementById('profile-modal').classList.add('active');
         }
 
-        function updateChatKeysConfig() {
+        function updateChatSharedKey() {
             if (!currentChatId || !chats[currentChatId]) return;
-            chats[currentChatId].outKey = document.getElementById('chat-out-key-field').value;
-            chats[currentChatId].inKey = document.getElementById('chat-in-key-field').value;
+            chats[currentChatId].sharedKey = document.getElementById('chat-shared-key-field').value;
             saveState();
         }
 
