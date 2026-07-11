@@ -40,31 +40,6 @@
             position: relative;
         }
 
-        .dev-link {
-            position: fixed;
-            top: 15px;
-            right: 20px;
-            font-size: 13px;
-            color: #2481cc;
-            text-decoration: none;
-            z-index: 2000;
-            font-weight: 600;
-            background: rgba(12, 13, 18, 0.85);
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .dev-link:hover {
-            color: #2f94e3;
-            border-color: var(--accent);
-            box-shadow: 0 0 12px rgba(36, 129, 204, 0.4);
-            transform: translateY(-1px);
-        }
-
         #login-screen {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -400,6 +375,7 @@
             margin-right: 18px;
             width: 36px;
             height: 36px;
+            display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
@@ -430,6 +406,23 @@
             color: var(--text-muted);
             font-size: 14.5px;
             line-height: 1.6;
+        }
+
+        .date-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .date-divider::before, .date-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            margin: 0 15px;
         }
 
         .bubble {
@@ -641,6 +634,28 @@
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
         }
 
+        .toggle-crypt-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: #a0a5b5;
+            font-size: 18px;
+            cursor: pointer;
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-crypt-btn.active {
+            color: var(--success);
+            border-color: var(--success);
+            background: rgba(46, 204, 113, 0.05);
+        }
+
         .file-upload-input {
             display: none;
         }
@@ -693,7 +708,7 @@
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
             width: 90%;
-            max-width: 420px;
+            max-width: 440px;
             border-radius: 24px;
             padding: 30px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
@@ -727,7 +742,8 @@
             margin-bottom: 12px;
             font-size: 14.5px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            gap: 4px;
             padding-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.02);
         }
@@ -740,6 +756,23 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
+        .modal-profile-info .inline-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: white;
+            font-size: 14px;
+            outline: none;
+            margin-top: 4px;
+            transition: all 0.2s;
+        }
+
+        .modal-profile-info .inline-input:focus {
+            border-color: var(--accent);
+        }
+
         .modal-media-viewer {
             max-width: 95vw;
             max-height: 85vh;
@@ -749,15 +782,6 @@
         }
 
         @media (max-width: 768px) {
-            .dev-link {
-                top: 15px;
-                right: 15px;
-                font-size: 12px;
-                padding: 6px 12px;
-            }
-            body.chat-opened .dev-link {
-                display: none !important;
-            }
             .sidebar { 
                 width: 100%; 
                 height: 100%;
@@ -790,7 +814,7 @@
                 font-size: 14px;
                 min-height: 40px;
             }
-            .attachment-btn, .voice-btn {
+            .attachment-btn, .voice-btn, .toggle-crypt-btn {
                 width: 40px;
                 height: 40px;
                 border-radius: 12px;
@@ -822,8 +846,6 @@
 </head>
 <body>
 
-    <a href="https://t.me/AsuMeo" target="_blank" class="dev-link">Разработчик</a>
-
     <div id="login-screen">
         <div class="login-card">
             <div class="login-logo">🔒</div>
@@ -838,11 +860,10 @@
                         <a href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,photos,video,docs,status,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
                     <li>В открывшемся окне разрешите доступ.</li>
-                    <li>Вас перенаправит на пустую страницу. <b>Полностью скопируйте адрес этой страницы из адресной строки браузера</b> (там должно быть написанно <code>oauth.vk.com/blank.html#access_token=...</code>) и вставьте её целиком в поле ввода ниже!</li>
+                    <li>Вас перенаправит на пустую страницу. <b>Полностью скопируйте адрес этой страницы из адресной строки браузера</b> и вставьте её целиком в поле ввода ниже!</li>
                 </ol>
             </div>
 
-            <input type="password" id="crypt-key-field" class="login-input" placeholder="Ключ шифрования (придумайте пароль)">
             <input type="text" id="token-field" class="login-input" placeholder="Вставьте скопированную ссылку или токен">
             <button class="btn" id="login-action-btn" onclick="tryLogin()">ВОЙТИ</button>
             <div id="login-error" class="error-log"></div>
@@ -895,13 +916,14 @@
                 <input type="file" id="file-input" class="file-upload-input" accept="*/*" onchange="handleFileChange(event)">
                 
                 <button class="voice-btn" id="voice-btn" onclick="toggleVoiceRecord()">🎙️</button>
+                <button class="toggle-crypt-btn active" id="toggle-crypt-btn" onclick="toggleCryptForCurrentChat()">🔒</button>
 
                 <div class="input-controls">
                     <div id="file-preview" class="file-preview-container" style="display: none;">
                         <span id="file-name"></span>
                         <span class="file-preview-close" onclick="removeFile()">×</span>
                     </div>
-                    <textarea id="message-text" class="textarea-message" placeholder="Шифрованное сообщение..." rows="1" onkeydown="handleInputKey(event)"></textarea>
+                    <textarea id="message-text" class="textarea-message" placeholder="Напишите сообщение..." rows="1" onkeydown="handleInputKey(event)"></textarea>
                 </div>
                 <button class="btn" style="width: auto; padding: 12px 24px;" id="send-btn" onclick="sendVkMessage()">Отправить</button>
             </div>
@@ -910,15 +932,26 @@
 
     <div class="modal-overlay" id="profile-modal">
         <div class="modal">
-            <div class="modal-header">Информация о чате</div>
+            <div class="modal-header">Настройки шифрования чата</div>
             <div class="modal-content-scroll modal-profile-info">
                 <div class="avatar" id="profile-modal-avatar">?</div>
                 <p><b>Имя</b> <span id="profile-modal-name"></span></p>
                 <p><b>Chat ID</b> <span id="profile-modal-id"></span></p>
                 <p><b>Тип чата</b> <span id="profile-modal-type"></span></p>
+                
+                <div style="margin-top: 15px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 14px; border: 1px solid var(--border-color);">
+                    <p>
+                        <b>Пароль для исходящих сообщений (мой)</b>
+                        <input type="password" id="chat-out-key-field" class="inline-input" placeholder="Пароль шифрования" oninput="updateChatKeysConfig()">
+                    </p>
+                    <p style="margin-top: 10px;">
+                        <b>Пароль для входящих сообщений (собеседник)</b>
+                        <input type="password" id="chat-in-key-field" class="inline-input" placeholder="Пароль дешифрования" oninput="updateChatKeysConfig()">
+                    </p>
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" style="background:var(--bg-input); color:var(--text-muted); border: 1px solid var(--border-color);" onclick="closeProfileModal()">Закрыть</button>
+                <button class="btn" style="background:var(--bg-input); color:var(--text-main); border: 1px solid var(--border-color);" onclick="closeProfileModal()">Сохранить</button>
             </div>
         </div>
     </div>
@@ -930,8 +963,6 @@
 
     <script>
         let botToken = "";
-        let rawCryptKey = "";
-        let cryptoKey = null;
         let vkUser = {};
         let chats = {};
         let currentChatId = null;
@@ -955,7 +986,6 @@
 
         window.onload = function() {
             const savedToken = safeStorage.get("saved_vk_token");
-            const savedCryptKey = safeStorage.get("saved_crypt_key");
             const savedChats = safeStorage.get("saved_vk_chats");
             
             if (savedChats) {
@@ -971,10 +1001,9 @@
                 }
             }
 
-            if (savedToken && savedCryptKey) {
+            if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
-                document.getElementById('crypt-key-field').value = savedCryptKey;
-                tryLogin(savedToken, savedCryptKey);
+                tryLogin(savedToken);
             }
             adjustTextareaHeight();
         };
@@ -988,7 +1017,7 @@
             const keyMaterial = await window.crypto.subtle.importKey(
                 "raw", enc.encode(keyStr), "PBKDF2", false, ["deriveKey"]
             );
-            cryptoKey = await window.crypto.subtle.deriveKey(
+            return await window.crypto.subtle.deriveKey(
                 {
                     name: "PBKDF2",
                     salt: enc.encode("vk-crypto-salt-asu-meo"),
@@ -1002,31 +1031,38 @@
             );
         }
 
-        async function encryptText(text) {
-            if (!text) return "";
-            const enc = new TextEncoder();
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const ciphertext = await window.crypto.subtle.encrypt(
-                { name: "AES-GCM", iv: iv },
-                cryptoKey,
-                enc.encode(text)
-            );
-            const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-            combined.set(iv);
-            combined.set(new Uint8Array(ciphertext), iv.length);
-            return "🔒" + btoa(String.fromCharCode.apply(null, combined));
+        async function encryptText(text, keyStr) {
+            if (!text || !keyStr) return text;
+            try {
+                const derivedKey = await initCrypto(keyStr);
+                const enc = new TextEncoder();
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const ciphertext = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    derivedKey,
+                    enc.encode(text)
+                );
+                const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(ciphertext), iv.length);
+                return "🔒" + btoa(String.fromCharCode.apply(null, combined));
+            } catch(e) {
+                return text;
+            }
         }
 
-        async function decryptText(encryptedBase64) {
+        async function decryptText(encryptedBase64, keyStr) {
             if (!encryptedBase64 || !encryptedBase64.startsWith("🔒")) return encryptedBase64;
+            if (!keyStr) return "[Зашифровано - введите ключ в Подробнее]";
             try {
+                const derivedKey = await initCrypto(keyStr);
                 const combined = new Uint8Array(atob(encryptedBase64.slice(1)).split("").map(c => c.charCodeAt(0)));
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
                 const dec = new TextDecoder();
                 const decrypted = await window.crypto.subtle.decrypt(
                     { name: "AES-GCM", iv: iv },
-                    cryptoKey,
+                    derivedKey,
                     ciphertext
                 );
                 return dec.decode(decrypted);
@@ -1035,27 +1071,35 @@
             }
         }
 
-        async function encryptBinary(arrayBuffer) {
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const ciphertext = await window.crypto.subtle.encrypt(
-                { name: "AES-GCM", iv: iv },
-                cryptoKey,
-                arrayBuffer
-            );
-            const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-            combined.set(iv);
-            combined.set(new Uint8Array(ciphertext), iv.length);
-            return combined.buffer;
+        async function encryptBinary(arrayBuffer, keyStr) {
+            if (!keyStr) return arrayBuffer;
+            try {
+                const derivedKey = await initCrypto(keyStr);
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const ciphertext = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    derivedKey,
+                    arrayBuffer
+                );
+                const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(ciphertext), iv.length);
+                return combined.buffer;
+            } catch(e) {
+                return arrayBuffer;
+            }
         }
 
-        async function decryptBinary(arrayBuffer) {
+        async function decryptBinary(arrayBuffer, keyStr) {
+            if (!keyStr) return null;
             try {
+                const derivedKey = await initCrypto(keyStr);
                 const combined = new Uint8Array(arrayBuffer);
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
                 const decrypted = await window.crypto.subtle.decrypt(
                     { name: "AES-GCM", iv: iv },
-                    cryptoKey,
+                    derivedKey,
                     ciphertext
                 );
                 return decrypted;
@@ -1113,18 +1157,16 @@
             return input;
         }
 
-        async function tryLogin(tokenOverride = null, cryptOverride = null) {
+        async function tryLogin(tokenOverride = null) {
             const inputField = document.getElementById('token-field');
-            const cryptField = document.getElementById('crypt-key-field');
             const loginBtn = document.getElementById('login-action-btn');
             const errorDiv = document.getElementById('login-error');
             
             let tokenInput = tokenOverride || inputField.value.trim();
             const token = extractToken(tokenInput);
-            const cryptKey = cryptOverride || cryptField.value.trim();
 
-            if (!token || !cryptKey) {
-                showLoginError("Пожалуйста, заполните Ключ шифрования и введите токен.");
+            if (!token) {
+                showLoginError("Пожалуйста, заполните поле ввода токена.");
                 return;
             }
 
@@ -1134,14 +1176,11 @@
 
             try {
                 botToken = token;
-                rawCryptKey = cryptKey;
-                await initCrypto(cryptKey);
 
                 const usersData = await vkCall("users.get", { fields: "photo_100" });
                 if (usersData && usersData.length > 0) {
                     vkUser = usersData[0];
                     safeStorage.set("saved_vk_token", token);
-                    safeStorage.set("saved_crypt_key", cryptKey);
 
                     document.getElementById('bot-name-display').innerText = `${vkUser.first_name} ${vkUser.last_name}`;
                     if (vkUser.photo_100) {
@@ -1200,11 +1239,6 @@
                     const lastTime = lastMsgObj.date * 1000;
                     const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private' };
 
-                    let textDecrypted = lastMsgObj.text;
-                    if (lastMsgObj.text.startsWith("🔒")) {
-                        textDecrypted = await decryptText(lastMsgObj.text);
-                    }
-
                     if (!chats[peerId]) {
                         chats[peerId] = {
                             id: peerId,
@@ -1212,7 +1246,10 @@
                             photo: peerInfo.photo,
                             type: peerInfo.type,
                             messages: [],
-                            lastTime: lastTime
+                            lastTime: lastTime,
+                            outKey: "",
+                            inKey: "",
+                            useCrypt: true
                         };
                     } else {
                         chats[peerId].name = peerInfo.name;
@@ -1222,9 +1259,14 @@
 
                     const isDup = chats[peerId].messages.some(m => m.id === lastMsgObj.id);
                     if (!isDup) {
+                        let textDecrypted = lastMsgObj.text;
+                        if (lastMsgObj.text.startsWith("🔒")) {
+                            textDecrypted = await decryptText(lastMsgObj.text, chats[peerId].inKey || chats[peerId].outKey);
+                        }
                         chats[peerId].messages.push({
                             id: lastMsgObj.id,
                             text: textDecrypted,
+                            rawText: lastMsgObj.text,
                             time: lastTime,
                             out: lastMsgObj.from_id === vkUser.id,
                             attachments: lastMsgObj.attachments || []
@@ -1266,13 +1308,9 @@
                                         const msgId = up[1];
                                         const peerId = up[3];
                                         const timeMs = up[4] * 1000;
-                                        let text = up[5];
+                                        let rawText = up[5];
                                         const flags = up[2];
                                         const out = (flags & 2) !== 0;
-
-                                        if (text.startsWith("🔒")) {
-                                            text = await decryptText(text);
-                                        }
 
                                         if (!chats[peerId]) {
                                             chats[peerId] = {
@@ -1281,8 +1319,16 @@
                                                 photo: '',
                                                 type: 'private',
                                                 messages: [],
-                                                lastTime: timeMs
+                                                lastTime: timeMs,
+                                                outKey: "",
+                                                inKey: "",
+                                                useCrypt: true
                                             };
+                                        }
+
+                                        let text = rawText;
+                                        if (rawText.startsWith("🔒")) {
+                                            text = await decryptText(rawText, out ? (chats[peerId].outKey || chats[peerId].inKey) : (chats[peerId].inKey || chats[peerId].outKey));
                                         }
 
                                         const isDup = chats[peerId].messages.some(m => m.id === msgId);
@@ -1290,6 +1336,7 @@
                                             chats[peerId].messages.push({
                                                 id: msgId,
                                                 text: text,
+                                                rawText: rawText,
                                                 time: timeMs,
                                                 out: out,
                                                 attachments: []
@@ -1323,17 +1370,26 @@
             const uploadServer = await vkCall(serverMethod, params);
             const uploadUrl = uploadServer.upload_url;
 
-            const arrayBuf = await file.arrayBuffer();
-            const encryptedBuf = await encryptBinary(arrayBuf);
-            const encryptedBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
+            let fileDataBlob;
+            let finalName = file.name;
+
+            const chat = chats[currentChatId];
+            if (chat && chat.useCrypt && chat.outKey) {
+                const arrayBuf = await file.arrayBuffer();
+                const encryptedBuf = await encryptBinary(arrayBuf, chat.outKey);
+                fileDataBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
+                finalName = file.name + '.enc';
+            } else {
+                fileDataBlob = file;
+            }
 
             const formData = new FormData();
-            formData.append('file', encryptedBlob, file.name + '.enc');
+            formData.append('file', fileDataBlob, finalName);
 
             const res = await fetch(uploadUrl, { method: 'POST', body: formData });
             const uploadRes = await res.json();
 
-            const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: file.name + '.enc' });
+            const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: finalName });
             return `doc${savedDoc.doc.owner_id}_${savedDoc.doc.id}`;
         }
 
@@ -1378,10 +1434,14 @@
             try {
                 const attachStr = await uploadFileToVk(new File([blob], "voice.ogg"), true);
                 const randomId = Math.floor(Math.random() * 2000000000);
+                
+                const chat = chats[targetId];
+                const msgBody = (chat && chat.useCrypt && chat.outKey) ? "🔒[Зашифрованное голосовое сообщение]" : "Голосовое сообщение";
+
                 await vkCall("messages.send", {
                     peer_id: targetId,
                     random_id: randomId,
-                    message: "🔒[Зашифрованное голосовое сообщение]",
+                    message: msgBody,
                     attachment: attachStr
                 });
                 await fetchDialogs();
@@ -1412,13 +1472,23 @@
                     attachStr = await uploadFileToVk(selectedFile, false);
                 }
 
-                const encryptedText = text ? await encryptText(text) : "";
+                const chat = chats[targetId];
+                let finalMessage = text;
+
+                if (chat && chat.useCrypt && chat.outKey) {
+                    if (text) {
+                        finalMessage = await encryptText(text, chat.outKey);
+                    } else {
+                        finalMessage = "🔒[Файл]";
+                    }
+                }
+
                 const randomId = Math.floor(Math.random() * 2000000000);
                 
                 await vkCall("messages.send", {
                     peer_id: targetId,
                     random_id: randomId,
-                    message: encryptedText || "🔒[Файл]",
+                    message: finalMessage,
                     attachment: attachStr
                 });
 
@@ -1426,7 +1496,7 @@
                 await fetchDialogs();
                 if (currentChatId === targetId) renderMessages();
             } catch (e) {
-                alert(`Не удалось отправить зашифрованное сообщение: ${e.message || "Ошибка соединения"}`);
+                alert(`Не удалось отправить сообщение: ${e.message || "Ошибка соединения"}`);
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerText = "Отправить";
@@ -1514,6 +1584,21 @@
             });
         }
 
+        function toggleCryptForCurrentChat() {
+            const chat = chats[currentChatId];
+            if (!chat) return;
+            chat.useCrypt = !chat.useCrypt;
+            const cryptBtn = document.getElementById('toggle-crypt-btn');
+            if (chat.useCrypt) {
+                cryptBtn.classList.add('active');
+                cryptBtn.innerText = '🔒';
+            } else {
+                cryptBtn.classList.remove('active');
+                cryptBtn.innerText = '🔓';
+            }
+            saveState();
+        }
+
         function openChat(id) {
             currentChatId = id;
             const chat = chats[id];
@@ -1523,6 +1608,15 @@
             document.getElementById('active-chat-name').innerText = chat.name;
             document.getElementById('active-chat-status').innerText = `ID: ${chat.id}`;
             document.getElementById('chat-input-bar').style.display = 'flex';
+
+            const cryptBtn = document.getElementById('toggle-crypt-btn');
+            if (chat.useCrypt) {
+                cryptBtn.classList.add('active');
+                cryptBtn.innerText = '🔒';
+            } else {
+                cryptBtn.classList.remove('active');
+                cryptBtn.innerText = '🔓';
+            }
 
             updateAvatarUI(chat.id, chat.name, 'active-chat-avatar');
 
@@ -1546,7 +1640,7 @@
             }
         }
 
-        async function processAndDecryptAttachment(attachment, container, bubbleDiv) {
+        async function processAndDecryptAttachment(attachment, container, bubbleDiv, chatKeys) {
             if (attachment.type === 'doc') {
                 const doc = attachment.doc;
                 if (doc.ext === 'enc' || doc.title.endsWith('.enc')) {
@@ -1557,7 +1651,7 @@
                         try {
                             const res = await fetch(doc.url);
                             const encBuf = await res.arrayBuffer();
-                            const decBuf = await decryptBinary(encBuf);
+                            const decBuf = await decryptBinary(encBuf, chatKeys.decryptKey);
                             if (decBuf) {
                                 const realName = doc.title.slice(0, -4);
                                 let mime = "application/octet-stream";
@@ -1622,6 +1716,17 @@
                             `;
                             bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                         }
+                    } else {
+                        const docLink = document.createElement('div');
+                        docLink.className = 'document-link';
+                        docLink.innerHTML = `
+                            <div class="document-icon">🔒</div>
+                            <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
+                                <span>${escapeHtml(doc.title)}</span>
+                                <span style="font-size:11px; color:var(--error);">Ошибка расшифровки (Проверьте ключи)</span>
+                            </div>
+                        `;
+                        bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                     }
                 } else {
                     const docLink = document.createElement('a');
@@ -1650,20 +1755,39 @@
                 return;
             }
 
+            let lastDateStr = "";
+
             for (const msg of chat.messages) {
+                const msgDateObj = new Date(msg.time);
+                const msgDateStr = msgDateObj.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
+                
+                if (msgDateStr !== lastDateStr) {
+                    const divider = document.createElement('div');
+                    divider.className = 'date-divider';
+                    divider.innerText = msgDateStr;
+                    container.appendChild(divider);
+                    lastDateStr = msgDateStr;
+                }
+
                 const div = document.createElement('div');
                 div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                const timeStr = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                const timeStr = msgDateObj.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 
                 const timeSpan = document.createElement('div');
                 timeSpan.className = 'bubble-time';
                 timeSpan.innerText = timeStr;
                 div.appendChild(timeSpan);
 
+                const decryptKey = msg.out ? (chat.outKey || chat.inKey) : (chat.inKey || chat.outKey);
+
                 if (msg.attachments && msg.attachments.length > 0) {
                     msg.attachments.forEach(attach => {
-                        processAndDecryptAttachment(attach, container, div);
+                        processAndDecryptAttachment(attach, container, div, { decryptKey });
                     });
+                }
+
+                if (msg.rawText && msg.rawText.startsWith("🔒")) {
+                    msg.text = await decryptText(msg.rawText, decryptKey);
                 }
 
                 if (msg.text) {
@@ -1711,14 +1835,28 @@
             document.getElementById('profile-modal-name').innerText = chat.name;
             document.getElementById('profile-modal-id').innerText = chat.id;
             document.getElementById('profile-modal-type').innerText = chat.type;
+            
+            document.getElementById('chat-out-key-field').value = chat.outKey || "";
+            document.getElementById('chat-in-key-field').value = chat.inKey || "";
 
             updateAvatarUI(chat.id, chat.name, 'profile-modal-avatar');
 
             document.getElementById('profile-modal').classList.add('active');
         }
 
+        function updateChatKeysConfig() {
+            if (!currentChatId || !chats[currentChatId]) return;
+            chats[currentChatId].outKey = document.getElementById('chat-out-key-field').value;
+            chats[currentChatId].inKey = document.getElementById('chat-in-key-field').value;
+            saveState();
+        }
+
         function closeProfileModal() {
             document.getElementById('profile-modal').classList.remove('active');
+            if (currentChatId) {
+                renderMessages();
+                renderChats();
+            }
         }
 
         function openMediaViewer(url, type) {
