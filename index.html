@@ -11,6 +11,8 @@
             --bg-input: #14161f;
             --accent: #2481cc;          
             --accent-hover: #2f94e3;
+            --vk-color: #0077ff;
+            --vk-hover: #2688f5;
             --text-main: #f0f2f5;
             --text-muted: #70798a;
             --msg-in: #161822;
@@ -155,6 +157,44 @@
         }
         .btn:active { transform: scale(0.98); }
         .btn:disabled { background: #2c3245; color: #5a627a; cursor: not-allowed; box-shadow: none; }
+
+        .vk-btn {
+            background: var(--vk-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 119, 255, 0.3);
+        }
+
+        .vk-btn:hover {
+            background: var(--vk-hover);
+            box-shadow: 0 6px 20px rgba(0, 119, 255, 0.45);
+        }
+
+        .divider {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .25em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .25em;
+        }
 
         .error-log {
             color: var(--error);
@@ -784,9 +824,17 @@
         <div class="login-card">
             <div class="login-logo">🔒</div>
             <h1>Graph VK Crypt Client</h1>
-            <p>Вход по токену VK API с поддержкой сквозного AES-256 шифрования переписки.</p>
+            <p>Сквозное AES-256 шифрование сообщений, голосовых и файлов.</p>
+            <input type="password" id="crypt-key-field" class="login-input" placeholder="Ключ шифрования (придумайте пароль)">
+            <button class="btn vk-btn" id="vk-oauth-btn" onclick="loginWithVk()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;">
+                    <path d="M22.015 12c0-5.53-4.486-10-10.015-10S2 6.47 2 12s4.486 10 10.015 10c1.07 0 2.103-.17 3.07-.482v-2.738c-.917.26-1.895.405-2.92.405-4.24 0-7.68-3.32-7.68-7.41 0-4.088 3.44-7.408 7.68-7.408s7.682 3.32 7.682 7.408c0 1.258-.216 2.45-.604 3.528l2.428 1.28c.844-1.464 1.339-3.158 1.339-4.983z"/>
+                    <path d="M15.547 11.5c.29-.18.528-.465.656-.81.127-.346.12-.727-.02-1.07s-.42-.613-.787-.768c-.366-.154-.772-.158-1.14-.012l-5.636 2.25c-.246.098-.44.29-.544.536s-.103.52-.005.766c.098.246.29.44.536.544.246.104.52.103.766.005l5.174-2.07c.2-.08.4-.04.55.11.15.15.16.36.03.53l-3.565 4.636c-.165.215-.22.49-.153.75s.235.483.46.613c.224.13.498.147.74.047s.418-.305.492-.566l1.41-4.814c.057-.195.18-.363.344-.473z"/>
+                </svg>
+                ВОЙТИ ЧЕРЕЗ VK ID
+            </button>
+            <div class="divider">или вручную по токену</div>
             <input type="password" id="token-field" class="login-input" placeholder="Введите токен VK">
-            <input type="password" id="crypt-key-field" class="login-input" placeholder="Ключ шифрования (пароль)">
             <button class="btn" id="login-action-btn" onclick="tryLogin()">ВОЙТИ</button>
             <div id="login-error" class="error-log"></div>
         </div>
@@ -897,6 +945,18 @@
         };
 
         window.onload = function() {
+            if (window.location.hash) {
+                const params = new URLSearchParams(window.location.hash.substring(1));
+                const token = params.get('access_token');
+                const savedCryptKey = safeStorage.get("temp_crypt_key");
+                
+                if (token && savedCryptKey) {
+                    safeStorage.set("saved_vk_token", token);
+                    safeStorage.set("saved_crypt_key", savedCryptKey);
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+
             const savedToken = safeStorage.get("saved_vk_token");
             const savedCryptKey = safeStorage.get("saved_crypt_key");
             const savedChats = safeStorage.get("saved_vk_chats");
@@ -1007,24 +1067,52 @@
             }
         }
 
-        async function vkCall(method, params = {}) {
-            params.access_token = botToken;
-            params.v = '5.131';
-            const query = Object.keys(params)
-                .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
-                .join('&');
-            const target = `https://api.vk.com/method/${method}?${query}`;
-            const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(target);
-            
-            const response = await fetch(proxyUrl);
-            if (!response.ok) {
-                throw new Error("Ошибка прокси-сервера. Попробуйте снова.");
+        function vkCall(method, params = {}) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'vk_cb_' + Math.round(Math.random() * 1000000);
+                params.access_token = botToken;
+                params.v = '5.131';
+                params.callback = callbackName;
+                
+                const query = Object.keys(params)
+                    .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+                    .join('&');
+                
+                const script = document.createElement('script');
+                script.src = `https://api.vk.com/method/${method}?${query}`;
+                
+                window[callbackName] = (response) => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    if (response.error) {
+                        reject(new Error(response.error.error_msg || `Ошибка VK API [${response.error.error_code}]`));
+                    } else {
+                        resolve(response.response);
+                    }
+                };
+                
+                script.onerror = () => {
+                    delete window[callbackName];
+                    if (document.body.contains(script)) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error("Ошибка выполнения сетевого запроса VK API."));
+                };
+                
+                document.body.appendChild(script);
+            });
+        }
+
+        function loginWithVk() {
+            const cryptField = document.getElementById('crypt-key-field');
+            const cryptKey = cryptField.value.trim();
+            if (!cryptKey) {
+                showLoginError("Пожалуйста, сначала укажите Ключ шифрования (пароль), чтобы защитить переписку!");
+                return;
             }
-            const data = await response.json();
-            if (data.error) {
-                throw new Error(data.error.error_msg || `Ошибка VK API [${data.error.error_code}]`);
-            }
-            return data.response;
+            safeStorage.set("temp_crypt_key", cryptKey);
+            const redirectUri = window.location.href.split('#')[0];
+            window.location.href = `https://oauth.vk.com/authorize?client_id=2685278&scope=messages,photos,video,docs,status,offline&redirect_uri=${encodeURIComponent(redirectUri)}&display=page&response_type=token`;
         }
 
         async function tryLogin(tokenOverride = null, cryptOverride = null) {
@@ -1037,7 +1125,7 @@
             const cryptKey = cryptOverride || cryptField.value.trim();
 
             if (!token || !cryptKey) {
-                showLoginError("Пожалуйста, заполните все поля.");
+                showLoginError("Пожалуйста, заполните Ключ шифрования и введите токен.");
                 return;
             }
 
@@ -1057,8 +1145,10 @@
                     safeStorage.set("saved_crypt_key", cryptKey);
 
                     document.getElementById('bot-name-display').innerText = `${vkUser.first_name} ${vkUser.last_name}`;
-                    document.getElementById('bot-avatar-img').style.backgroundImage = `url(${vkUser.photo_100})`;
-                    document.getElementById('bot-avatar-img').innerText = "";
+                    if (vkUser.photo_100) {
+                        document.getElementById('bot-avatar-img').style.backgroundImage = `url(${vkUser.photo_100})`;
+                        document.getElementById('bot-avatar-img').innerText = "";
+                    }
 
                     document.getElementById('login-screen').style.opacity = 0;
                     setTimeout(() => document.getElementById('login-screen').style.display = 'none', 300);
@@ -1241,8 +1331,7 @@
             const formData = new FormData();
             formData.append('file', encryptedBlob, file.name + '.enc');
 
-            const proxyUploadUrl = `https://corsproxy.io/?` + encodeURIComponent(uploadUrl);
-            const res = await fetch(proxyUploadUrl, { method: 'POST', body: formData });
+            const res = await fetch(uploadUrl, { method: 'POST', body: formData });
             const uploadRes = await res.json();
 
             const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: file.name + '.enc' });
@@ -1467,8 +1556,7 @@
 
                     if (!decryptedUrl) {
                         try {
-                            const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(doc.url);
-                            const res = await fetch(proxyUrl);
+                            const res = await fetch(doc.url);
                             const encBuf = await res.arrayBuffer();
                             const decBuf = await decryptBinary(encBuf);
                             if (decBuf) {
