@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Web Client Ultra</title>
+    <title>VK Meow Crypt Web (GitHub Pages Edition)</title>
     <style>
         :root {
             --bg-dark: #000000;         /* AMOLED черный */
@@ -564,7 +564,7 @@
         <div class="login-card">
             <div class="login-logo">🐾</div>
             <h1>VK Meow Crypt Web</h1>
-            <p>Стабильное мгновенное шифрование Сайт-Сайт</p>
+            <p>Стабильное мгновенное шифрование Сайт-Сайт (GitHub Pages Edition)</p>
             
             <div class="instruction-box">
                 <b>Инструкция получения токена:</b>
@@ -676,6 +676,9 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+        
+        // Переменные для динамического регулирования интервала полинга
+        let pollerInterval = 1500; 
 
         const decryptedTextCache = {}; 
         let renderedMessageIds = new Set(); 
@@ -686,12 +689,23 @@
         };
 
         window.onload = function() {
+            // ОПТИМИЗАЦИЯ ДЛЯ GITHUB PAGES: Автоматически парсим токен из ссылки, если настроен собственный redirect_uri
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            let parsedToken = hashParams.get("access_token");
+            
             const savedToken = safeStorage.get("saved_vk_token");
             const savedChats = safeStorage.get("saved_vk_chats");
+
             if (savedChats) {
                 try { chats = JSON.parse(savedChats); } catch(e) { chats = {}; }
             }
-            if (savedToken) {
+
+            if (parsedToken) {
+                // Если зашли по редиректу OAuth
+                window.location.hash = ""; // Очищаем строку
+                document.getElementById('token-field').value = parsedToken;
+                tryLogin(parsedToken);
+            } else if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
                 tryLogin(savedToken);
             }
@@ -974,13 +988,15 @@
             }
         }
 
-        // --- УДАЛЕНИЕ CORS-БЛОКИРОВОК (КАРУСЕЛЬ ПРОКСИ-СЕРВЕРОВ) ---
+        // --- УДАЛЕНИЕ CORS-БЛОКИРОВОК (КАРУСЕЛЬ ДЛЯ GITHUB PAGES) ---
 
         async function fetchBinaryData(url) {
+            // Массив доступных шлюзов для обхода жесткой CORS политики GitHub Pages
             const proxies = [
-                url, 
+                url, // Напрямую
                 "https://corsproxy.io/?" + encodeURIComponent(url), 
-                "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)
+                "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+                "https://thingproxy.freeboard.io/fetch/" + url
             ];
             for (const target of proxies) {
                 try {
@@ -989,10 +1005,10 @@
                         return await res.arrayBuffer();
                     }
                 } catch(e) {
-                    console.warn("Proxy failed: " + target);
+                    console.warn("CORS Proxy bypass fallback used for: " + target);
                 }
             }
-            throw new Error("Не удалось загрузить медиа-файл");
+            throw new Error("Не удалось обойти CORS на GitHub Pages");
         }
 
         // --- СЕТЕВОЙ КЛИЕНТ VK API ---
@@ -1015,7 +1031,7 @@
                     delete window[callbackName];
                     document.body.removeChild(script);
                     if (response.error) {
-                        reject(new Error(response.error.error_msg));
+                        reject(response.error);
                     } else {
                         resolve(response.response);
                     }
@@ -1063,7 +1079,7 @@
                     startPoller();
                 }
             } catch (e) {
-                errorDiv.innerText = "Ошибка входа: " + e.message;
+                errorDiv.innerText = "Ошибка входа: " + (e.message || JSON.stringify(e));
                 errorDiv.style.display = "block";
             } finally {
                 loginBtn.disabled = false;
@@ -1115,10 +1131,10 @@
             } catch (e) {}
         }
 
-        // --- УЛЬТРАСТАБИЛЬНЫЙ ВЫСОКОСКОРОСТНОЙ СИНХРОНИЗАТОР (ПОЛИНГ) БЕЗ CORS ЗАВИСАНИЙ ---
+        // --- ВЫСОКОСКОРОСТНОЙ ПОЛЛИНГ С ЗАЩИТОЙ FLOOD CONTROL ---
 
         function startPoller() {
-            setInterval(async () => {
+            async function pollIteration() {
                 if (!botToken) return;
                 try {
                     const data = await vkCall("messages.getConversations", { count: 30 });
@@ -1152,10 +1168,19 @@
                     if (anyNewMessages) {
                         await fetchDialogs();
                     }
+                    
+                    // Восстанавливаем интервал на стандартный при успешном вызове
+                    pollerInterval = 1500;
                 } catch (e) {
-                    console.warn("Polling interval failed, silently recovering...");
+                    if (e && e.error_code === 9) { // Ошибка 9: Flood control (слишком много запросов)
+                        console.warn("Flood control hit, backing off poller...");
+                        pollerInterval = Math.min(pollerInterval + 1000, 10000); // Плавно замедляемся до 10 сек
+                    }
+                } finally {
+                    setTimeout(pollIteration, pollerInterval);
                 }
-            }, 1500); // 1.5 секунды - максимальная скорость без ухода в лимиты VK API
+            }
+            setTimeout(pollIteration, pollerInterval);
         }
 
         async function loadHistoryForChat(peerId) {
@@ -1221,9 +1246,17 @@
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
-            // Прямая отправка файла на CDN VK без использования уязвимых CORS прокси-серверов
-            const res = await fetch(uploadUrl, { method: 'POST', body: formData });
-            const uploadRes = await res.json();
+            // ОПТИМИЗАЦИЯ GITHUB PAGES: Пробуем прямую отправку. Если CORS блокирует - автоматически пускаем через CORS туннель
+            let uploadRes;
+            try {
+                const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+                uploadRes = await res.json();
+            } catch(corsError) {
+                console.warn("Direct upload blocked by CORS on GitHub Pages, routing through proxy tunnel...");
+                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(uploadUrl);
+                const res = await fetch(proxyUrl, { method: 'POST', body: formData });
+                uploadRes = await res.json();
+            }
 
             const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: finalName });
             return `doc${savedDoc.doc.owner_id}_${savedDoc.doc.id}`;
