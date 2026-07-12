@@ -650,6 +650,7 @@
             border: none;
             font-size: 18px;
             box-shadow: 0 4px 12px rgba(36, 129, 204, 0.3);
+            flex-shrink: 0 !important; /* Гарантия видимости на мобильных */
         }
 
         #send-btn:hover {
@@ -888,7 +889,7 @@
             <p>Сквозное AES-256 шифрование сообщений, голосовых и файлов.</p>
             
             <div class="instruction-box">
-                <b>Инструкся получения токена:</b>
+                <b>Инструкция получения токена:</b>
                 <ol>
                     <li>Нажмите на ссылку ниже для получения токена:
                         <br>
@@ -1077,16 +1078,34 @@
             return derived;
         }
 
-        function bytesToHex(bytes) {
-            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        // Чистый стандартный Base64 перевод
+        function bytesToBase64(bytes) {
+            let binary = '';
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
         }
 
-        function hexToBytes(hex) {
-            const bytes = new Uint8Array(hex.length / 2);
-            for (let i = 0; i < bytes.length; i++) {
-                bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+        function base64ToBytes(base64) {
+            const binary = atob(base64);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
             }
             return bytes;
+        }
+
+        // Очистка HTML-искажений ВКонтакте
+        function unescapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&amp;/g, "&")
+                       .replace(/&lt;/g, "<")
+                       .replace(/&gt;/g, ">")
+                       .replace(/&quot;/g, '"')
+                       .replace(/&#39;/g, "'");
         }
 
         async function encryptText(text, keyStr) {
@@ -1103,18 +1122,19 @@
                 const combined = new Uint8Array(iv.length + ciphertext.byteLength);
                 combined.set(iv);
                 combined.set(new Uint8Array(ciphertext), iv.length);
-                return "🔒" + bytesToHex(combined);
+                return "🔒" + bytesToBase64(combined);
             } catch(e) {
                 return text;
             }
         }
 
-        async function decryptText(encryptedHex, keyStr) {
-            if (!encryptedHex || !encryptedHex.startsWith("🔒")) return encryptedHex;
+        async function decryptText(encryptedBase64, keyStr) {
+            if (!encryptedBase64 || !encryptedBase64.startsWith("🔒")) return encryptedBase64;
             if (!keyStr) return "[Зашифровано - введите пароль в Подробнее]";
             try {
+                const cleanedBase64 = unescapeHtml(encryptedBase64.slice(1));
                 const derivedKey = await getDerivedKey(keyStr);
-                const combined = hexToBytes(encryptedHex.slice(1));
+                const combined = base64ToBytes(cleanedBase64);
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
                 const dec = new TextDecoder();
@@ -1431,12 +1451,9 @@
             } catch(e) {}
         }
 
+        // Загрузка документов в ВК (с шифрованием в .meow, .mur, .mew)
         async function uploadFileToVk(file, isVoice = false) {
-            const serverMethod = "docs.getMessagesUploadServer";
-            const params = { peer_id: currentChatId };
-            if (isVoice) params.type = "audio_message";
-
-            const uploadServer = await vkCall(serverMethod, params);
+            const uploadServer = await vkCall("docs.getMessagesUploadServer", { peer_id: currentChatId, type: "doc" });
             const uploadUrl = uploadServer.upload_url;
 
             let fileDataBlob;
@@ -1447,7 +1464,19 @@
                 const arrayBuf = await file.arrayBuffer();
                 const encryptedBuf = await encryptBinary(arrayBuf, chat.sharedKey);
                 fileDataBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
-                finalName = file.name + '.enc';
+                
+                if (isVoice) {
+                    finalName = "voice.ogg.mew";
+                } else {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+                        finalName = file.name + '.meow';
+                    } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
+                        finalName = file.name + '.mur';
+                    } else {
+                        finalName = file.name + '.enc';
+                    }
+                }
             } else {
                 fileDataBlob = file;
             }
@@ -1708,33 +1737,14 @@
             }
         }
 
+        // Автоматическая расшифровка .meow, .mur, .mew файлов и рендер
         async function processAndDecryptAttachment(attachment, container, bubbleDiv, decryptKey) {
-            if (attachment.type === 'photo') {
-                const sizes = attachment.photo.sizes;
-                const bestSize = sizes[sizes.length - 1].url;
-                const img = document.createElement('img');
-                img.src = bestSize;
-                img.className = 'bubble-media';
-                img.onclick = () => openMediaViewer(bestSize, 'photo');
-                bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
-            } 
-            else if (attachment.type === 'video') {
-                const video = attachment.video;
-                const videoText = document.createElement('div');
-                videoText.className = 'document-link';
-                videoText.innerHTML = `
-                    <div class="document-icon">📹</div>
-                    <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                        <span>Видеозапись: ${escapeHtml(video.title)}</span>
-                        <span style="font-size:11px; color:var(--text-muted);">Нажмите, чтобы открыть в ВК</span>
-                    </div>
-                `;
-                videoText.onclick = () => window.open(`https://vk.com/video${video.owner_id}_${video.id}`, '_blank');
-                bubbleDiv.insertBefore(videoText, bubbleDiv.lastChild);
-            }
-            else if (attachment.type === 'doc') {
+            if (attachment.type === 'doc') {
                 const doc = attachment.doc;
-                if (doc.ext === 'enc' || doc.title.endsWith('.enc')) {
+                const title = doc.title.toLowerCase();
+                const isEncrypted = title.endsWith('.meow') || title.endsWith('.mur') || title.endsWith('.mew') || title.endsWith('.enc');
+
+                if (isEncrypted) {
                     const decryptedCacheKey = "dec_file_" + doc.id;
                     let decryptedUrl = sessionStorage.getItem(decryptedCacheKey);
 
@@ -1745,12 +1755,10 @@
                             const encBuf = await res.arrayBuffer();
                             const decBuf = await decryptBinary(encBuf, decryptKey);
                             if (decBuf) {
-                                const realName = doc.title.slice(0, -4);
                                 let mime = "application/octet-stream";
-                                if (realName.endsWith('.png')) mime = 'image/png';
-                                else if (realName.endsWith('.jpg') || realName.endsWith('.jpeg')) mime = 'image/jpeg';
-                                else if (realName.endsWith('.mp4')) mime = 'video/mp4';
-                                else if (realName.endsWith('.ogg')) mime = 'audio/ogg';
+                                if (title.endsWith('.meow')) mime = 'image/png';
+                                else if (title.endsWith('.mur')) mime = 'video/mp4';
+                                else if (title.endsWith('.mew')) mime = 'audio/ogg';
 
                                 const blob = new Blob([decBuf], { type: mime });
                                 decryptedUrl = URL.createObjectURL(blob);
@@ -1760,21 +1768,23 @@
                     }
 
                     if (decryptedUrl) {
-                        const realName = doc.title.slice(0, -4);
-                        if (realName.endsWith('.png') || realName.endsWith('.jpg') || realName.endsWith('.jpeg')) {
+                        if (title.endsWith('.meow')) {
+                            // Расшифрованная фото (.meow)
                             const img = document.createElement('img');
                             img.src = decryptedUrl;
                             img.className = 'bubble-media';
                             img.onclick = (e) => { e.stopPropagation(); openMediaViewer(decryptedUrl, 'photo'); };
                             bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
-                        } else if (realName.endsWith('.mp4')) {
+                        } else if (title.endsWith('.mur')) {
+                            // Расшифрованное видео (.mur)
                             const video = document.createElement('video');
                             video.src = decryptedUrl;
                             video.className = 'bubble-media';
                             video.controls = true;
                             video.onclick = (e) => { e.stopPropagation(); openMediaViewer(decryptedUrl, 'video'); };
                             bubbleDiv.insertBefore(video, bubbleDiv.lastChild);
-                        } else if (realName.endsWith('.ogg')) {
+                        } else if (title.endsWith('.mew')) {
+                            // Расшифрованное голосовое (.mew)
                             const playerDiv = document.createElement('div');
                             playerDiv.className = 'voice-player';
                             const playBtn = document.createElement('button');
@@ -1785,16 +1795,18 @@
                             metaDiv.className = 'voice-meta';
                             const titleSpan = document.createElement('span');
                             titleSpan.className = 'voice-title';
-                            titleSpan.innerText = 'Запись';
+                            titleSpan.innerText = 'Голосовое сообщение';
                             const descSpan = document.createElement('span');
                             descSpan.className = 'voice-duration';
-                            descSpan.innerText = 'Расшифровано';
+                            descSpan.innerText = 'Расшифровано (.mew)';
                             metaDiv.appendChild(titleSpan);
                             metaDiv.appendChild(descSpan);
                             playerDiv.appendChild(playBtn);
                             playerDiv.appendChild(metaDiv);
                             bubbleDiv.insertBefore(playerDiv, bubbleDiv.lastChild);
                         } else {
+                            // Обычный файл (.enc)
+                            const realName = doc.title.slice(0, -4);
                             const docLink = document.createElement('a');
                             docLink.href = decryptedUrl;
                             docLink.download = realName;
@@ -1803,7 +1815,7 @@
                                 <div class="document-icon">📄</div>
                                 <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
                                     <span>${escapeHtml(realName)}</span>
-                                    <span style="font-size:11px; color:var(--text-muted);">Зашифрованный файл</span>
+                                    <span style="font-size:11px; color:var(--text-muted);">Зашифрованный файл (.enc)</span>
                                 </div>
                             `;
                             bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
@@ -1834,6 +1846,27 @@
                     `;
                     bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                 }
+            } else if (attachment.type === 'photo') {
+                const sizes = attachment.photo.sizes;
+                const bestSize = sizes[sizes.length - 1].url;
+                const img = document.createElement('img');
+                img.src = bestSize;
+                img.className = 'bubble-media';
+                img.onclick = () => openMediaViewer(bestSize, 'photo');
+                bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
+            } else if (attachment.type === 'video') {
+                const video = attachment.video;
+                const videoText = document.createElement('div');
+                videoText.className = 'document-link';
+                videoText.innerHTML = `
+                    <div class="document-icon">📹</div>
+                    <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
+                        <span>Видеозапись: ${escapeHtml(video.title)}</span>
+                        <span style="font-size:11px; color:var(--text-muted);">Нажмите, чтобы открыть в ВК</span>
+                    </div>
+                `;
+                videoText.onclick = () => window.open(`https://vk.com/video${video.owner_id}_${video.id}`, '_blank');
+                bubbleDiv.insertBefore(videoText, bubbleDiv.lastChild);
             }
         }
 
