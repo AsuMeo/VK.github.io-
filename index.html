@@ -670,7 +670,6 @@
         let chats = {};
         let currentChatId = null;
         let currentTab = "all";
-        let isPolling = false;
         let selectedFile = null;
         let mediaRecorder = null;
         let audioChunks = [];
@@ -713,7 +712,7 @@
                 safeStorage.set("ec_pub", bytesToBase64(pubBuf));
                 safeStorage.set("ec_priv", bytesToBase64(privBuf));
             } catch (e) {
-                console.error("EC Key Pair Generation failed:", e);
+                console.error(e);
             }
         }
 
@@ -960,7 +959,7 @@
                     { name: "AES-GCM", iv: baseIv }, baseAesKey, cipher
                 );
             } catch (e) {
-                console.error("Binary decryption error:", e);
+                console.error(e);
                 return null;
             }
         }
@@ -978,10 +977,10 @@
                         return await res.arrayBuffer();
                     }
                 } catch(e) {
-                    console.warn("Proxy failed: " + target);
+                    console.warn(target);
                 }
             }
-            throw new Error("Не удалось загрузить медиа-файл");
+            throw new Error();
         }
 
         function vkCall(method, params = {}) {
@@ -1009,7 +1008,7 @@
                 };
                 script.onerror = () => {
                     delete window[callbackName];
-                    reject(new Error("Ошибка VK API"));
+                    reject(new Error());
                 };
                 document.body.appendChild(script);
             });
@@ -1108,39 +1107,48 @@
                 if (isPollingActive || !botToken) return;
                 isPollingActive = true;
                 try {
-                    const data = await vkCall("messages.getConversations", { count: 30 });
-                    let anyNewMessages = false;
-                    let currentChatUpdated = false;
-
-                    for (const item of data.items) {
-                        const peerId = item.conversation.peer.id;
-                        const lastMsgObj = item.last_message;
-
-                        if (!chats[peerId]) {
-                            anyNewMessages = true;
-                            continue;
-                        }
-
-                        const localHistory = chats[peerId].messages;
-                        const lastLocalMsg = localHistory[localHistory.length - 1];
-
-                        if (!lastLocalMsg || lastLocalMsg.id !== lastMsgObj.id) {
-                            anyNewMessages = true;
-                            if (peerId === currentChatId) {
-                                currentChatUpdated = true;
+                    if (currentChatId) {
+                        const res = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 40 });
+                        if (res && res.items) {
+                            const chat = chats[currentChatId];
+                            if (chat) {
+                                const existingIds = new Set(chat.messages.map(m => m.id));
+                                let addedNew = false;
+                                const items = [...res.items].reverse();
+                                
+                                for (const item of items) {
+                                    if (!existingIds.has(item.id)) {
+                                        const optIndex = chat.messages.findIndex(m => m.isOptimistic && m.rawText === item.text);
+                                        if (optIndex !== -1) {
+                                            chat.messages[optIndex].id = item.id;
+                                            chat.messages[optIndex].isOptimistic = false;
+                                            chat.messages[optIndex].attachments = item.attachments || [];
+                                        } else {
+                                            chat.messages.push({
+                                                id: item.id,
+                                                text: item.text,
+                                                rawText: item.text,
+                                                time: item.date * 1000,
+                                                out: item.from_id === vkUser.id,
+                                                attachments: item.attachments || []
+                                            });
+                                            addedNew = true;
+                                        }
+                                    }
+                                }
+                                if (addedNew) {
+                                    chat.messages.sort((a, b) => a.time - b.time);
+                                    await renderMessages();
+                                }
                             }
                         }
                     }
 
-                    if (currentChatUpdated && currentChatId) {
-                        await loadHistoryForChat(currentChatId);
-                        await renderMessages();
-                    }
-                    if (anyNewMessages) {
+                    if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 2000) {
                         await fetchDialogs();
+                        window.lastSidebarUpdate = Date.now();
                     }
                 } catch (e) {
-                    console.warn("Fast check failed...");
                 } finally {
                     isPollingActive = false;
                 }
@@ -1343,7 +1351,7 @@
                                 sessionStorage.setItem(decryptedCacheKey, decryptedUrl);
                             }
                         } catch (e) {
-                            console.error("Media decrypt error:", e);
+                            console.error(e);
                             attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось расшифровать</span>`;
                             return;
                         }
