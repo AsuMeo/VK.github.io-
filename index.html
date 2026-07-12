@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Web Client PRO</title>
+    <title>VK Meow Web Client Ultra</title>
     <style>
         :root {
             --bg-dark: #000000;         /* AMOLED черный */
@@ -367,7 +367,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            animation: bubbleIntro 0.15s cubic-bezier(0.1, 0.9, 0.2, 1);
+            animation: bubbleIntro 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
         }
 
         @keyframes bubbleIntro {
@@ -427,7 +427,6 @@
             color: var(--accent);
         }
 
-        /* Полная адаптивность панели ввода */
         .chat-input-bar {
             padding: 12px 16px;
             background: var(--bg-surface);
@@ -447,7 +446,7 @@
             display: flex;
             align-items: flex-end;
             padding: 4px 10px;
-            min-width: 0; /* Разрешает блоку корректно сжиматься на смартфонах */
+            min-width: 0;
         }
 
         .input-side-btn {
@@ -492,7 +491,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            flex-shrink: 0; /* Запрещает сжимать кнопку отправки */
+            flex-shrink: 0;
         }
 
         .action-round-btn.voice-active {
@@ -565,7 +564,7 @@
         <div class="login-card">
             <div class="login-logo">🐾</div>
             <h1>VK Meow Crypt Web</h1>
-            <p>Ультрабыстрое сквозное шифрование Сайт-Сайт в реальном времени</p>
+            <p>Стабильное мгновенное шифрование Сайт-Сайт</p>
             
             <div class="instruction-box">
                 <b>Инструкция получения токена:</b>
@@ -961,7 +960,6 @@
                     } catch(e) {}
                 }
 
-                // Классический [MEOW] расшифровщик
                 const baseIv = enc.slice(0, 12);
                 const cipher = enc.slice(12);
                 const baseAesKey = await window.crypto.subtle.importKey(
@@ -976,13 +974,13 @@
             }
         }
 
-        // --- УДАЛЕНИЕ CORS-БЛОКИРОВОК (ОТКАТOУСТОЙЧИВАЯ СКАЧКА) ---
+        // --- УДАЛЕНИЕ CORS-БЛОКИРОВОК (КАРУСЕЛЬ ПРОКСИ-СЕРВЕРОВ) ---
 
         async function fetchBinaryData(url) {
             const proxies = [
-                url, // Напрямую
-                "https://corsproxy.io/?" + encodeURIComponent(url), // Быстрый прокси
-                "https://api.allorigins.win/raw?url=" + encodeURIComponent(url) // Надежный прокси
+                url, 
+                "https://corsproxy.io/?" + encodeURIComponent(url), 
+                "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)
             ];
             for (const target of proxies) {
                 try {
@@ -994,7 +992,7 @@
                     console.warn("Proxy failed: " + target);
                 }
             }
-            throw new Error("Не удалось загрузить зашифрованный медиа-ресурс");
+            throw new Error("Не удалось загрузить медиа-файл");
         }
 
         // --- СЕТЕВОЙ КЛИЕНТ VK API ---
@@ -1062,7 +1060,7 @@
 
                     document.getElementById('login-screen').style.display = 'none';
                     await fetchDialogs();
-                    startLongPolling();
+                    startPoller();
                 }
             } catch (e) {
                 errorDiv.innerText = "Ошибка входа: " + e.message;
@@ -1117,79 +1115,52 @@
             } catch (e) {}
         }
 
-        // --- БЕСШОВНЫЙ РЕАЛ-ТАЙМ СЛУШАТЕЛЬ (LONG POLLING) ---
+        // --- УЛЬТРАСТАБИЛЬНЫЙ ВЫСОКОСКОРОСТНОЙ СИНХРОНИЗАТОР (ПОЛИНГ) БЕЗ CORS ЗАВИСАНИЙ ---
 
-        async function startLongPolling() {
-            if (isPolling) return;
-            isPolling = true;
-            try {
-                const serverData = await vkCall("messages.getLongPollServer", { lp_version: 3 });
-                let ts = serverData.ts;
-                while (isPolling) {
-                    try {
-                        const response = await fetch(`https://${serverData.server}?act=a_check&key=${serverData.key}&ts=${ts}&wait=25&mode=2&version=3`);
-                        const update = await response.json();
-                        if (update.ts) ts = update.ts;
+        function startPoller() {
+            setInterval(async () => {
+                if (!botToken) return;
+                try {
+                    const data = await vkCall("messages.getConversations", { count: 30 });
+                    let anyNewMessages = false;
+                    let currentChatUpdated = false;
 
-                        if (update.updates) {
-                            let updatedAny = false;
-                            for (const up of update.updates) {
-                                if (up[0] === 4) { // Код 4: Новое сообщение
-                                    const peerId = up[3];
-                                    const msgId = up[1];
-                                    const flags = up[2];
-                                    const timestamp = up[4];
-                                    const rawText = up[5];
-                                    const isOut = (flags & 2) !== 0;
+                    for (const item of data.items) {
+                        const peerId = item.conversation.peer.id;
+                        const lastMsgObj = item.last_message;
 
-                                    updatedAny = true;
+                        if (!chats[peerId]) {
+                            anyNewMessages = true;
+                            continue;
+                        }
 
-                                    if (!chats[peerId]) {
-                                        chats[peerId] = { id: peerId, name: `ID ${peerId}`, photo: '', type: 'private', online: false, messages: [] };
-                                    }
+                        const localHistory = chats[peerId].messages;
+                        const lastLocalMsg = localHistory[localHistory.length - 1];
 
-                                    // Быстрая вставка сообщения без лишних API-запросов
-                                    const alreadyExists = chats[peerId].messages.some(m => m.id === msgId);
-                                    if (!alreadyExists) {
-                                        // Если это сообщение, отправленное нами же, и в списке есть "временное" (Optimistic) сообщение, заменяем его
-                                        const optIndex = chats[peerId].messages.findIndex(m => m.isOptimistic && m.rawText === rawText);
-                                        if (optIndex !== -1) {
-                                            chats[peerId].messages[optIndex].id = msgId;
-                                            chats[peerId].messages[optIndex].isOptimistic = false;
-                                        } else {
-                                            chats[peerId].messages.push({
-                                                id: msgId,
-                                                text: rawText,
-                                                rawText: rawText,
-                                                time: timestamp * 1000,
-                                                out: isOut,
-                                                attachments: []
-                                            });
-                                        }
-                                    }
-
-                                    if (peerId === currentChatId) {
-                                        await renderMessages();
-                                    }
-                                }
-                            }
-                            if (updatedAny) {
-                                await fetchDialogs();
+                        if (!lastLocalMsg || lastLocalMsg.id !== lastMsgObj.id) {
+                            anyNewMessages = true;
+                            if (peerId === currentChatId) {
+                                currentChatUpdated = true;
                             }
                         }
-                    } catch (e) {
-                        await new Promise(r => setTimeout(r, 2000));
                     }
+
+                    if (currentChatUpdated && currentChatId) {
+                        await loadHistoryForChat(currentChatId);
+                        await renderMessages();
+                    }
+                    if (anyNewMessages) {
+                        await fetchDialogs();
+                    }
+                } catch (e) {
+                    console.warn("Polling interval failed, silently recovering...");
                 }
-            } catch (e) {
-                isPolling = false;
-                setTimeout(startLongPolling, 3000);
-            }
+            }, 1500); // 1.5 секунды - максимальная скорость без ухода в лимиты VK API
         }
 
         async function loadHistoryForChat(peerId) {
             try {
-                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 50 });
+                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 100 });
                 if (res && res.items) {
                     chats[peerId].messages = [];
                     res.items.reverse().forEach(item => {
@@ -1207,7 +1178,7 @@
             } catch(e) {}
         }
 
-        // --- ПРЯМАЯ ЗАГРУЗКА И ОТПРАВКА БЕЗ БИОС-ПРОКСИ (ФОТО, ВИДЕО) ---
+        // --- ШИФРОВАНИЕ И ОТПРАВКА ---
 
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
@@ -1250,7 +1221,7 @@
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
-            // МГНОВЕННЫЙ DIRECT-ЗАПРОС БЕЗ ПРОКСИ (VK CDN поддерживает CORS по умолчанию!)
+            // Прямая отправка файла на CDN VK без использования уязвимых CORS прокси-серверов
             const res = await fetch(uploadUrl, { method: 'POST', body: formData });
             const uploadRes = await res.json();
 
@@ -1268,7 +1239,6 @@
             textarea.style.height = "auto";
             handleTypingEffect();
 
-            // 1. Шифруем
             let finalMessage = text;
             const isEncrypted = loadChatEncryptState(targetId);
             if (isEncrypted && text) {
@@ -1277,7 +1247,7 @@
                 finalMessage = MEOW_TAG + " Файл";
             }
 
-            // 2. Оптимистичный UI: моментально добавляем в чат до ухода запроса
+            // OPTIMISTIC UI: Моментально добавляем отправленное в контейнер на экране
             const tempId = 'opt-' + Math.random();
             chats[targetId].messages.push({
                 id: tempId,
@@ -1304,7 +1274,7 @@
                     attachment: attachStr
                 });
 
-                // Заменяем временный ID на настоящий
+                // Подменяем временный ID на официальный полученный от серверов VK
                 const optMsg = chats[targetId].messages.find(m => m.id === tempId);
                 if (optMsg) {
                     optMsg.id = vkResponse;
@@ -1316,7 +1286,6 @@
                 await fetchDialogs();
             } catch (e) {
                 alert(`Сбой отправки: ${e.message}`);
-                // В случае провала убираем фантомное сообщение
                 chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
                 await renderMessages();
             }
@@ -1614,6 +1583,16 @@
             document.getElementById('active-chat-name').innerText = chat.name;
             document.getElementById('active-chat-status').innerText = `ID: ${chat.id} ${chat.online ? '(в сети)' : ''}`;
             document.getElementById('chat-input-bar').style.display = 'flex';
+
+            // Отрисовка аватарки в шапке чата
+            const chatHeaderAvatar = document.getElementById('active-chat-avatar');
+            if (chat.photo) {
+                chatHeaderAvatar.style.backgroundImage = `url(${chat.photo})`;
+                chatHeaderAvatar.innerText = "";
+            } else {
+                chatHeaderAvatar.style.backgroundImage = "";
+                chatHeaderAvatar.innerText = chat.name[0].toUpperCase();
+            }
 
             const cryptBtn = document.getElementById('toggle-crypt-btn');
             const isEnc = loadChatEncryptState(id);
