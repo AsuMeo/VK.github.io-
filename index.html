@@ -566,12 +566,13 @@
         }
 
         .chat-input-bar {
-            padding: 16px 24px;
+            padding: 12px 16px;
             background: var(--bg-surface);
             display: flex;
             align-items: flex-end;
-            gap: 14px;
+            gap: 10px;
             border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
         }
 
         .input-controls {
@@ -579,11 +580,12 @@
             flex-direction: column;
             flex: 1;
             position: relative;
+            min-width: 0;
         }
 
         .textarea-message {
             flex: 1;
-            padding: 14px 18px;
+            padding: 12px 16px;
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             border-radius: 16px;
@@ -592,7 +594,7 @@
             font-size: 14.5px;
             resize: none;
             max-height: 120px;
-            min-height: 48px;
+            min-height: 44px;
             overflow-y: auto;
             transition: border-color 0.2s;
         }
@@ -601,23 +603,23 @@
             border-color: rgba(36, 129, 204, 0.4);
         }
 
-        .attachment-btn, .voice-btn {
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            color: #a0a5b5;
-            font-size: 18px;
-            cursor: pointer;
-            width: 48px;
-            height: 48px;
-            border-radius: 16px;
+        .attachment-btn, .voice-btn, .toggle-crypt-btn, #send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: #a0a5b5;
+            font-size: 16px;
+            cursor: pointer;
             flex-shrink: 0;
             transition: all 0.2s ease;
         }
 
-        .attachment-btn:hover, .voice-btn:hover {
+        .attachment-btn:hover, .voice-btn:hover, .toggle-crypt-btn:hover {
             color: white;
             background: rgba(255,255,255,0.04);
             border-color: rgba(255,255,255,0.1);
@@ -636,26 +638,29 @@
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
         }
 
-        .toggle-crypt-btn {
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            color: #a0a5b5;
-            font-size: 18px;
-            cursor: pointer;
-            width: 48px;
-            height: 48px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.2s ease;
-        }
-
         .toggle-crypt-btn.active {
             color: var(--success);
             border-color: var(--success);
             background: rgba(46, 204, 113, 0.05);
+        }
+
+        #send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(36, 129, 204, 0.3);
+        }
+
+        #send-btn:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 6px 16px rgba(36, 129, 204, 0.45);
+        }
+
+        #send-btn:disabled {
+            background: #2c3245;
+            color: #5a627a;
+            box-shadow: none;
         }
 
         .file-upload-input {
@@ -836,19 +841,19 @@
                 border-radius: 16px;
             }
             .chat-input-bar {
-                padding: 10px 14px;
-                gap: 8px;
+                padding: 8px 10px;
+                gap: 6px;
             }
             .textarea-message {
-                padding: 11px 14px;
+                padding: 10px 12px;
                 font-size: 14px;
-                min-height: 40px;
+                min-height: 38px;
             }
-            .attachment-btn, .voice-btn, .toggle-crypt-btn {
-                width: 40px;
-                height: 40px;
-                border-radius: 12px;
-                font-size: 16px;
+            .attachment-btn, .voice-btn, .toggle-crypt-btn, #send-btn {
+                width: 38px;
+                height: 38px;
+                border-radius: 10px;
+                font-size: 14px;
             }
             .btn {
                 padding: 11px 18px;
@@ -883,7 +888,7 @@
             <p>Сквозное AES-256 шифрование сообщений, голосовых и файлов.</p>
             
             <div class="instruction-box">
-                <b>Инструкция получения токена:</b>
+                <b>Инструкся получения токена:</b>
                 <ol>
                     <li>Нажмите на ссылку ниже для получения токена:
                         <br>
@@ -955,7 +960,7 @@
                     </div>
                     <textarea id="message-text" class="textarea-message" placeholder="Напишите сообщение..." rows="1" onkeydown="handleInputKey(event)"></textarea>
                 </div>
-                <button class="btn" style="width: auto; padding: 12px 24px;" id="send-btn" onclick="sendVkMessage()">Отправить</button>
+                <button id="send-btn" onclick="sendVkMessage()">➤</button>
             </div>
         </div>
     </div>
@@ -1000,6 +1005,8 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+
+        const derivedKeyCache = {};
 
         const safeStorage = {
             get(key) { 
@@ -1058,25 +1065,26 @@
             );
         }
 
-        function bytesToBase64Safe(bytes) {
-            let binary = '';
-            const len = bytes.byteLength;
-            for (let i = 0; i < len; i++) {
-                binary += String.fromCharCode(bytes[i]);
+        async function getDerivedKey(keyStr) {
+            if (!keyStr) return null;
+            const trimmed = keyStr.trim();
+            if (!trimmed) return null;
+            if (derivedKeyCache[trimmed]) {
+                return derivedKeyCache[trimmed];
             }
-            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+            const derived = await initCrypto(trimmed);
+            derivedKeyCache[trimmed] = derived;
+            return derived;
         }
 
-        function base64SafeToBytes(safeBase64) {
-            let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
-            while (base64.length % 4) {
-                base64 += '=';
-            }
-            const binary = atob(base64);
-            const len = binary.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binary.charCodeAt(i);
+        function bytesToHex(bytes) {
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function hexToBytes(hex) {
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < bytes.length; i++) {
+                bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
             }
             return bytes;
         }
@@ -1084,7 +1092,7 @@
         async function encryptText(text, keyStr) {
             if (!text || !keyStr) return text;
             try {
-                const derivedKey = await initCrypto(keyStr);
+                const derivedKey = await getDerivedKey(keyStr);
                 const enc = new TextEncoder();
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
                 const ciphertext = await window.crypto.subtle.encrypt(
@@ -1095,18 +1103,18 @@
                 const combined = new Uint8Array(iv.length + ciphertext.byteLength);
                 combined.set(iv);
                 combined.set(new Uint8Array(ciphertext), iv.length);
-                return "🔒" + bytesToBase64Safe(combined);
+                return "🔒" + bytesToHex(combined);
             } catch(e) {
                 return text;
             }
         }
 
-        async function decryptText(encryptedBase64, keyStr) {
-            if (!encryptedBase64 || !encryptedBase64.startsWith("🔒")) return encryptedBase64;
+        async function decryptText(encryptedHex, keyStr) {
+            if (!encryptedHex || !encryptedHex.startsWith("🔒")) return encryptedHex;
             if (!keyStr) return "[Зашифровано - введите пароль в Подробнее]";
             try {
-                const derivedKey = await initCrypto(keyStr);
-                const combined = base64SafeToBytes(encryptedBase64.slice(1));
+                const derivedKey = await getDerivedKey(keyStr);
+                const combined = hexToBytes(encryptedHex.slice(1));
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
                 const dec = new TextDecoder();
@@ -1124,7 +1132,7 @@
         async function encryptBinary(arrayBuffer, keyStr) {
             if (!keyStr) return arrayBuffer;
             try {
-                const derivedKey = await initCrypto(keyStr);
+                const derivedKey = await getDerivedKey(keyStr);
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
                 const ciphertext = await window.crypto.subtle.encrypt(
                     { name: "AES-GCM", iv: iv },
@@ -1143,7 +1151,7 @@
         async function decryptBinary(arrayBuffer, keyStr) {
             if (!keyStr) return null;
             try {
-                const derivedKey = await initCrypto(keyStr);
+                const derivedKey = await getDerivedKey(keyStr);
                 const combined = new Uint8Array(arrayBuffer);
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
@@ -1491,7 +1499,6 @@
             const targetId = currentChatId;
             const sendBtn = document.getElementById('send-btn');
             sendBtn.disabled = true;
-            sendBtn.innerText = "Отправка...";
             try {
                 const attachStr = await uploadFileToVk(new File([blob], "voice.ogg"), true);
                 const randomId = Math.floor(Math.random() * 2000000000);
@@ -1511,7 +1518,6 @@
                 alert(`Ошибка отправки голосового: ${e.message || "Неизвестная ошибка"}`);
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.innerText = "Отправить";
             }
         }
 
@@ -1525,7 +1531,6 @@
             textarea.style.height = "auto";
             const sendBtn = document.getElementById('send-btn');
             sendBtn.disabled = true;
-            sendBtn.innerText = "Шифрование...";
 
             try {
                 let attachStr = "";
@@ -1560,7 +1565,6 @@
                 alert(`Не удалось отправить сообщение: ${e.message || "Ошибка соединения"}`);
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.innerText = "Отправить";
             }
         }
 
@@ -1895,7 +1899,7 @@
         function adjustTextareaHeight() {
             const textarea = document.getElementById('message-text');
             textarea.style.height = 'auto';
-            textarea.style.height = Math.max(48, Math.min(textarea.scrollHeight, 120)) + 'px';
+            textarea.style.height = Math.max(44, Math.min(textarea.scrollHeight, 120)) + 'px';
         }
         document.getElementById('message-text').addEventListener('input', adjustTextareaHeight);
 
@@ -2009,7 +2013,6 @@
             document.getElementById('chat-window-pane').classList.remove('active');
             currentChatId = null;
         }
-        // мяу, я устала писать
     </script>
 </body>
-                    </html>
+    </html>
