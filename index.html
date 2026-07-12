@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Web Client Ultra</title>
+    <title>VK Meow</title>
     <style>
         :root {
             --bg-dark: #000000;
-            --bg-surface: #0d0d0e;
-            --bg-input: #161618;
+            --bg-surface: #1c1c1e; /* Слегка темнее для контраста */
+            --bg-input: #2c2c2e; /* Также слегка темнее */
             --accent: #2f80ed;
             --accent-hover: #4f9bfd;
             --text-main: #f5f5f7;
-            --text-muted: #6e6e73;
-            --msg-in: #161618;
+            --text-muted: #8e8e93; /* Слегка светлее для читаемости */
+            --msg-in: #2c2c2e; /* Темнее для входящих */
             --msg-out: #2f80ed;
             --error: #ff453a;
             --success: #30d158;
-            --border-color: #1c1c1e;
+            --border-color: #38383a; /* Темнее для границ */
         }
 
         * {
@@ -41,7 +41,7 @@
         #login-screen {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #0d0d0e 0%, var(--bg-dark) 100%);
+            background: radial-gradient(circle at center, var(--bg-surface) 0%, var(--bg-dark) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -180,7 +180,14 @@
             align-items: center;
             border-bottom: 1px solid var(--border-color);
             background: var(--bg-surface);
+            font-size: 20px; /* Сделаем название VK Meow крупнее */
+            font-weight: 700;
+            color: var(--text-main);
         }
+        .bot-header span {
+             margin-left: 10px; /* Отступ от края */
+        }
+
 
         .search-area {
             padding: 14px 20px 8px 20px;
@@ -218,13 +225,35 @@
         }
 
         .tab-btn.active {
-            background: #2c2c2e;
+            background: var(--accent);
             color: white;
         }
 
-        .chats-container {
+        .chats-container, .newsfeed-container {
             flex: 1;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .newsfeed-container {
+            display: none; /* По умолчанию скрыто */
+            padding: 10px 20px;
+            gap: 15px;
+        }
+        .newsfeed-item {
+            background: var(--bg-surface);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+        .newsfeed-item h4 {
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .newsfeed-item p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
         }
 
         .chat-row {
@@ -255,6 +284,7 @@
             background-position: center;
             flex-shrink: 0;
             position: relative;
+            cursor: pointer; /* Аватарки кликабельны */
         }
 
         .online-dot {
@@ -461,7 +491,10 @@
         }
 
         .input-side-btn:hover { color: white; }
-        .input-side-btn.active { color: var(--accent); }
+        /* Замок: зеленый когда активно, красный когда неактивно */
+        #toggle-crypt-btn.active { color: var(--success); }
+        #toggle-crypt-btn.inactive { color: var(--error); }
+
 
         .textarea-message {
             flex: 1;
@@ -586,11 +619,7 @@
     <div class="wrapper">
         <div class="sidebar">
             <div class="bot-header">
-                <div class="avatar" id="bot-avatar-img">?</div>
-                <div class="chat-details">
-                    <div class="chat-title" id="bot-name-display">Загрузка...</div>
-                    <div id="bot-status-label" style="font-size: 12px; color: var(--text-muted)">в сети</div>
-                </div>
+                <span>VK Meow</span>
             </div>
 
             <div class="search-area">
@@ -600,18 +629,25 @@
             <div class="tabs">
                 <button class="tab-btn active" id="tab-all" onclick="switchTab('all')">Чаты</button>
                 <button class="tab-btn" id="tab-groups" onclick="switchTab('groups')">Группы</button>
+                <button class="tab-btn" id="tab-newsfeed" onclick="switchTab('newsfeed')">Новости</button>
             </div>
 
             <div class="chats-container" id="chats-list"></div>
+            <div class="newsfeed-container" id="newsfeed-content">
+                <!-- Здесь будут посты ленты новостей -->
+                <div class="empty-placeholder">
+                    Здесь будет ваша лента новостей.
+                </div>
+            </div>
         </div>
 
         <div class="chat-window" id="chat-window-pane">
             <div class="chat-window-header">
                 <div class="back-btn" onclick="backToSidebar()">←</div>
-                <div class="avatar" id="active-chat-avatar">?</div>
+                <div class="avatar" id="active-chat-avatar" onclick="openProfile(currentChatId, chats[currentChatId].type === 'group')" style="cursor:pointer;">?</div>
                 <div class="chat-details" style="flex:1;">
-                    <div class="chat-title" id="active-chat-name" style="font-size: 17px; margin-bottom: 2px;">Выберите чат</div>
-                    <div id="active-chat-status" style="font-size: 13px; color: var(--text-muted);">Защищенный обмен готов</div>
+                    <div class="chat-title" id="active-chat-name">Выберите чат</div>
+                    <div class="chat-last-message" id="active-chat-status">Защищенный обмен готов</div>
                 </div>
                 <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openCryptSettingsModal(currentChatId)">Связь</button>
             </div>
@@ -627,7 +663,7 @@
                     <button class="input-side-btn" onclick="triggerFileInput()">📎</button>
                     <input type="file" id="file-input" class="file-upload-input" accept="*/*" onchange="handleFileChange(event)">
                     
-                    <button class="input-side-btn active" id="toggle-crypt-btn" onclick="toggleCryptForCurrentChat()" title="Шифрование">🔒</button>
+                    <button class="input-side-btn" id="toggle-crypt-btn" onclick="toggleCryptForCurrentChat()" title="Шифрование">🔒</button>
 
                     <div class="input-controls" style="flex: 1; min-width: 0;">
                         <div id="file-preview" class="file-preview-container" style="display: none;">
@@ -657,8 +693,14 @@
     </div>
 
     <script>
+        // --- ВАЖНО: УЯЗВИМОСТЬ СИММЕТРИЧНОГО КЛЮЧА ---
+        // AES_KEY_STRING, жестко закодированный здесь, является серьезной уязвимостью
+        // для любого, кто может получить доступ к исходному коду.
+        // Сообщения, зашифрованные с MEOW_TAG, НЕ ЯВЛЯЮТСЯ конфиденциальными от сервера VK.
+        // Используйте E2EE (MEOW_E2E_TAG) для настоящей конфиденциальности.
         const AES_KEY_STRING = "12345678901234567890123456789012";
         const BASE_AES_KEY_BYTES = new TextEncoder().encode(AES_KEY_STRING);
+        // --- КОНЕЦ ПРИМЕЧАНИЯ ОБ УЯЗВИМОСТИ ---
         
         const MEOW_TAG = "[MEOW]";
         const MEOW_KEY_REQ_TAG = "[MEOW_KEY_REQ]";
@@ -669,7 +711,7 @@
         let vkUser = {};
         let chats = {};
         let currentChatId = null;
-        let currentTab = "all";
+        let currentTab = "all"; // 'all', 'groups', 'newsfeed'
         let selectedFile = null;
         let mediaRecorder = null;
         let audioChunks = [];
@@ -677,22 +719,25 @@
 
         const decryptedTextCache = {}; 
         let renderedMessageIds = new Set(); 
+        let isFetchingHistory = false; // Флаг для предотвращения множественных запросов истории
 
         const safeStorage = {
-            get(key) { try { return localStorage.getItem(key); } catch(e) { console.error("localStorage get error:", e); return null; } },
-            set(key, val) { try { localStorage.setItem(key, val); } catch(e) { console.error("localStorage set error:", e); } }
+            get(key) { try { return localStorage.getItem(key); } catch(e) { return null; } },
+            set(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
         };
 
         window.onload = function() {
             const savedToken = safeStorage.get("saved_vk_token");
             const savedChats = safeStorage.get("saved_vk_chats");
             if (savedChats) {
-                try { chats = JSON.parse(savedChats); } catch(e) { console.error("Error parsing saved chats:", e); chats = {}; }
+                try { chats = JSON.parse(savedChats); } catch(e) { chats = {}; }
             }
             if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
                 tryLogin(savedToken);
             }
+            // Обновляем состояние замка при загрузке
+            updateCryptBtnState();
         };
 
         function saveState() {
@@ -712,7 +757,7 @@
                 safeStorage.set("ec_pub", bytesToBase64(pubBuf));
                 safeStorage.set("ec_priv", bytesToBase64(privBuf));
             } catch (e) {
-                console.error("Error generating EC key pair:", e);
+                console.error("Ошибка при генерации пары ключей ECDH:", e);
             }
         }
 
@@ -750,7 +795,7 @@
                     ["encrypt", "decrypt"]
                 );
             } catch (e) {
-                console.error("Error deriving shared key:", e);
+                console.error("Ошибка при получении общего ключа:", e);
                 return null;
             }
         }
@@ -783,7 +828,7 @@
                     message: text
                 });
             } catch(e) {
-                console.error("Failed to send raw MEOW message:", e);
+                console.error("Ошибка при отправке сырого MEOW сообщения:", e);
             }
         }
 
@@ -824,7 +869,7 @@
                        .replace(/&lt;/g, "<")
                        .replace(/&gt;/g, ">")
                        .replace(/&quot;/g, '"')
-                       .replace(/&amp;#39;/g, "'");
+                       .replace(/&#39;/g, "'");
         }
 
         async function encryptText(text, peerId) {
@@ -841,6 +886,8 @@
                     );
                     return MEOW_E2E_TAG + bytesToBase64(concatBytes(iv, new Uint8Array(ciphertext)));
                 } else {
+                    // Используем базовый AES, если E2EE не установлен. УЯЗВИМО!
+                    console.warn("E2EE не установлен, используется базовое AES шифрование. Это НЕБЕЗОПАСНО от VK.");
                     const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
                     const baseAesKey = await window.crypto.subtle.importKey(
                         "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["encrypt"]
@@ -851,12 +898,12 @@
                     return MEOW_TAG + bytesToBase64(concatBytes(baseIv, new Uint8Array(encryptedBytes)));
                 }
             } catch (e) {
-                console.error("Error encrypting text:", e);
-                return text;
+                console.error("Ошибка шифрования текста:", e);
+                return text; // Возвращаем исходный текст, если шифрование не удалось
             }
         }
 
-        async function decryptText(encryptedText, peerId, isOutgoing = false) {
+        async function decryptText(encryptedText, peerId) {
             if (!encryptedText) return "";
             const s = unescapeHtml(encryptedText);
             
@@ -864,30 +911,20 @@
 
             let result = encryptedText;
             try {
-                if (!isOutgoing) { 
-                    if (s.startsWith(MEOW_KEY_REQ_TAG)) {
-                        const pub = s.substring(MEOW_KEY_REQ_TAG.length);
-                        const currentStoredPub = safeStorage.get("peer_pub_" + peerId);
-                        if (currentStoredPub !== pub) {
-                            safeStorage.set("peer_pub_" + peerId, pub);
-                            await ensureECKeyPair();
-                            const ownPub = safeStorage.get("ec_pub");
-                            if (ownPub) {
-                                await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
-                            }
-                        }
-                        result = "🐾 [Системное: E2EE защищен (Запрос ключа)]";
-                    } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
-                        const pub = s.substring(MEOW_KEY_RES_TAG.length);
-                        const currentStoredPub = safeStorage.get("peer_pub_" + peerId);
-                        if (currentStoredPub !== pub) {
-                            safeStorage.set("peer_pub_" + peerId, pub);
-                        }
-                        result = "🐾 [Системное: E2EE защищен (Связь установлена)]";
+                if (s.startsWith(MEOW_KEY_REQ_TAG)) {
+                    const pub = s.substring(MEOW_KEY_REQ_TAG.length);
+                    safeStorage.set("peer_pub_" + peerId, pub);
+                    await ensureECKeyPair();
+                    const ownPub = safeStorage.get("ec_pub");
+                    if (ownPub) {
+                        await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
                     }
-                }
-
-                if (s.startsWith(MEOW_E2E_TAG)) {
+                    result = "🐾 [Системное: E2EE защищен (Запрос ключа)]";
+                } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
+                    const pub = s.substring(MEOW_KEY_RES_TAG.length);
+                    safeStorage.set("peer_pub_" + peerId, pub);
+                    result = "🐾 [Системное: E2EE защищен (Связь установлена)]";
+                } else if (s.startsWith(MEOW_E2E_TAG)) {
                     const b64 = s.substring(MEOW_E2E_TAG.length);
                     const data = base64ToBytes(b64);
                     const iv = data.slice(0, 12);
@@ -915,7 +952,7 @@
                     result = new TextDecoder().decode(originalBytes);
                 }
             } catch (e) {
-                console.warn("Failed to decrypt message:", e);
+                console.error("Ошибка расшифровки текста:", e);
                 result = "[Ошибка расшифровки]";
             }
             decryptedTextCache[s] = result;
@@ -935,6 +972,7 @@
                     );
                     return concatBytes(iv, new Uint8Array(ciphertext)).buffer;
                 } else {
+                    console.warn("E2EE не установлен, используется базовое AES шифрование для файла. Это НЕБЕЗОПАСНО от VK.");
                     const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
                     const baseAesKey = await window.crypto.subtle.importKey(
                         "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["encrypt"]
@@ -945,7 +983,7 @@
                     return concatBytes(baseIv, new Uint8Array(ciphertext)).buffer;
                 }
             } catch (e) {
-                console.error("Error encrypting binary:", e);
+                console.error("Ошибка шифрования бинарных данных:", e);
                 return arrayBuffer;
             }
         }
@@ -964,10 +1002,11 @@
                             { name: "AES-GCM", iv: iv }, shared, cipher
                         );
                     } catch(e) {
-                        console.warn("Failed to decrypt with E2E key, trying base AES:");
+                        console.warn("Попытка расшифровки E2EE ключом не удалась, возможно, ключ неверен или это не E2EE сообщение.", e);
                     }
                 }
 
+                // Если E2EE не удалось, пробуем базовый ключ
                 const baseIv = enc.slice(0, 12);
                 const cipher = enc.slice(12);
                 const baseAesKey = await window.crypto.subtle.importKey(
@@ -977,7 +1016,7 @@
                     { name: "AES-GCM", iv: baseIv }, baseAesKey, cipher
                 );
             } catch (e) {
-                console.error("Error decrypting binary:", e);
+                console.error("Ошибка расшифровки бинарных данных:", e);
                 return null;
             }
         }
@@ -995,10 +1034,10 @@
                         return await res.arrayBuffer();
                     }
                 } catch(e) {
-                    console.warn(`Failed to fetch from ${target}`);
+                    console.warn(`Ошибка загрузки через ${target.substring(0, 50)}...`, e);
                 }
             }
-            throw new Error("Failed to fetch binary data.");
+            throw new Error("Не удалось загрузить бинарные данные ни через один прокси.");
         }
 
         function vkCall(method, params = {}) {
@@ -1026,7 +1065,8 @@
                 };
                 script.onerror = () => {
                     delete window[callbackName];
-                    reject(new Error("VK API script error"));
+                    document.body.removeChild(script);
+                    reject(new Error(`Ошибка загрузки скрипта для метода ${method}`));
                 };
                 document.body.appendChild(script);
             });
@@ -1056,11 +1096,12 @@
                     vkUser = usersData[0];
                     safeStorage.set("saved_vk_token", tokenInput);
 
-                    document.getElementById('bot-name-display').innerText = `${vkUser.first_name} ${vkUser.last_name}`;
-                    if (vkUser.photo_100) {
-                        document.getElementById('bot-avatar-img').style.backgroundImage = `url(${vkUser.photo_100})`;
-                        document.getElementById('bot-avatar-img').innerText = "";
-                    }
+                    // Убрано отображение имени пользователя в боковой панели, теперь там VK Meow
+                    // document.getElementById('bot-name-display').innerText = `${vkUser.first_name} ${vkUser.last_name}`;
+                    // if (vkUser.photo_100) {
+                    //     document.getElementById('bot-avatar-img').style.backgroundImage = `url(${vkUser.photo_100})`;
+                    //     document.getElementById('bot-avatar-img').innerText = "";
+                    // }
 
                     document.getElementById('login-screen').style.display = 'none';
                     await fetchDialogs();
@@ -1069,53 +1110,31 @@
             } catch (e) {
                 errorDiv.innerText = "Ошибка входа: " + e.message;
                 errorDiv.style.display = "block";
+                console.error("Ошибка входа:", e);
             } finally {
                 loginBtn.disabled = false;
             }
         }
 
-        function formatLastSeen(lastSeenObj) {
-            if (!lastSeenObj || !lastSeenObj.time) return "был(а) в сети недавно";
-            const date = new Date(lastSeenObj.time * 1000);
-            const now = new Date();
-            const isToday = date.toDateString() === now.toDateString();
-            const yesterday = new Date(now);
-            yesterday.setDate(now.getDate() - 1);
-            const isYesterday = date.toDateString() === yesterday.toDateString();
-
-            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            if (isToday) return `был(а) в сети сегодня в ${timeStr}`;
-            if (isYesterday) return `был(а) в сети вчера в ${timeStr}`;
-            
-            return `был(а) в сети ${date.toLocaleDateString([], { day: 'numeric', month: 'long' })} в ${timeStr}`;
-        }
-
         async function fetchDialogs() {
             try {
-                const data = await vkCall("messages.getConversations", { count: 100, extended: 1 });
+                const data = await vkCall("messages.getConversations", { count: 100, extended: 1, filter: "all" });
                 const profiles = {};
                 if (data.profiles) {
                     data.profiles.forEach(p => {
-                        profiles[p.id] = { 
-                            name: `${p.first_name} ${p.last_name}`, 
-                            photo: p.photo_100, 
-                            type: 'private', 
-                            online: p.online === 1,
-                            last_seen: p.last_seen
-                        };
+                        profiles[p.id] = { name: `${p.first_name} ${p.last_name}`, photo: p.photo_100, type: 'private', online: p.online === 1, id: p.id };
                     });
                 }
                 if (data.groups) {
                     data.groups.forEach(g => {
-                        profiles[-g.id] = { name: g.name, photo: g.photo_100, type: 'group', online: false };
+                        profiles[-g.id] = { name: g.name, photo: g.photo_100, type: 'group', online: false, id: -g.id };
                     });
                 }
 
                 for (const item of data.items) {
                     const peerId = item.conversation.peer.id;
                     const lastMsgObj = item.last_message;
-                    const peerInfo = profiles[peerId] || { name: `Пользователь`, photo: '', type: 'private', online: false };
+                    const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private', online: false, id: peerId };
 
                     if (!chats[peerId]) {
                         chats[peerId] = {
@@ -1124,53 +1143,30 @@
                             photo: peerInfo.photo,
                             type: peerInfo.type,
                             online: peerInfo.online,
-                            last_seen: peerInfo.last_seen,
-                            messages: []
+                            messages: [],
+                            historyOffset: 0, // Добавили смещение для истории
+                            hasMoreHistory: true // Флаг, есть ли еще история
                         };
                     } else {
+                        // Обновляем информацию, если чат уже существует
+                        chats[peerId].name = peerInfo.name;
+                        chats[peerId].photo = peerInfo.photo;
+                        chats[peerId].type = peerInfo.type;
                         chats[peerId].online = peerInfo.online;
-                        chats[peerId].last_seen = peerInfo.last_seen;
                     }
                     
                     if (lastMsgObj) {
-                        const isLastMsgOutgoing = lastMsgObj.from_id === vkUser.id;
-                        const dec = await decryptText(lastMsgObj.text || "", peerId, isLastMsgOutgoing);
+                        const dec = await decryptText(lastMsgObj.text || "", peerId);
                         chats[peerId].last_message_display = dec.startsWith("🐾") ? "🔒 Метаданные E2EE" : dec;
                     } else {
                         chats[peerId].last_message_display = "История пуста";
                     }
                 }
-                updateActiveChatHeader();
                 renderChats();
                 saveState();
             } catch (e) {
-                console.error("Error fetching dialogs:", e);
+                console.error("Ошибка при загрузке диалогов:", e);
             }
-        }
-
-        function updateActiveChatHeader() {
-            if (!currentChatId) return;
-            const chat = chats[currentChatId];
-            if (!chat) return;
-
-            document.getElementById('active-chat-name').innerText = chat.name;
-            
-            let statusText = "";
-            const statusEl = document.getElementById('active-chat-status');
-
-            if (chat.type === 'group') {
-                statusText = "группа";
-            } else {
-                if (chat.online) {
-                    statusText = "в сети";
-                    statusEl.style.color = "var(--success)";
-                } else {
-                    statusText = formatLastSeen(chat.last_seen);
-                    statusEl.style.color = "var(--text-muted)";
-                }
-            }
-
-            statusEl.innerText = statusText;
         }
 
         let isPollingActive = false;
@@ -1179,84 +1175,154 @@
                 if (isPollingActive || !botToken) return;
                 isPollingActive = true;
                 try {
+                    // Только если активен чат, проверяем новые сообщения
                     if (currentChatId) {
-                        const res = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 40 });
-                        if (res && res.items) {
+                        const res = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 1, offset: 0 }); // Берем только 1 последнее сообщение
+                        if (res && res.items && res.items.length > 0) {
                             const chat = chats[currentChatId];
                             if (chat) {
-                                const serverItems = res.items || [];
-                                const serverMessages = serverItems.map(item => ({
-                                    id: item.id,
-                                    text: item.text,
-                                    rawText: item.text,
-                                    time: item.date * 1000,
-                                    out: item.from_id === vkUser.id,
-                                    attachments: item.attachments || []
-                                })).reverse();
+                                const latestIncomingMsgId = Math.max(...chat.messages.filter(m => !m.out).map(m => m.id), 0);
+                                const newLatestMsgId = res.items[0].id;
 
-                                const optimisticMessages = chat.messages.filter(m => m.isOptimistic);
-                                const unmatchedOptimistic = [];
+                                if (newLatestMsgId > latestIncomingMsgId) { // Если есть более новое входящее сообщение
+                                    // Загружаем еще несколько, чтобы убедиться, что ничего не пропустили
+                                    const historyRes = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 20 });
+                                    if (historyRes && historyRes.items) {
+                                        const existingIds = new Set(chat.messages.map(m => m.id));
+                                        let addedNew = false;
+                                        const itemsToAdd = [];
 
-                                for (const opt of optimisticMessages) {
-                                    const isConfirmed = serverMessages.some(srv => srv.rawText === opt.rawText && srv.out);
-                                    if (!isConfirmed) unmatchedOptimistic.push(opt);
-                                }
-
-                                const finalMessages = [...serverMessages, ...unmatchedOptimistic];
-                                finalMessages.sort((a, b) => a.time - b.time);
-
-                                const currentIds = chat.messages.map(m => m.id).join(',');
-                                const finalIds = finalMessages.map(m => m.id).join(',');
-
-                                if (currentIds !== finalIds) {
-                                    chat.messages = finalMessages;
-                                    await renderMessages();
+                                        // Проверяем новые сообщения с конца (от API они приходят в обратном порядке)
+                                        for (let i = historyRes.items.length - 1; i >= 0; i--) {
+                                            const item = historyRes.items[i];
+                                            if (!existingIds.has(item.id)) {
+                                                itemsToAdd.push({
+                                                    id: item.id,
+                                                    text: item.text,
+                                                    rawText: item.text,
+                                                    time: item.date * 1000,
+                                                    out: item.from_id === vkUser.id,
+                                                    attachments: item.attachments || []
+                                                });
+                                                addedNew = true;
+                                            }
+                                        }
+                                        if (addedNew) {
+                                            chat.messages.push(...itemsToAdd);
+                                            chat.messages.sort((a, b) => a.time - b.time); // Сортируем по времени
+                                            await renderMessages();
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
-                    if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 2000) {
+                    if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 5000) { // Обновляем сайдбар реже
                         await fetchDialogs();
                         window.lastSidebarUpdate = Date.now();
                     }
                 } catch (e) {
-                    console.error("Polling error:", e);
+                    console.error("Ошибка при поллинге:", e);
                 } finally {
                     isPollingActive = false;
                 }
-            }, 1000); 
+            }, 1000); // Опрашиваем каждую секунду
         }
 
-        async function loadHistoryForChat(peerId) {
+        // Загрузка истории чата с подгрузкой по скроллу
+        async function loadHistoryForChat(peerId, offset = 0, count = 200, prepend = false) {
+            if (isFetchingHistory || !chats[peerId] || (offset > 0 && !chats[peerId].hasMoreHistory)) return;
+
+            isFetchingHistory = true;
             try {
-                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 40 });
+                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: count, offset: offset, rev: 0 }); // rev=0: от старых к новым
                 if (res && res.items) {
-                    chats[peerId].messages = [];
-                    res.items.reverse().forEach(item => {
-                        chats[peerId].messages.push({
-                            id: item.id,
-                            text: item.text,
-                            rawText: item.text,
-                            time: item.date * 1000,
-                            out: item.from_id === vkUser.id,
-                            attachments: item.attachments || []
-                        });
-                    });
+                    const chat = chats[peerId];
+                    if (res.items.length === 0) {
+                        chat.hasMoreHistory = false;
+                        return;
+                    }
+
+                    const newMessages = res.items.map(item => ({
+                        id: item.id,
+                        text: item.text,
+                        rawText: item.text,
+                        time: item.date * 1000,
+                        out: item.from_id === vkUser.id,
+                        attachments: item.attachments || []
+                    }));
+
+                    if (prepend) {
+                        chat.messages.unshift(...newMessages); // Добавляем в начало
+                    } else {
+                        chat.messages = newMessages; // Заменяем всю историю
+                    }
+                    
+                    chat.messages.sort((a, b) => a.time - b.time); // Убедимся, что отсортировано
+                    chat.historyOffset += res.items.length;
+                    
+                    if (res.items.length < count) { // Если пришло меньше, чем просили, значит, история закончилась
+                        chat.hasMoreHistory = false;
+                    }
+
                     saveState();
+                } else {
+                    chats[peerId].hasMoreHistory = false;
                 }
             } catch(e) {
-                console.error("Error loading history for chat:", e);
+                console.error("Ошибка при загрузке истории:", e);
+                chats[peerId].hasMoreHistory = false;
+            } finally {
+                isFetchingHistory = false;
+            }
+        }
+        
+        // Обработчик скролла для подгрузки старой истории
+        let chatFeedScrollTimeout;
+        async function handleChatFeedScroll() {
+            const container = document.getElementById('messages-feed');
+            if (container.scrollTop === 0 && chats[currentChatId] && chats[currentChatId].hasMoreHistory && !isFetchingHistory) {
+                // Задержка, чтобы избежать многократных вызовов при быстром скролле
+                clearTimeout(chatFeedScrollTimeout);
+                chatFeedScrollTimeout = setTimeout(async () => {
+                    const oldScrollHeight = container.scrollHeight;
+                    const oldFirstMessage = container.querySelector('.bubble, .system-badge');
+                    
+                    await loadHistoryForChat(currentChatId, chats[currentChatId].historyOffset, 200, true);
+                    await renderMessages(true); // Перерисовываем с сохранением позиции
+
+                    // Сохраняем позицию скролла после подгрузки
+                    if (oldFirstMessage) {
+                        const newScrollHeight = container.scrollHeight;
+                        const firstMessageInNewRender = container.querySelector(`[data-msg-id="${oldFirstMessage.dataset.msgId}"]`);
+                        if (firstMessageInNewRender) {
+                            container.scrollTop = newScrollHeight - oldScrollHeight;
+                        } else {
+                            // Fallback if the original first message wasn't found in the new render
+                             container.scrollTop = container.scrollHeight - oldScrollHeight;
+                        }
+                    }
+                }, 300);
             }
         }
 
+
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
-            return val === null ? true : val === "true";
+            return val === null ? true : val === "true"; // По умолчанию шифрование ВКЛЮЧЕНО
         }
 
         function saveChatEncryptState(peerId, enabled) {
             safeStorage.set("chat_enc_state_" + peerId, enabled ? "true" : "false");
+        }
+
+        function updateCryptBtnState() {
+            const cryptBtn = document.getElementById('toggle-crypt-btn');
+            if (!cryptBtn) return;
+            const isEnc = currentChatId ? loadChatEncryptState(currentChatId) : true; // По умолчанию считаем активным
+            cryptBtn.innerHTML = isEnc ? "🔒" : "🔓";
+            cryptBtn.className = isEnc ? "input-side-btn active" : "input-side-btn inactive";
         }
 
         async function uploadFileToVk(file, isVoice = false) {
@@ -1273,15 +1339,15 @@
                 fileDataBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
                 
                 if (isVoice) {
-                    finalName = "voice.mew";
+                    finalName = "voice.mew"; // Encrypted voice
                 } else {
                     const ext = file.name.split('.').pop().toLowerCase();
                     if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
-                        finalName = file.name + '.meow';
+                        finalName = file.name + '.meow'; // Encrypted image
                     } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
-                        finalName = file.name + '.mur';
+                        finalName = file.name + '.mur'; // Encrypted video
                     } else {
-                        finalName = file.name + '.enc';
+                        finalName = file.name + '.enc'; // Generic encrypted file
                     }
                 }
             } else {
@@ -1313,11 +1379,12 @@
             if (isEncrypted && text) {
                 finalMessage = await encryptText(text, targetId);
             } else if (isEncrypted && !text && selectedFile) {
-                finalMessage = MEOW_TAG + " Файл";
+                finalMessage = MEOW_TAG + " Файл"; // Сообщение-заглушка для файла
             }
 
-            const tempId = 'opt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-            chats[targetId].messages.push({
+            // Оптимистичное добавление сообщения
+            const tempId = 'opt-' + Math.random();
+            const optimisticMessage = {
                 id: tempId,
                 text: finalMessage,
                 rawText: finalMessage,
@@ -1325,7 +1392,8 @@
                 out: true,
                 isOptimistic: true,
                 attachments: selectedFile ? [{ type: 'doc', doc: { id: 'temp', title: selectedFile.name, url: '' } }] : []
-            });
+            };
+            chats[targetId].messages.push(optimisticMessage);
             await renderMessages();
 
             try {
@@ -1335,18 +1403,28 @@
                 }
 
                 const randomId = Math.floor(Math.random() * 2000000000);
-                const messageToSend = finalMessage || (isEncrypted ? MEOW_TAG + " Файл" : "Файл");
-
-                await vkCall("messages.send", {
+                const vkResponse = await vkCall("messages.send", {
                     peer_id: targetId,
                     random_id: randomId,
-                    message: messageToSend,
+                    message: finalMessage,
                     attachment: attachStr
                 });
-                
+
+                // Обновляем оптимистичное сообщение
+                const optMsg = chats[targetId].messages.find(m => m.id === tempId);
+                if (optMsg) {
+                    optMsg.id = vkResponse; // VK API возвращает ID отправленного сообщения
+                    optMsg.isOptimistic = false;
+                    // TODO: Обновить attachments реальными данными из VK API если есть возможность
+                }
+
                 removeFile();
+                await renderMessages();
+                await fetchDialogs(); // Обновить список диалогов для последнего сообщения
             } catch (e) {
                 alert(`Сбой отправки: ${e.message}`);
+                console.error("Ошибка при отправке сообщения:", e);
+                // Удаляем оптимистичное сообщение при ошибке
                 chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
                 await renderMessages();
             }
@@ -1390,12 +1468,17 @@
                 const title = doc.title.toLowerCase();
                 const isEncryptedFile = title.endsWith('.meow') || title.endsWith('.mur') || title.endsWith('.mew') || title.endsWith('.enc');
 
+                const docIdAttr = `doc-${doc.id}`;
+                if (bubbleDiv.querySelector(`[data-doc-id="${docIdAttr}"]`)) return; 
+
                 const attachContainer = document.createElement('div');
+                attachContainer.dataset.docId = docIdAttr;
                 attachContainer.style.marginTop = "6px";
                 bubbleDiv.insertBefore(attachContainer, bubbleDiv.lastChild);
 
                 if (isEncryptedFile) {
                     attachContainer.innerHTML = `<span style="font-size:12px;color:var(--text-muted);">🔒 Расшифровка файла...</span>`;
+                    
                     const decryptedCacheKey = "dec_file_" + doc.id;
                     let decryptedUrl = sessionStorage.getItem(decryptedCacheKey);
 
@@ -1403,6 +1486,7 @@
                         try {
                             const encBuf = await fetchBinaryData(doc.url);
                             const decBuf = await decryptBinary(encBuf, peerId);
+                            
                             if (decBuf) {
                                 let mime = "application/octet-stream";
                                 if (title.endsWith('.meow')) mime = 'image/png';
@@ -1414,6 +1498,7 @@
                                 sessionStorage.setItem(decryptedCacheKey, decryptedUrl);
                             }
                         } catch (e) {
+                            console.error("Ошибка расшифровки файла:", e);
                             attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось расшифровать</span>`;
                             return;
                         }
@@ -1439,12 +1524,14 @@
                             const playBtn = document.createElement('button');
                             playBtn.className = 'voice-play-btn';
                             playBtn.innerText = '▶';
+                            
                             let audio = null;
                             playBtn.onclick = () => {
                                 if(!audio) audio = new Audio(decryptedUrl);
                                 if(audio.paused) { audio.play(); playBtn.innerText = '⏸'; }
                                 else { audio.pause(); playBtn.innerText = '▶'; }
                             };
+
                             const metaDiv = document.createElement('div');
                             metaDiv.className = 'voice-meta';
                             metaDiv.innerHTML = `<span class="voice-title">Голосовое сообщение</span><span class="voice-duration">Расшифровано (.mew)</span>`;
@@ -1460,6 +1547,8 @@
                             docLink.innerHTML = `<div class="document-icon">📄</div><div><span>${escapeHtml(realName)}</span></div>`;
                             attachContainer.appendChild(docLink);
                         }
+                    } else {
+                        attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Ошибка ключа</span>`;
                     }
                 } else {
                     if (title.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
@@ -1477,62 +1566,106 @@
             }
         }
 
-        async function renderMessages() {
+        function isSystemMessage(text) {
+            return text && (text.startsWith("🐾 [Системное:") || text.includes("[Ожидание E2EE обмена...]"));
+        }
+
+        async function renderMessages(preserveScroll = false) {
             const container = document.getElementById('messages-feed');
             const chat = chats[currentChatId];
             if (!chat) return;
 
-            const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
-            container.innerHTML = "";
-            renderedMessageIds.clear(); 
+            // Если меняется чат, очищаем и сбрасываем состояние
+            if (container.dataset.chatId !== String(currentChatId)) {
+                container.innerHTML = "";
+                container.dataset.chatId = String(currentChatId);
+                renderedMessageIds.clear();
+            }
 
             const messages = chat.messages || [];
-            if (messages.length === 0) {
+            if (messages.length === 0 && renderedMessageIds.size === 0) {
                 container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните конфиденциальную сессию!</div>`;
                 return;
             }
 
+            const placeholder = container.querySelector('.empty-placeholder');
+            if (placeholder) placeholder.remove();
+
+            const isAtBottom = preserveScroll ? false : (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
+            
+            const fragment = document.createDocumentFragment();
+            let firstNewMessageElement = null;
+
             for (const msg of messages) {
-                let displayText = await decryptText(msg.rawText || "", chat.id, msg.out); 
-                if (displayText && (displayText.startsWith("🐾 [Системное:") || displayText.includes("[Ожидание E2EE обмена...]"))) {
+                if (renderedMessageIds.has(msg.id)) continue; 
+
+                let displayText = await decryptText(msg.rawText || "", chat.id); 
+
+                let element;
+                if (isSystemMessage(displayText)) {
                     const sysDiv = document.createElement('div');
                     sysDiv.className = 'system-badge';
                     sysDiv.innerText = displayText;
-                    container.appendChild(sysDiv);
+                    element = sysDiv;
                 } else {
                     const div = document.createElement('div');
                     div.className = `bubble ${msg.out ? 'out' : 'in'}`;
+                    div.dataset.msgId = msg.id;
+
+                    const textSpan = document.createElement('div');
+                    textSpan.className = 'bubble-text';
+                    textSpan.innerHTML = escapeHtml(displayText);
+                    div.appendChild(textSpan);
+
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'bubble-time';
                     timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     div.appendChild(timeSpan);
-
-                    if (displayText) {
-                        const textSpan = document.createElement('div');
-                        textSpan.className = 'bubble-text';
-                        textSpan.innerHTML = escapeHtml(displayText);
-                        div.insertBefore(textSpan, div.lastChild);
-                    }
-                    if (msg.attachments) {
+                    
+                    if (msg.attachments && msg.attachments.length > 0) {
                         for (const attach of msg.attachments) {
-                            await processAndDecryptAttachment(attach, div, chat.id); 
+                            await processAndDecryptAttachment(attach, div, chat.id);
                         }
                     }
-                    container.appendChild(div);
+                    element = div;
                 }
+                
+                fragment.appendChild(element);
+                if (!firstNewMessageElement) {
+                    firstNewMessageElement = element;
+                }
+                renderedMessageIds.add(msg.id);
             }
-            if (isAtBottom) container.scrollTop = container.scrollHeight;
+            
+            if (preserveScroll) {
+                container.prepend(fragment); // Добавляем новые сообщения в начало
+            } else {
+                container.appendChild(fragment); // Добавляем в конец
+            }
+
+
+            if (isAtBottom && !preserveScroll) {
+                container.scrollTop = container.scrollHeight;
+            } else if (preserveScroll && firstNewMessageElement) {
+                // Если мы загружали историю вверх, надо скорректировать скролл
+                // Эту часть лучше перенести в handleChatFeedScroll после renderMessages
+            }
         }
 
         function handleTypingEffect() {
             const textarea = document.getElementById('message-text');
             const actionBtn = document.getElementById('action-btn');
+            
             textarea.style.height = "auto";
             textarea.style.height = textarea.scrollHeight + "px";
+
             if (textarea.value.trim().length > 0 || selectedFile) {
                 actionBtn.innerText = "🐾"; 
+                actionBtn.title = "Отправить";
+                actionBtn.classList.remove('voice-active');
             } else {
                 actionBtn.innerText = "🎙️"; 
+                actionBtn.title = "Записать голосовое";
             }
         }
 
@@ -1556,14 +1689,26 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
                         const attachStr = await uploadFileToVk(new File([audioBlob], "voice.ogg"), true);
-                        const msgBody = loadChatEncryptState(currentChatId) ? MEOW_TAG + " Голосовое" : "Голосовое сообщение";
-                        await vkCall("messages.send", { peer_id: currentChatId, random_id: Math.floor(Math.random() * 2000000000), message: msgBody, attachment: attachStr });
+                        const randomId = Math.floor(Math.random() * 2000000000);
+                        
+                        let msgBody = "Голосовое сообщение";
+                        if (loadChatEncryptState(currentChatId)) {
+                            msgBody = MEOW_TAG + " Голосовое";
+                        }
+
+                        await vkCall("messages.send", {
+                            peer_id: currentChatId,
+                            random_id: randomId,
+                            message: msgBody,
+                            attachment: attachStr
+                        });
                         stream.getTracks().forEach(track => track.stop());
                     };
                     mediaRecorder.start();
                     isRecording = true;
-                    btn.classList.add('voice-active'); btn.innerText = "🛑";
-                } catch (err) { alert("Микрофон недоступен!"); }
+                    btn.classList.add('voice-active');
+                    btn.innerText = "🛑";
+                } catch (err) { alert("Микрофон недоступен!"); console.error("Ошибка при доступе к микрофону:", err); }
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
@@ -1575,19 +1720,38 @@
             const container = document.getElementById('chats-list');
             const searchVal = document.getElementById('search-input').value.toLowerCase();
             container.innerHTML = "";
+
             const sorted = Object.values(chats).sort((a,b) => {
                 const lastMsgA = a.messages.length > 0 ? a.messages[a.messages.length - 1].time : 0;
                 const lastMsgB = b.messages.length > 0 ? b.messages[b.messages.length - 1].time : 0;
                 return lastMsgB - lastMsgA;
             });
+
             sorted.forEach(chat => {
-                if (currentTab === "groups" && chat.type !== 'group') return;
-                if (currentTab === "all" && chat.type === 'group') return;
+                const isGroupChat = chat.type === 'group';
+                
+                if (currentTab === "groups" && !isGroupChat) return;
+                if (currentTab === "all" && isGroupChat) return;
+                if (currentTab === "newsfeed") return; // Новости отображаются в другом контейнере
+
                 if (searchVal && !chat.name.toLowerCase().includes(searchVal)) return;
+
                 const item = document.createElement('div');
                 item.className = `chat-row ${currentChatId === chat.id ? 'active' : ''}`;
                 item.onclick = () => openChat(chat.id);
-                item.innerHTML = `<div class="avatar" style="${chat.photo ? `background-image:url(${chat.photo})` : ''}">${chat.photo ? '' : chat.name[0].toUpperCase()}${chat.online ? '<div class="online-dot"></div>' : ''}</div><div class="chat-details"><div class="chat-meta"><div class="chat-title">${escapeHtml(chat.name)}</div></div><div class="chat-last-message">${escapeHtml(chat.last_message_display || "История пуста")}</div></div>`;
+
+                item.innerHTML = `
+                    <div class="avatar" style="${chat.photo ? `background-image:url(${chat.photo})` : ''}" onclick="event.stopPropagation(); openProfile(${chat.id}, ${isGroupChat});">
+                        ${chat.photo ? '' : chat.name[0].toUpperCase()}
+                        ${(chat.online && !isGroupChat) ? '<div class="online-dot"></div>' : ''}
+                    </div>
+                    <div class="chat-details">
+                        <div class="chat-meta">
+                            <div class="chat-title">${escapeHtml(chat.name)}</div>
+                        </div>
+                        <div class="chat-last-message">${escapeHtml(chat.last_message_display || "Загрузка...")}</div>
+                    </div>
+                `;
                 container.appendChild(item);
             });
         }
@@ -1596,36 +1760,187 @@
             if (currentChatId === id) return;
             currentChatId = id;
             const chat = chats[id];
+            
             document.body.classList.add('chat-opened');
-            updateActiveChatHeader();
+            document.getElementById('active-chat-name').innerText = chat.name;
+            document.getElementById('active-chat-status').innerText = `${chat.type === 'group' ? 'Группа' : 'ID'}: ${chat.id} ${chat.online ? '(в сети)' : ''}`;
             document.getElementById('chat-input-bar').style.display = 'flex';
+
             const chatHeaderAvatar = document.getElementById('active-chat-avatar');
-            if (chat.photo) { chatHeaderAvatar.style.backgroundImage = `url(${chat.photo})`; chatHeaderAvatar.innerText = ""; } else { chatHeaderAvatar.style.backgroundImage = ""; chatHeaderAvatar.innerText = chat.name[0].toUpperCase(); }
-            const cryptBtn = document.getElementById('toggle-crypt-btn');
-            if (loadChatEncryptState(id)) cryptBtn.classList.add('active'); else cryptBtn.classList.remove('active');
+            if (chat.photo) {
+                chatHeaderAvatar.style.backgroundImage = `url(${chat.photo})`;
+                chatHeaderAvatar.innerText = "";
+            } else {
+                chatHeaderAvatar.style.backgroundImage = "";
+                chatHeaderAvatar.innerText = chat.name[0].toUpperCase();
+            }
+
+            updateCryptBtnState(); // Обновляем состояние замка
+            
+            // Сбрасываем историю и offset при открытии нового чата
+            chat.messages = [];
+            chat.historyOffset = 0;
+            chat.hasMoreHistory = true;
+            renderedMessageIds.clear(); // Очищаем рендер кэш
+
             await sendOwnPublicKeyIfNeeded(id); 
-            await loadHistoryForChat(id); 
-            await renderMessages(); 
-            renderChats(); 
-            handleTypingEffect(); 
+            await loadHistoryForChat(id, 0, 200, false); // Загружаем первые 200 сообщений
+            await renderMessages();
+
+            // Добавляем слушатель скролла для подгрузки истории
+            const messagesFeed = document.getElementById('messages-feed');
+            messagesFeed.onscroll = handleChatFeedScroll;
+
+            renderChats(); // Обновляем активный чат в списке
+            handleTypingEffect(); // Обновляем кнопку отправки
+            messagesFeed.scrollTop = messagesFeed.scrollHeight; // Скролл в самый низ
         }
 
         function toggleCryptForCurrentChat() {
+            if (!currentChatId) return;
             const isEnc = !loadChatEncryptState(currentChatId);
             saveChatEncryptState(currentChatId, isEnc);
-            const cryptBtn = document.getElementById('toggle-crypt-btn');
-            if (isEnc) cryptBtn.classList.add('active'); else cryptBtn.classList.remove('active');
+            updateCryptBtnState(); // Обновляем состояние замка
+            alert(`Шифрование для чата ${chats[currentChatId].name} ${isEnc ? 'включено' : 'отключено'}.`);
         }
 
-        function triggerFileInput() { document.getElementById('file-input').click(); }
-        function handleFileChange(event) { if (event.target.files.length > 0) { selectedFile = event.target.files[0]; document.getElementById('file-name').innerText = selectedFile.name; document.getElementById('file-preview').style.display = 'flex'; handleTypingEffect(); } }
-        function removeFile() { selectedFile = null; document.getElementById('file-input').value = ''; document.getElementById('file-preview').style.display = 'none'; handleTypingEffect(); }
-        function openCryptSettingsModal(chatId) { if (chatId) document.getElementById('crypt-settings-modal').classList.add('active'); }
-        function closeCryptSettingsModal() { document.getElementById('crypt-settings-modal').classList.remove('active'); }
-        function switchTab(tab) { currentTab = tab; document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); if (tab === 'all') document.getElementById('tab-all').classList.add('active'); else document.getElementById('tab-groups').classList.add('active'); renderChats(); }
-        function escapeHtml(text) { if (!text) return ""; return text.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&amp;#39;', '"': '&amp;quot;' }[tag] || tag)); }
-        function handleInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendVkMessage(); } }
-        function backToSidebar() { document.body.classList.remove('chat-opened'); currentChatId = null; }
+        function triggerFileInput() {
+            document.getElementById('file-input').click();
+        }
+
+        function handleFileChange(event) {
+            if (event.target.files.length > 0) {
+                selectedFile = event.target.files[0];
+                document.getElementById('file-name').innerText = selectedFile.name;
+                document.getElementById('file-preview').style.display = 'flex';
+                handleTypingEffect();
+            }
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').style.display = 'none';
+            handleTypingEffect();
+        }
+
+        function openCryptSettingsModal(chatId) {
+            if (!chatId) return;
+            document.getElementById('crypt-settings-modal').classList.add('active');
+        }
+
+        function closeCryptSettingsModal() {
+            document.getElementById('crypt-settings-modal').classList.remove('active');
+        }
+
+        async function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+
+            const chatsContainer = document.getElementById('chats-list');
+            const newsfeedContainer = document.getElementById('newsfeed-content');
+
+            if (tab === 'newsfeed') {
+                chatsContainer.style.display = 'none';
+                newsfeedContainer.style.display = 'flex';
+                // TODO: Здесь нужно вызывать функцию для загрузки ленты новостей
+                await fetchNewsfeed();
+            } else {
+                chatsContainer.style.display = 'flex';
+                newsfeedContainer.style.display = 'none';
+                renderChats();
+            }
+        }
+
+        async function fetchNewsfeed() {
+            const newsfeedContent = document.getElementById('newsfeed-content');
+            newsfeedContent.innerHTML = '<div class="empty-placeholder">Загрузка новостей...</div>';
+            try {
+                // Пример: получаем 20 постов из ленты
+                const response = await vkCall("newsfeed.get", { count: 20, filters: "post" });
+                newsfeedContent.innerHTML = ""; // Очищаем заглушку
+
+                if (response.items && response.items.length > 0) {
+                    // Проходимся по постам и отображаем их
+                    response.items.forEach(item => {
+                        if (item.type === 'post' && item.text) {
+                            const postDiv = document.createElement('div');
+                            postDiv.className = 'newsfeed-item';
+                            
+                            let sourceName = "Неизвестный источник";
+                            let sourcePhoto = "";
+                            // Определяем источник (пользователь или группа)
+                            if (item.source_id > 0 && response.profiles) {
+                                const profile = response.profiles.find(p => p.id === item.source_id);
+                                if (profile) {
+                                    sourceName = `${profile.first_name} ${profile.last_name}`;
+                                    sourcePhoto = profile.photo_100;
+                                }
+                            } else if (item.source_id < 0 && response.groups) {
+                                const group = response.groups.find(g => g.id === Math.abs(item.source_id));
+                                if (group) {
+                                    sourceName = group.name;
+                                    sourcePhoto = group.photo_100;
+                                }
+                            }
+
+                            postDiv.innerHTML = `
+                                <div style="display:flex; align-items:center; margin-bottom:10px;">
+                                    <div class="avatar" style="width:36px; height:36px; margin-right:10px; font-size:14px; ${sourcePhoto ? `background-image:url(${sourcePhoto})` : ''}" onclick="event.stopPropagation(); openProfile(${item.source_id}, ${item.source_id < 0});">
+                                        ${sourcePhoto ? '' : sourceName[0].toUpperCase()}
+                                    </div>
+                                    <span style="font-weight:700;">${escapeHtml(sourceName)}</span>
+                                </div>
+                                <p>${escapeHtml(item.text)}</p>
+                                <!-- TODO: Добавить рендеринг вложений (фото, видео) -->
+                            `;
+                            newsfeedContent.appendChild(postDiv);
+                        }
+                    });
+                } else {
+                    newsfeedContent.innerHTML = '<div class="empty-placeholder">В ленте новостей пока ничего нет.</div>';
+                }
+            } catch (e) {
+                console.error("Ошибка при загрузке ленты новостей:", e);
+                newsfeedContent.innerHTML = `<div class="empty-placeholder" style="color:var(--error);">Ошибка загрузки новостей: ${e.message}</div>`;
+            }
+        }
+
+        function openProfile(id, isGroup) {
+            let url = "";
+            if (isGroup) {
+                url = `https://vk.com/club${Math.abs(id)}`;
+            } else {
+                url = `https://vk.com/id${id}`;
+            }
+            if (url) {
+                window.open(url, '_blank');
+            }
+        }
+
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/[&<>"']/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[tag] || tag));
+        }
+
+        function handleInputKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendVkMessage();
+            }
+        }
+
+        function backToSidebar() {
+            document.body.classList.remove('chat-opened');
+            currentChatId = null;
+            const messagesFeed = document.getElementById('messages-feed');
+            messagesFeed.onscroll = null; // Отключаем слушатель скролла
+            renderChats(); // Обновляем список чатов
+        }
     </script>
 </body>
 </html>
