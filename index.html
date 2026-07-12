@@ -589,7 +589,7 @@
                 <div class="avatar" id="bot-avatar-img">?</div>
                 <div class="chat-details">
                     <div class="chat-title" id="bot-name-display">Загрузка...</div>
-                    <div style="font-size: 11px; color: var(--success)">online (polling)</div>
+                    <div id="bot-status-label" style="font-size: 12px; color: var(--text-muted)">в сети</div>
                 </div>
             </div>
 
@@ -610,8 +610,8 @@
                 <div class="back-btn" onclick="backToSidebar()">←</div>
                 <div class="avatar" id="active-chat-avatar">?</div>
                 <div class="chat-details" style="flex:1;">
-                    <div class="chat-title" id="active-chat-name">Выберите чат</div>
-                    <div class="chat-last-message" id="active-chat-status">Защищенный обмен готов</div>
+                    <div class="chat-title" id="active-chat-name" style="font-size: 17px; margin-bottom: 2px;">Выберите чат</div>
+                    <div id="active-chat-status" style="font-size: 13px; color: var(--text-muted);">Защищенный обмен готов</div>
                 </div>
                 <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openCryptSettingsModal(currentChatId)">Связь</button>
             </div>
@@ -757,12 +757,8 @@
 
         async function sendOwnPublicKeyIfNeeded(peerId, force = false) {
             const peerPub = safeStorage.get("peer_pub_" + peerId);
-            if (peerPub && !force) {
-                console.log(`Peer public key for ${peerId} already exists. Not sending request.`);
-                return; 
-            }
+            if (peerPub && !force) return; 
 
-            console.log(`Peer public key for ${peerId} not found or forced. Sending request.`);
             await ensureECKeyPair();
             const ownPub = safeStorage.get("ec_pub");
             if (ownPub) {
@@ -873,7 +869,6 @@
                         const pub = s.substring(MEOW_KEY_REQ_TAG.length);
                         const currentStoredPub = safeStorage.get("peer_pub_" + peerId);
                         if (currentStoredPub !== pub) {
-                            console.log(`Received NEW MEOW_KEY_REQ from peer ${peerId}. Storing and responding.`);
                             safeStorage.set("peer_pub_" + peerId, pub);
                             await ensureECKeyPair();
                             const ownPub = safeStorage.get("ec_pub");
@@ -886,7 +881,6 @@
                         const pub = s.substring(MEOW_KEY_RES_TAG.length);
                         const currentStoredPub = safeStorage.get("peer_pub_" + peerId);
                         if (currentStoredPub !== pub) {
-                            console.log(`Received NEW MEOW_KEY_RES from peer ${peerId}. Storing.`);
                             safeStorage.set("peer_pub_" + peerId, pub);
                         }
                         result = "🐾 [Системное: E2EE защищен (Связь установлена)]";
@@ -970,7 +964,7 @@
                             { name: "AES-GCM", iv: iv }, shared, cipher
                         );
                     } catch(e) {
-                        console.warn("Failed to decrypt with E2E key, trying base AES:", e);
+                        console.warn("Failed to decrypt with E2E key, trying base AES:");
                     }
                 }
 
@@ -1001,10 +995,10 @@
                         return await res.arrayBuffer();
                     }
                 } catch(e) {
-                    console.warn(`Failed to fetch from ${target}:`, e);
+                    console.warn(`Failed to fetch from ${target}`);
                 }
             }
-            throw new Error("Failed to fetch binary data from all proxies.");
+            throw new Error("Failed to fetch binary data.");
         }
 
         function vkCall(method, params = {}) {
@@ -1025,7 +1019,6 @@
                     delete window[callbackName];
                     document.body.removeChild(script);
                     if (response.error) {
-                        console.error(`VK API Error (${method}):`, response.error.error_msg);
                         reject(new Error(response.error.error_msg));
                     } else {
                         resolve(response.response);
@@ -1033,8 +1026,7 @@
                 };
                 script.onerror = () => {
                     delete window[callbackName];
-                    console.error(`VK API script load error (${method})`);
-                    reject(new Error(`Failed to load VK API script for ${method}`));
+                    reject(new Error("VK API script error"));
                 };
                 document.body.appendChild(script);
             });
@@ -1073,16 +1065,30 @@
                     document.getElementById('login-screen').style.display = 'none';
                     await fetchDialogs();
                     startPoller();
-                } else {
-                    throw new Error("Не удалось получить данные пользователя.");
                 }
             } catch (e) {
-                console.error("Login error:", e);
                 errorDiv.innerText = "Ошибка входа: " + e.message;
                 errorDiv.style.display = "block";
             } finally {
                 loginBtn.disabled = false;
             }
+        }
+
+        function formatLastSeen(lastSeenObj) {
+            if (!lastSeenObj || !lastSeenObj.time) return "был(а) в сети недавно";
+            const date = new Date(lastSeenObj.time * 1000);
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const isYesterday = date.toDateString() === yesterday.toDateString();
+
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (isToday) return `был(а) в сети сегодня в ${timeStr}`;
+            if (isYesterday) return `был(а) в сети вчера в ${timeStr}`;
+            
+            return `был(а) в сети ${date.toLocaleDateString([], { day: 'numeric', month: 'long' })} в ${timeStr}`;
         }
 
         async function fetchDialogs() {
@@ -1091,7 +1097,13 @@
                 const profiles = {};
                 if (data.profiles) {
                     data.profiles.forEach(p => {
-                        profiles[p.id] = { name: `${p.first_name} ${p.last_name}`, photo: p.photo_100, type: 'private', online: p.online === 1 };
+                        profiles[p.id] = { 
+                            name: `${p.first_name} ${p.last_name}`, 
+                            photo: p.photo_100, 
+                            type: 'private', 
+                            online: p.online === 1,
+                            last_seen: p.last_seen
+                        };
                     });
                 }
                 if (data.groups) {
@@ -1103,7 +1115,7 @@
                 for (const item of data.items) {
                     const peerId = item.conversation.peer.id;
                     const lastMsgObj = item.last_message;
-                    const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private', online: false };
+                    const peerInfo = profiles[peerId] || { name: `Пользователь`, photo: '', type: 'private', online: false };
 
                     if (!chats[peerId]) {
                         chats[peerId] = {
@@ -1112,10 +1124,12 @@
                             photo: peerInfo.photo,
                             type: peerInfo.type,
                             online: peerInfo.online,
+                            last_seen: peerInfo.last_seen,
                             messages: []
                         };
                     } else {
                         chats[peerId].online = peerInfo.online;
+                        chats[peerId].last_seen = peerInfo.last_seen;
                     }
                     
                     if (lastMsgObj) {
@@ -1142,17 +1156,21 @@
             document.getElementById('active-chat-name').innerText = chat.name;
             
             let statusText = "";
+            const statusEl = document.getElementById('active-chat-status');
+
             if (chat.type === 'group') {
                 statusText = "группа";
             } else {
-                statusText = chat.online ? "в сети" : "был(а) в сети недавно";
+                if (chat.online) {
+                    statusText = "в сети";
+                    statusEl.style.color = "var(--success)";
+                } else {
+                    statusText = formatLastSeen(chat.last_seen);
+                    statusEl.style.color = "var(--text-muted)";
+                }
             }
 
-            const statusEl = document.getElementById('active-chat-status');
-            if (statusEl.innerText !== statusText) {
-                statusEl.innerText = statusText;
-                statusEl.style.color = chat.online ? "var(--success)" : "var(--text-muted)";
-            }
+            statusEl.innerText = statusText;
         }
 
         let isPollingActive = false;
@@ -1167,8 +1185,6 @@
                             const chat = chats[currentChatId];
                             if (chat) {
                                 const serverItems = res.items || [];
-                                
-                                // Пересобираем массив актуальных сообщений, пришедших с сервера
                                 const serverMessages = serverItems.map(item => ({
                                     id: item.id,
                                     text: item.text,
@@ -1176,25 +1192,19 @@
                                     time: item.date * 1000,
                                     out: item.from_id === vkUser.id,
                                     attachments: item.attachments || []
-                                })).reverse(); // Хронологический порядок
+                                })).reverse();
 
-                                // Оставляем только те оптимистичные сообщения, которых еще нет в ответе сервера
                                 const optimisticMessages = chat.messages.filter(m => m.isOptimistic);
                                 const unmatchedOptimistic = [];
 
                                 for (const opt of optimisticMessages) {
-                                    // Если сервер уже прислал сообщение с таким же текстом от нашего лица, оптимистичное считается доставленным
                                     const isConfirmed = serverMessages.some(srv => srv.rawText === opt.rawText && srv.out);
-                                    if (!isConfirmed) {
-                                        unmatchedOptimistic.push(opt);
-                                    }
+                                    if (!isConfirmed) unmatchedOptimistic.push(opt);
                                 }
 
-                                // Итоговый массив содержит серверный слепок + недоставленные оптимистичные сообщения
                                 const finalMessages = [...serverMessages, ...unmatchedOptimistic];
                                 finalMessages.sort((a, b) => a.time - b.time);
 
-                                // Проверяем на различие списков (по составу ID) для полной реактивной отрисовки и дедупликации
                                 const currentIds = chat.messages.map(m => m.id).join(',');
                                 const finalIds = finalMessages.map(m => m.id).join(',');
 
@@ -1215,7 +1225,7 @@
                 } finally {
                     isPollingActive = false;
                 }
-            }, 1000); // 1 секунда для моментального реалтайма без угрозы лимитам API VK
+            }, 1000); 
         }
 
         async function loadHistoryForChat(peerId) {
@@ -1386,7 +1396,6 @@
 
                 if (isEncryptedFile) {
                     attachContainer.innerHTML = `<span style="font-size:12px;color:var(--text-muted);">🔒 Расшифровка файла...</span>`;
-                    
                     const decryptedCacheKey = "dec_file_" + doc.id;
                     let decryptedUrl = sessionStorage.getItem(decryptedCacheKey);
 
@@ -1394,7 +1403,6 @@
                         try {
                             const encBuf = await fetchBinaryData(doc.url);
                             const decBuf = await decryptBinary(encBuf, peerId);
-                            
                             if (decBuf) {
                                 let mime = "application/octet-stream";
                                 if (title.endsWith('.meow')) mime = 'image/png';
@@ -1406,7 +1414,6 @@
                                 sessionStorage.setItem(decryptedCacheKey, decryptedUrl);
                             }
                         } catch (e) {
-                            console.error("Error decrypting attached file:", e);
                             attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось расшифровать</span>`;
                             return;
                         }
@@ -1432,14 +1439,12 @@
                             const playBtn = document.createElement('button');
                             playBtn.className = 'voice-play-btn';
                             playBtn.innerText = '▶';
-                            
                             let audio = null;
                             playBtn.onclick = () => {
                                 if(!audio) audio = new Audio(decryptedUrl);
                                 if(audio.paused) { audio.play(); playBtn.innerText = '⏸'; }
                                 else { audio.pause(); playBtn.innerText = '▶'; }
                             };
-
                             const metaDiv = document.createElement('div');
                             metaDiv.className = 'voice-meta';
                             metaDiv.innerHTML = `<span class="voice-title">Голосовое сообщение</span><span class="voice-duration">Расшифровано (.mew)</span>`;
@@ -1455,8 +1460,6 @@
                             docLink.innerHTML = `<div class="document-icon">📄</div><div><span>${escapeHtml(realName)}</span></div>`;
                             attachContainer.appendChild(docLink);
                         }
-                    } else {
-                        attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Ошибка ключа</span>`;
                     }
                 } else {
                     if (title.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
@@ -1474,17 +1477,12 @@
             }
         }
 
-        function isSystemMessage(text) {
-            return text && (text.startsWith("🐾 [Системное:") || text.includes("[Ожидание E2EE обмена...]"));
-        }
-
         async function renderMessages() {
             const container = document.getElementById('messages-feed');
             const chat = chats[currentChatId];
             if (!chat) return;
 
             const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
-
             container.innerHTML = "";
             renderedMessageIds.clear(); 
 
@@ -1496,8 +1494,7 @@
 
             for (const msg of messages) {
                 let displayText = await decryptText(msg.rawText || "", chat.id, msg.out); 
-
-                if (isSystemMessage(displayText)) {
+                if (displayText && (displayText.startsWith("🐾 [Системное:") || displayText.includes("[Ожидание E2EE обмена...]"))) {
                     const sysDiv = document.createElement('div');
                     sysDiv.className = 'system-badge';
                     sysDiv.innerText = displayText;
@@ -1505,8 +1502,6 @@
                 } else {
                     const div = document.createElement('div');
                     div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                    div.dataset.msgId = msg.id; 
-
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'bubble-time';
                     timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -1518,36 +1513,26 @@
                         textSpan.innerHTML = escapeHtml(displayText);
                         div.insertBefore(textSpan, div.lastChild);
                     }
-
-                    if (msg.attachments && msg.attachments.length > 0) {
+                    if (msg.attachments) {
                         for (const attach of msg.attachments) {
                             await processAndDecryptAttachment(attach, div, chat.id); 
                         }
                     }
                     container.appendChild(div);
                 }
-                renderedMessageIds.add(msg.id); 
             }
-
-            if (isAtBottom) {
-                container.scrollTop = container.scrollHeight;
-            }
+            if (isAtBottom) container.scrollTop = container.scrollHeight;
         }
 
         function handleTypingEffect() {
             const textarea = document.getElementById('message-text');
             const actionBtn = document.getElementById('action-btn');
-            
             textarea.style.height = "auto";
             textarea.style.height = textarea.scrollHeight + "px";
-
             if (textarea.value.trim().length > 0 || selectedFile) {
                 actionBtn.innerText = "🐾"; 
-                actionBtn.title = "Отправить";
-                actionBtn.classList.remove('voice-active');
             } else {
                 actionBtn.innerText = "🎙️"; 
-                actionBtn.title = "Записать голосовое";
             }
         }
 
@@ -1571,33 +1556,18 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
                         const attachStr = await uploadFileToVk(new File([audioBlob], "voice.ogg"), true);
-                        const randomId = Math.floor(Math.random() * 2000000000);
-                        
-                        let msgBody = "Голосовое сообщение";
-                        if (loadChatEncryptState(currentChatId)) {
-                            msgBody = MEOW_TAG + " Голосовое";
-                        }
-
-                        await vkCall("messages.send", {
-                            peer_id: currentChatId,
-                            random_id: randomId,
-                            message: msgBody,
-                            attachment: attachStr
-                        });
+                        const msgBody = loadChatEncryptState(currentChatId) ? MEOW_TAG + " Голосовое" : "Голосовое сообщение";
+                        await vkCall("messages.send", { peer_id: currentChatId, random_id: Math.floor(Math.random() * 2000000000), message: msgBody, attachment: attachStr });
                         stream.getTracks().forEach(track => track.stop());
-                        handleTypingEffect(); 
                     };
                     mediaRecorder.start();
                     isRecording = true;
-                    btn.classList.add('voice-active');
-                    btn.innerText = "🛑";
-                } catch (err) { 
-                    console.error("Microphone access error:", err);
-                    alert("Микрофон недоступен!"); 
-                }
+                    btn.classList.add('voice-active'); btn.innerText = "🛑";
+                } catch (err) { alert("Микрофон недоступен!"); }
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
+                handleTypingEffect();
             }
         }
 
@@ -1605,35 +1575,19 @@
             const container = document.getElementById('chats-list');
             const searchVal = document.getElementById('search-input').value.toLowerCase();
             container.innerHTML = "";
-
             const sorted = Object.values(chats).sort((a,b) => {
                 const lastMsgA = a.messages.length > 0 ? a.messages[a.messages.length - 1].time : 0;
                 const lastMsgB = b.messages.length > 0 ? b.messages[b.messages.length - 1].time : 0;
                 return lastMsgB - lastMsgA;
             });
-
             sorted.forEach(chat => {
                 if (currentTab === "groups" && chat.type !== 'group') return;
                 if (currentTab === "all" && chat.type === 'group') return;
-
                 if (searchVal && !chat.name.toLowerCase().includes(searchVal)) return;
-
                 const item = document.createElement('div');
                 item.className = `chat-row ${currentChatId === chat.id ? 'active' : ''}`;
                 item.onclick = () => openChat(chat.id);
-
-                item.innerHTML = `
-                    <div class="avatar" style="${chat.photo ? `background-image:url(${chat.photo})` : ''}">
-                        ${chat.photo ? '' : chat.name[0].toUpperCase()}
-                        ${chat.online ? '<div class="online-dot"></div>' : ''}
-                    </div>
-                    <div class="chat-details">
-                        <div class="chat-meta">
-                            <div class="chat-title">${escapeHtml(chat.name)}</div>
-                        </div>
-                        <div class="chat-last-message">${escapeHtml(chat.last_message_display || "Загрузка...")}</div>
-                    </div>
-                `;
+                item.innerHTML = `<div class="avatar" style="${chat.photo ? `background-image:url(${chat.photo})` : ''}">${chat.photo ? '' : chat.name[0].toUpperCase()}${chat.online ? '<div class="online-dot"></div>' : ''}</div><div class="chat-details"><div class="chat-meta"><div class="chat-title">${escapeHtml(chat.name)}</div></div><div class="chat-last-message">${escapeHtml(chat.last_message_display || "История пуста")}</div></div>`;
                 container.appendChild(item);
             });
         }
@@ -1642,25 +1596,13 @@
             if (currentChatId === id) return;
             currentChatId = id;
             const chat = chats[id];
-            
             document.body.classList.add('chat-opened');
             updateActiveChatHeader();
             document.getElementById('chat-input-bar').style.display = 'flex';
-
             const chatHeaderAvatar = document.getElementById('active-chat-avatar');
-            if (chat.photo) {
-                chatHeaderAvatar.style.backgroundImage = `url(${chat.photo})`;
-                chatHeaderAvatar.innerText = "";
-            } else {
-                chatHeaderAvatar.style.backgroundImage = "";
-                chatHeaderAvatar.innerText = chat.name[0].toUpperCase();
-            }
-
+            if (chat.photo) { chatHeaderAvatar.style.backgroundImage = `url(${chat.photo})`; chatHeaderAvatar.innerText = ""; } else { chatHeaderAvatar.style.backgroundImage = ""; chatHeaderAvatar.innerText = chat.name[0].toUpperCase(); }
             const cryptBtn = document.getElementById('toggle-crypt-btn');
-            const isEnc = loadChatEncryptState(id);
-            if (isEnc) cryptBtn.classList.add('active');
-            else cryptBtn.classList.remove('active');
-
+            if (loadChatEncryptState(id)) cryptBtn.classList.add('active'); else cryptBtn.classList.remove('active');
             await sendOwnPublicKeyIfNeeded(id); 
             await loadHistoryForChat(id); 
             await renderMessages(); 
@@ -1672,70 +1614,18 @@
             const isEnc = !loadChatEncryptState(currentChatId);
             saveChatEncryptState(currentChatId, isEnc);
             const cryptBtn = document.getElementById('toggle-crypt-btn');
-            if (isEnc) cryptBtn.classList.add('active');
-            else cryptBtn.classList.remove('active');
-            alert(`Шифрование для этого чата ${isEnc ? 'включено' : 'отключено'}.`);
+            if (isEnc) cryptBtn.classList.add('active'); else cryptBtn.classList.remove('active');
         }
 
-        function triggerFileInput() {
-            document.getElementById('file-input').click();
-        }
-
-        function handleFileChange(event) {
-            if (event.target.files.length > 0) {
-                selectedFile = event.target.files[0];
-                document.getElementById('file-name').innerText = selectedFile.name;
-                document.getElementById('file-preview').style.display = 'flex';
-                handleTypingEffect();
-            }
-        }
-
-        function removeFile() {
-            selectedFile = null;
-            document.getElementById('file-input').value = '';
-            document.getElementById('file-preview').style.display = 'none';
-            handleTypingEffect();
-        }
-
-        function openCryptSettingsModal(chatId) {
-            if (!chatId) return;
-            document.getElementById('crypt-settings-modal').classList.add('active');
-        }
-
-        function closeCryptSettingsModal() {
-            document.getElementById('crypt-settings-modal').classList.remove('active');
-        }
-
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if (tab === 'all') document.getElementById('tab-all').classList.add('active');
-            else document.getElementById('tab-groups').classList.add('active');
-            renderChats();
-        }
-
-        function escapeHtml(text) {
-            if (!text) return "";
-            return text.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&amp;#39;', '"': '&amp;quot;'
-            }[tag] || tag));
-        }
-
-        function handleInputKey(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendVkMessage();
-            }
-        }
-
-        function backToSidebar() {
-            document.body.classList.remove('chat-opened');
-            currentChatId = null;
-            document.getElementById('messages-feed').innerHTML = `<div class="empty-placeholder">Выберите чат для начала защищенной сессии.</div>`;
-            document.getElementById('active-chat-name').innerText = 'Выберите чат';
-            document.getElementById('active-chat-status').innerText = 'Защищенный обмен готов';
-            document.getElementById('chat-input-bar').style.display = 'none';
-        }
+        function triggerFileInput() { document.getElementById('file-input').click(); }
+        function handleFileChange(event) { if (event.target.files.length > 0) { selectedFile = event.target.files[0]; document.getElementById('file-name').innerText = selectedFile.name; document.getElementById('file-preview').style.display = 'flex'; handleTypingEffect(); } }
+        function removeFile() { selectedFile = null; document.getElementById('file-input').value = ''; document.getElementById('file-preview').style.display = 'none'; handleTypingEffect(); }
+        function openCryptSettingsModal(chatId) { if (chatId) document.getElementById('crypt-settings-modal').classList.add('active'); }
+        function closeCryptSettingsModal() { document.getElementById('crypt-settings-modal').classList.remove('active'); }
+        function switchTab(tab) { currentTab = tab; document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); if (tab === 'all') document.getElementById('tab-all').classList.add('active'); else document.getElementById('tab-groups').classList.add('active'); renderChats(); }
+        function escapeHtml(text) { if (!text) return ""; return text.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&amp;#39;', '"': '&amp;quot;' }[tag] || tag)); }
+        function handleInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendVkMessage(); } }
+        function backToSidebar() { document.body.classList.remove('chat-opened'); currentChatId = null; }
     </script>
 </body>
 </html>
