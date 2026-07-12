@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Crypt Web Pro</title>
+    <title>VK Meow Web client Premium</title>
     <style>
         :root {
-            --bg-dark: #000000;         /* Чистый черный AMOLED */
-            --bg-surface: #161618;      /* Темный уголь */
-            --bg-input: #1c1c1e;        /* Плоский темный для полей */
-            --accent: #1f80e0;          /* Насыщенный синий */
-            --accent-hover: #2f94e3;
-            --text-main: #f2f2f7;       /* Элегантный белый */
-            --text-muted: #8e8e93;      /* Серый приглушенный */
-            --msg-in: #212123;          /* Входящие сообщения */
-            --msg-out: #1f80e0;         /* Исходящие сообщения */
-            --error: #ff3b30;
-            --success: #34c759;         /* Сочный зеленый */
-            --border-color: #2c2c2e;
+            --bg-dark: #000000;         /* Глубокий черный AMOLED */
+            --bg-surface: #0d0d0e;      /* Темный уголь */
+            --bg-input: #161618;        /* Контрастный черный */
+            --accent: #2f80ed;          /* Эстетичный синий */
+            --accent-hover: #4f9bfd;
+            --text-main: #f5f5f7;       /* Чистый белый */
+            --text-muted: #6e6e73;      /* Серый */
+            --msg-in: #161618;          /* Входящие сообщения */
+            --msg-out: #2f80ed;         /* Исходящие сообщения */
+            --error: #ff453a;
+            --success: #30d158;         /* Зеленый */
+            --border-color: #1c1c1e;
         }
 
         * {
@@ -41,90 +41,81 @@
         #login-screen {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #161618 0%, var(--bg-dark) 100%);
+            background: radial-gradient(circle at center, #0d0d0e 0%, var(--bg-dark) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-y: auto;
-            padding: 20px 0;
+            transition: all 0.4s ease;
         }
 
         .login-card {
             width: 90%;
-            max-width: 440px;
+            max-width: 420px;
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
-            padding: 35px 25px;
-            border-radius: 24px;
+            padding: 40px 30px;
+            border-radius: 28px;
             text-align: center;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-            margin: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.9);
         }
 
         .login-logo {
-            font-size: 64px;
-            margin-bottom: 15px;
-            color: var(--accent);
+            font-size: 72px;
+            margin-bottom: 20px;
             display: inline-block;
             animation: float 4s ease-in-out infinite;
-            text-shadow: 0 0 20px rgba(31, 128, 224, 0.3);
         }
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-12px); }
+            50% { transform: translateY(-10px); }
         }
 
         .login-card h1 {
-            font-size: 24px;
-            font-weight: 800;
-            margin-bottom: 10px;
+            font-size: 26px;
+            font-weight: 850;
+            margin-bottom: 12px;
             letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #fff 0%, #8e8e93 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
         }
 
         .login-card p {
             color: var(--text-muted);
-            font-size: 13.5px;
-            margin-bottom: 20px;
+            font-size: 14px;
+            margin-bottom: 24px;
             line-height: 1.5;
         }
 
         .instruction-box {
-            background: rgba(31, 128, 224, 0.08);
-            border: 1px solid rgba(31, 128, 224, 0.2);
-            border-radius: 14px;
-            padding: 15px;
+            background: rgba(47, 128, 237, 0.06);
+            border: 1px solid rgba(47, 128, 237, 0.15);
+            border-radius: 16px;
+            padding: 18px;
             text-align: left;
-            margin-bottom: 20px;
-            font-size: 13px;
-            line-height: 1.45;
+            margin-bottom: 24px;
+            font-size: 13.5px;
+            line-height: 1.5;
         }
 
         .instruction-box ol {
-            margin-left: 18px;
-            margin-top: 8px;
-            color: var(--text-main);
+            margin-left: 20px;
+            margin-top: 10px;
         }
 
         .instruction-box li {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .token-link-btn {
             display: inline-block;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.03);
             color: var(--accent);
             text-decoration: none;
-            padding: 6px 12px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 10px;
             font-weight: 600;
-            margin-top: 5px;
-            border: 1px solid rgba(31, 128, 224, 0.3);
+            margin-top: 6px;
+            border: 1px solid rgba(47, 128, 237, 0.25);
             transition: all 0.2s;
         }
 
@@ -136,55 +127,36 @@
         .login-input {
             width: 100%;
             padding: 16px 20px;
-            border-radius: 14px;
+            border-radius: 16px;
             border: 1px solid var(--border-color);
             background: var(--bg-input);
             color: white;
             font-size: 15px;
             outline: none;
-            margin-bottom: 15px;
-            transition: all 0.25s ease;
+            margin-bottom: 18px;
+            transition: all 0.3s;
         }
 
         .login-input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 14px rgba(31, 128, 224, 0.25);
-            background: #1c1c1e;
+            box-shadow: 0 0 16px rgba(47, 128, 237, 0.2);
         }
 
         .btn {
             width: 100%;
             padding: 16px;
-            border-radius: 14px;
+            border-radius: 16px;
             border: none;
             background: var(--accent);
             color: white;
             font-weight: 700;
             font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(31, 128, 224, 0.3);
+            transition: all 0.2s;
         }
 
-        .btn:hover { 
-            background: var(--accent-hover);
-            box-shadow: 0 6px 20px rgba(31, 128, 224, 0.45);
-        }
+        .btn:hover { background: var(--accent-hover); }
         .btn:active { transform: scale(0.98); }
-        .btn:disabled { background: #2c2c2e; color: #8e8e93; cursor: not-allowed; box-shadow: none; }
-
-        .error-log {
-            color: var(--error);
-            font-size: 13px;
-            margin-top: 15px;
-            background: rgba(255, 59, 48, 0.08);
-            padding: 14px;
-            border-radius: 10px;
-            display: none;
-            word-break: break-all;
-            text-align: left;
-            border: 1px solid rgba(255, 59, 48, 0.2);
-        }
 
         .wrapper {
             display: flex;
@@ -193,13 +165,12 @@
         }
 
         .sidebar {
-            width: 380px;
+            width: 360px;
             background: var(--bg-dark);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-            position: relative;
         }
 
         .bot-header {
@@ -215,27 +186,15 @@
             padding: 14px 20px 8px 20px;
         }
 
-        .search-wrapper {
-            position: relative;
-            display: flex;
-            gap: 10px;
-        }
-
         .search-field {
-            flex: 1;
-            padding: 12px 16px;
+            width: 100%;
+            padding: 12px 18px;
             border-radius: 22px;
             border: 1px solid var(--border-color);
             background: var(--bg-input);
             color: white;
             font-size: 14.5px;
             outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .search-field:focus {
-            background: #1c1c1e;
-            border-color: var(--accent);
         }
 
         .tabs {
@@ -247,16 +206,15 @@
 
         .tab-btn {
             flex: 1;
-            padding: 10px 5px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 10px;
             background: var(--bg-input);
             border: none;
             color: var(--text-muted);
-            font-size: 13px;
+            font-size: 13.5px;
             font-weight: 700;
             cursor: pointer;
-            text-align: center;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
 
         .tab-btn.active {
@@ -267,7 +225,6 @@
         .chats-container {
             flex: 1;
             overflow-y: auto;
-            scrollbar-width: thin;
         }
 
         .chat-row {
@@ -276,17 +233,17 @@
             padding: 14px 20px;
             cursor: pointer;
             transition: background 0.2s;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid rgba(255,255,255,0.01);
         }
 
         .chat-row:hover { background: rgba(255, 255, 255, 0.02); }
-        .chat-row.active { background: #1c1c1e; }
+        .chat-row.active { background: var(--bg-surface); }
 
         .avatar {
-            width: 52px;
-            height: 52px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background-color: var(--accent);
+            background-color: var(--bg-input);
             color: white;
             font-weight: 700;
             font-size: 18px;
@@ -298,15 +255,12 @@
             background-position: center;
             flex-shrink: 0;
             position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         .online-dot {
             position: absolute;
-            bottom: 2px;
-            right: 2px;
-            width: 12px;
-            height: 12px;
+            bottom: 1px; right: 1px;
+            width: 12px; height: 12px;
             background: var(--success);
             border-radius: 50%;
             border: 2px solid var(--bg-dark);
@@ -321,25 +275,20 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .chat-title {
             font-weight: 700;
             font-size: 15px;
+            color: #ffffff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: #ffffff;
-        }
-
-        .chat-time {
-            font-size: 12px;
-            color: var(--text-muted);
         }
 
         .chat-last-message {
-            font-size: 13px;
+            font-size: 13.5px;
             color: var(--text-muted);
             white-space: nowrap;
             overflow: hidden;
@@ -351,7 +300,6 @@
             display: flex;
             flex-direction: column;
             background-color: var(--bg-dark);
-            position: relative;
         }
 
         .chat-window-header {
@@ -369,10 +317,8 @@
             font-size: 22px;
             color: var(--accent);
             cursor: pointer;
-            margin-right: 18px;
-            width: 36px;
-            height: 36px;
-            display: flex;
+            margin-right: 15px;
+            width: 36px; height: 36px;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
@@ -385,35 +331,47 @@
             padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            scrollbar-width: thin;
+            gap: 10px;
+            scroll-behavior: smooth;
         }
 
         .empty-placeholder {
             margin: auto;
             text-align: center;
-            max-width: 320px;
             color: var(--text-muted);
-            font-size: 14.5px;
-            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        /* Системные сообщения по центру без бабблов */
+        .system-badge {
+            align-self: center;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 8px 0;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.02);
         }
 
         .bubble {
-            max-width: 68%;
+            max-width: 70%;
             padding: 12px 16px;
-            border-radius: 18px;
+            border-radius: 20px;
             font-size: 14.5px;
-            line-height: 1.5;
+            line-height: 1.45;
             word-wrap: break-word;
             position: relative;
             display: flex;
             flex-direction: column;
-            animation: fadeIn 0.15s ease-out;
+            animation: bubbleIntro 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes bubbleIntro {
+            from { opacity: 0; transform: translateY(8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .bubble.in {
@@ -430,21 +388,19 @@
 
         .bubble-time {
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.35);
-            margin-top: 6px;
-            text-align: right;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 5px;
             align-self: flex-end;
         }
 
         .bubble-media {
             max-width: 100%;
-            height: auto;
-            max-height: 300px;
-            border-radius: 12px;
+            border-radius: 14px;
             margin-bottom: 6px;
             display: block;
             cursor: pointer;
             object-fit: cover;
+            max-height: 280px;
         }
 
         .document-link {
@@ -452,166 +408,111 @@
             align-items: center;
             gap: 12px;
             background: rgba(255, 255, 255, 0.04);
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 12px;
             color: #ffffff;
             text-decoration: none;
-            font-size: 14px;
-            word-break: break-all;
-            border: 1px solid rgba(255,255,255,0.03);
+            font-size: 13.5px;
         }
 
         .document-icon {
-            font-size: 24px;
-            background: rgba(31, 128, 224, 0.15);
-            width: 44px;
-            height: 44px;
+            font-size: 20px;
+            background: rgba(47, 128, 237, 0.15);
+            width: 40px; height: 40px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
             color: var(--accent);
         }
 
-        .voice-player {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            min-width: 220px;
-            padding: 4px 0;
-        }
-
-        .voice-play-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .voice-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1;
-        }
-
-        .voice-title {
-            font-size: 13.5px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-
-        .voice-duration {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
+        /* Стиль панели ввода как в Telegram/Android */
         .chat-input-bar {
             padding: 12px 16px;
             background: var(--bg-surface);
             display: flex;
             align-items: flex-end;
-            gap: 10px;
+            gap: 12px;
             border-top: 1px solid var(--border-color);
-            flex-shrink: 0;
         }
 
-        .input-controls {
-            display: flex;
-            flex-direction: column;
+        .input-box-container {
             flex: 1;
-            position: relative;
-            min-width: 0;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            display: flex;
+            align-items: flex-end;
+            padding: 4px 14px;
         }
+
+        .input-side-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            padding: 8px 4px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .input-side-btn:hover { color: white; }
+        .input-side-btn.active { color: var(--accent); }
 
         .textarea-message {
             flex: 1;
-            padding: 12px 16px;
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: 22px;
-            color: white;
+            background: none;
+            border: none;
             outline: none;
-            font-size: 14.5px;
+            color: white;
+            font-size: 15px;
+            padding: 10px;
             resize: none;
             max-height: 120px;
-            min-height: 44px;
-            overflow-y: auto;
+            min-height: 40px;
+            line-height: 1.4;
         }
 
-        .attachment-btn, .voice-btn, .toggle-crypt-btn, #send-btn {
+        /* Главная круглая кнопка действия (Голос -> Отправить) */
+        .action-round-btn {
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            color: #8e8e93;
-            font-size: 16px;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: all 0.2s ease;
-        }
-
-        .voice-btn.recording {
-            color: white;
-            background: var(--error);
-            border-color: var(--error);
-            animation: pulse-red 1.5s infinite;
-        }
-
-        @keyframes pulse-red {
-            0% { transform: scale(1); }
-            70% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .toggle-crypt-btn.active {
-            color: var(--accent);
-            border-color: var(--accent);
-        }
-
-        #send-btn {
             background: var(--accent);
             color: white;
             border: none;
             font-size: 18px;
-            flex-shrink: 0 !important;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
         }
 
-        .file-upload-input {
-            display: none;
+        .action-round-btn.voice-active {
+            background: var(--error);
+            animation: pulse-recording 1.5s infinite;
         }
+
+        @keyframes pulse-recording {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .file-upload-input { display: none; }
 
         .file-preview-container {
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: #1c1c1e;
-            padding: 10px 16px;
+            gap: 10px;
+            background: rgba(47, 128, 237, 0.1);
+            padding: 8px 12px;
             border-radius: 12px;
-            margin-bottom: 10px;
-            font-size: 13.5px;
-            color: var(--text-main);
-            border: 1px solid var(--accent);
-        }
-
-        .file-preview-close {
-            color: var(--error);
-            font-size: 20px;
-            cursor: pointer;
-            margin-left: auto;
+            margin-bottom: 8px;
+            font-size: 13px;
+            border: 1px solid rgba(47, 128, 237, 0.3);
         }
 
         .modal-overlay {
@@ -622,7 +523,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1100;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
         }
 
         .modal-overlay.active { display: flex; }
@@ -631,57 +532,41 @@
             background: var(--bg-surface);
             border: 1px solid var(--border-color);
             width: 90%;
-            max-width: 440px;
-            border-radius: 24px;
+            max-width: 400px;
+            border-radius: 28px;
             padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
         .modal-header {
             font-size: 20px;
             font-weight: 800;
-            margin-bottom: 18px;
-            color: white;
+            margin-bottom: 20px;
             text-align: center;
         }
 
         .modal-profile-info p {
-            margin-bottom: 12px;
-            font-size: 14.5px;
+            margin-bottom: 14px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.02);
+            gap: 6px;
         }
 
-        .modal-profile-info b { color: var(--text-muted); font-weight: 500; }
-        .modal-profile-info span { color: white; font-weight: 600; }
+        .modal-profile-info b { color: var(--text-muted); font-size: 13px; }
 
         .input-with-button {
             display: flex;
             gap: 8px;
-            margin-top: 4px;
         }
 
         .modal-profile-info .inline-input {
             flex: 1;
-            padding: 10px 14px;
-            border-radius: 10px;
+            padding: 12px;
+            border-radius: 12px;
             border: 1px solid var(--border-color);
             background: var(--bg-input);
             color: white;
             font-size: 14px;
             outline: none;
-        }
-
-        .eye-btn {
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            border-radius: 10px;
-            padding: 0 12px;
-            cursor: pointer;
         }
 
         @media (max-width: 768px) {
@@ -699,7 +584,7 @@
         <div class="login-card">
             <div class="login-logo">🐾</div>
             <h1>VK Meow Crypt Web</h1>
-            <p>100% совместимость с Android-версией [MEOW], [MEOW_SECURE] и [MEOW_E2E]</p>
+            <p>Стабильное сквозное шифрование, совместимое с Android-клиентом</p>
             
             <div class="instruction-box">
                 <b>Инструкция получения токена:</b>
@@ -708,7 +593,7 @@
                         <br>
                         <a href="https://oauth.vk.com/authorize?client_id=2274003&scope=messages,photos,video,docs,status,friends,wall,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
-                    <li>Разрешите доступ, скопируйте всю строку адреса из браузера и вставьте её ниже.</li>
+                    <li>Авторизуйтесь в VK, скопируйте всю ссылку из адресной строки браузера и вставьте её ниже.</li>
                 </ol>
             </div>
 
@@ -729,9 +614,7 @@
             </div>
 
             <div class="search-area">
-                <div class="search-wrapper">
-                    <input type="text" id="search-input" class="search-field" placeholder="Поиск чатов..." oninput="renderChats()">
-                </div>
+                <input type="text" id="search-input" class="search-field" placeholder="Поиск чатов..." oninput="renderChats()">
             </div>
 
             <div class="tabs">
@@ -748,67 +631,65 @@
                 <div class="avatar" id="active-chat-avatar">?</div>
                 <div class="chat-details" style="flex:1;">
                     <div class="chat-title" id="active-chat-name">Выберите чат</div>
-                    <div class="chat-last-message" id="active-chat-status">и начнется безопасное общение</div>
+                    <div class="chat-last-message" id="active-chat-status">Защищенное соединение готово</div>
                 </div>
-                <button class="btn" style="width: auto; padding: 8px 15px; font-size: 13px;" onclick="openProfileModal(currentChatId)">Подробнее</button>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openProfileModal(currentChatId)">Пароли</button>
             </div>
 
             <div class="chat-feed" id="messages-feed">
                 <div class="empty-placeholder">
-                    Здесь будет отображаться история переписки. Нажмите на любой чат для начала общения.
+                    Выберите чат из меню слева для начала безопасной сессии.
                 </div>
             </div>
 
             <div class="chat-input-bar" id="chat-input-bar" style="display: none;">
-                <label for="file-input" class="attachment-btn">📎</label>
-                <input type="file" id="file-input" class="file-upload-input" accept="*/*" onchange="handleFileChange(event)">
-                
-                <button class="voice-btn" id="voice-btn" onclick="toggleVoiceRecord()">🎙️</button>
-                <button class="toggle-crypt-btn active" id="toggle-crypt-btn" onclick="toggleCryptForCurrentChat()">🔒</button>
+                <div class="input-box-container">
+                    <button class="input-side-btn" onclick="triggerFileInput()">📎</button>
+                    <input type="file" id="file-input" class="file-upload-input" accept="*/*" onchange="handleFileChange(event)">
+                    
+                    <button class="input-side-btn active" id="toggle-crypt-btn" onclick="toggleCryptForCurrentChat()" title="Шифрование">🔒</button>
 
-                <div class="input-controls">
-                    <div id="file-preview" class="file-preview-container" style="display: none;">
-                        <span id="file-name"></span>
-                        <span class="file-preview-close" onclick="removeFile()">×</span>
+                    <div class="input-controls">
+                        <div id="file-preview" class="file-preview-container" style="display: none;">
+                            <span id="file-name" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                            <span style="color:var(--error); cursor:pointer;" onclick="removeFile()">×</span>
+                        </div>
+                        <textarea id="message-text" class="textarea-message" placeholder="Написать сообщение..." rows="1" onkeydown="handleInputKey(event)" oninput="handleTypingEffect()"></textarea>
                     </div>
-                    <textarea id="message-text" class="textarea-message" placeholder="Напишите сообщение..." rows="1" onkeydown="handleInputKey(event)"></textarea>
                 </div>
-                <button id="send-btn" onclick="sendVkMessage()">➤</button>
+
+                <!-- Умная кнопка действия (Голос -> Отправить) -->
+                <button class="action-round-btn" id="action-btn" onclick="handleActionButtonClick()">🎙️</button>
             </div>
         </div>
     </div>
 
-    <!-- Настройки шифрования в стиле Android -->
     <div class="modal-overlay" id="profile-modal">
         <div class="modal">
-            <div class="modal-header">Пароли чата</div>
-            <div class="modal-content-scroll modal-profile-info">
+            <div class="modal-header">Шифрование чата</div>
+            <div class="modal-profile-info">
                 <p>
                     <b>Ваш пароль (исходящие):</b>
                     <div class="input-with-button">
-                        <input type="password" id="chat-pass-out" class="inline-input" placeholder="Пароль для ваших сообщений" oninput="updateChatPasswords()">
+                        <input type="password" id="chat-pass-out" class="inline-input" placeholder="Пароль для шифрования" oninput="updateChatPasswords()">
                         <button class="eye-btn" onclick="togglePasswordVisibility('chat-pass-out')">👁️</button>
                     </div>
                 </p>
                 <p>
                     <b>Пароль собеседника (входящие):</b>
                     <div class="input-with-button">
-                        <input type="password" id="chat-pass-in" class="inline-input" placeholder="Пароль для расшифровки собеседника" oninput="updateChatPasswords()">
+                        <input type="password" id="chat-pass-in" class="inline-input" placeholder="Пароль собеседника" oninput="updateChatPasswords()">
                         <button class="eye-btn" onclick="togglePasswordVisibility('chat-pass-in')">👁️</button>
                     </div>
                 </p>
-                <div style="font-size: 11px; color: var(--text-muted); margin-top: 15px; text-align: center;">
-                    * Если пароли пустые, используется классическое шифрование [MEOW].
-                </div>
             </div>
-            <div class="modal-footer" style="margin-top: 20px;">
-                <button class="btn" onclick="closeProfileModal()">Сохранить и Перезагрузить</button>
+            <div style="margin-top:20px;">
+                <button class="btn" onclick="closeProfileModal()">Сохранить изменения</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- КОНСТАНТЫ КРИПТОГРАФИИ (ПОЛНОЕ СООТВЕТСТВИЕ С JAVA) ---
         const AES_KEY_STRING = "12345678901234567890123456789012";
         const BASE_AES_KEY_BYTES = new TextEncoder().encode(AES_KEY_STRING);
         
@@ -818,9 +699,7 @@
         const MEOW_KEY_RES_TAG = "[MEOW_KEY_RES]";
         const MEOW_E2E_TAG = "[MEOW_E2E]";
 
-        const PBKDF2_ITERATIONS = 1000000; // Твой миллион итераций из Android-кода!
-        const GCM_IV_LENGTH = 12;
-        const PBKDF2_SALT_LENGTH = 16;
+        const PBKDF2_ITERATIONS = 1000000; 
 
         let botToken = "";
         let vkUser = {};
@@ -833,7 +712,6 @@
         let audioChunks = [];
         let isRecording = false;
 
-        // КЭШ И ОПТИМИЗАЦИЯ ДЛЯ УСТРАНЕНИЯ ЛАГОВ
         const derivedKeysCache = {}; 
         const decryptedTextCache = {}; 
         let renderedMessageIds = new Set();
@@ -846,13 +724,9 @@
         window.onload = function() {
             const savedToken = safeStorage.get("saved_vk_token");
             const savedChats = safeStorage.get("saved_vk_chats");
-            
             if (savedChats) {
-                try { 
-                    chats = JSON.parse(savedChats);
-                } catch(e) { chats = {}; }
+                try { chats = JSON.parse(savedChats); } catch(e) { chats = {}; }
             }
-
             if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
                 tryLogin(savedToken);
@@ -863,7 +737,7 @@
             safeStorage.set("saved_vk_chats", JSON.stringify(chats));
         }
 
-        // --- ECDH E2EE (ОБМЕН КЛЮЧАМИ СТРОГО 1 РАЗ) ---
+        // --- КРИПТОГРАФИЯ (ОБМЕН КЛЮЧАМИ СТРОГО 1 РАЗ) ---
 
         async function ensureECKeyPair() {
             if (safeStorage.get("ec_pub") && safeStorage.get("ec_priv")) return;
@@ -877,9 +751,7 @@
                 const privBuf = await window.crypto.subtle.exportKey("pkcs8", kp.privateKey);
                 safeStorage.set("ec_pub", bytesToBase64(pubBuf));
                 safeStorage.set("ec_priv", bytesToBase64(privBuf));
-            } catch (e) {
-                console.error("EC Generation failed:", e);
-            }
+            } catch (e) {}
         }
 
         async function deriveSharedKeyWithPeer(peerId) {
@@ -922,8 +794,7 @@
 
         async function sendOwnPublicKeyIfNeeded(peerId) {
             const peerPub = safeStorage.get("peer_pub_" + peerId);
-            // Если публичный ключ уже сохранен в браузере, прерываем процедуру и больше ничего не шлем!
-            if (peerPub) return;
+            if (peerPub) return; // Уже сохранен! Обмен не требуется!
 
             await ensureECKeyPair();
             const ownPub = safeStorage.get("ec_pub");
@@ -941,7 +812,7 @@
             } catch(e) {}
         }
 
-        // --- ВСПОМОГАТЕЛЬНЫЕ КРИПТО-МЕТОДЫ ---
+        // --- УТИЛИТЫ КРИПТОГРАФИИ ---
 
         function bytesToBase64(bytes) {
             let binary = '';
@@ -1011,7 +882,7 @@
                        .replace(/&#39;/g, "'");
         }
 
-        // --- ДЕШИФРОВАНИЕ ТЕКСТА (ПРИНЦИП РАБОТЫ КАК В JAVA) ---
+        // --- ШИФРОВАНИЕ И ДЕШИФРОВАНИЕ (В ТОЧНОСТИ КАК В JAVA) ---
 
         async function encryptText(text, peerId) {
             if (!text) return "";
@@ -1030,34 +901,31 @@
                     const payload = concatBytes(iv, new Uint8Array(ciphertext));
                     return MEOW_E2E_TAG + bytesToBase64(payload);
                 } else {
-                    const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw",
-                        BASE_AES_KEY_BYTES,
-                        { name: "AES-GCM" },
-                        false,
-                        ["encrypt"]
-                    );
-                    const firstLayerEncrypted = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: baseIv },
-                        baseAesKey,
-                        new TextEncoder().encode(text)
-                    );
-                    const innerPayload = concatBytes(baseIv, new Uint8Array(firstLayerEncrypted));
-
                     const chatPassOut = loadChatPassword(peerId, "out");
                     if (chatPassOut) {
+                        // Однослойный защищенный паролем GCM шифр (Salt + IV + Ciphertext)
                         const salt = window.crypto.getRandomValues(new Uint8Array(16));
                         const secondKey = await deriveKeyFromPassword(chatPassOut, salt);
                         const outerIv = window.crypto.getRandomValues(new Uint8Array(12));
-                        const secondLayerEncrypted = await window.crypto.subtle.encrypt(
+                        const encryptedBytes = await window.crypto.subtle.encrypt(
                             { name: "AES-GCM", iv: outerIv },
                             secondKey,
-                            innerPayload
+                            new TextEncoder().encode(text)
                         );
-                        const finalEncryptedData = concatBytes(salt, outerIv, new Uint8Array(secondLayerEncrypted));
-                        return MEOW_SECURE_TAG + bytesToBase64(finalEncryptedData);
+                        const finalPayload = concatBytes(salt, outerIv, new Uint8Array(encryptedBytes));
+                        return MEOW_SECURE_TAG + bytesToBase64(finalPayload);
                     } else {
+                        // Однослойный классический GCM шифр (IV + Ciphertext)
+                        const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
+                        const baseAesKey = await window.crypto.subtle.importKey(
+                            "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["encrypt"]
+                        );
+                        const encryptedBytes = await window.crypto.subtle.encrypt(
+                            { name: "AES-GCM", iv: baseIv },
+                            baseAesKey,
+                            new TextEncoder().encode(text)
+                        );
+                        const innerPayload = concatBytes(baseIv, new Uint8Array(encryptedBytes));
                         return MEOW_TAG + bytesToBase64(innerPayload);
                     }
                 }
@@ -1072,15 +940,18 @@
             try {
                 if (s.startsWith(MEOW_KEY_REQ_TAG)) {
                     const pub = s.substring(14);
-                    safeStorage.set("peer_pub_" + peerId, pub);
-                    await ensureECKeyPair();
-                    const ownPub = safeStorage.get("ec_pub");
-                    await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
-                    return "[E2EE ключ получен (запрос)]";
+                    const curPub = safeStorage.get("peer_pub_" + peerId);
+                    if (curPub !== pub) {
+                        safeStorage.set("peer_pub_" + peerId, pub);
+                        await ensureECKeyPair();
+                        const ownPub = safeStorage.get("ec_pub");
+                        await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
+                    }
+                    return "🐾 [Системное: E2EE защищен (Запрос)]";
                 } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
                     const pub = s.substring(14);
                     safeStorage.set("peer_pub_" + peerId, pub);
-                    return "[E2EE ключ получен (ответ)]";
+                    return "🐾 [Системное: E2EE защищен (Установлено)]";
                 } else if (s.startsWith(MEOW_E2E_TAG)) {
                     const b64 = s.substring(10);
                     const data = base64ToBytes(b64);
@@ -1088,61 +959,55 @@
                     const iv = data.slice(0, 12);
                     const cipher = data.slice(12);
                     const sharedKey = await deriveSharedKeyWithPeer(peerId);
-                    if (!sharedKey) return "[Нет E2EE ключа]";
+                    if (!sharedKey) return "[Ожидание E2EE ключа...]";
                     const dec = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: iv },
-                        sharedKey,
-                        cipher
+                        { name: "AES-GCM", iv: iv }, sharedKey, cipher
                     );
                     return new TextDecoder().decode(dec);
                 } else if (s.startsWith(MEOW_SECURE_TAG)) {
                     const b64 = s.substring(13);
-                    const fullEncryptedData = base64ToBytes(b64);
-                    const salt = fullEncryptedData.slice(0, 16);
-                    const remaining = fullEncryptedData.slice(16);
+                    const data = base64ToBytes(b64);
+                    if (data.length < 28) return "[Ошибка Secure]";
+                    const salt = data.slice(0, 16);
+                    const remaining = data.slice(16);
                     const outerIv = remaining.slice(0, 12);
                     const outerCipher = remaining.slice(12);
 
                     const passIn = loadChatPassword(peerId, "in");
-                    if (!passIn) return "[Нужен пароль для расшифровки]";
+                    if (!passIn) return "[Введите пароль собеседника]";
                     const secondKey = await deriveKeyFromPassword(passIn, salt);
-                    const innerPayload = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: outerIv },
-                        secondKey,
-                        outerCipher
+                    
+                    const decrypted = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: outerIv }, secondKey, outerCipher
                     );
+                    
+                    // Попытка автоопределения двойного шифрования (на всякий случай)
+                    try {
+                        const arr = new Uint8Array(decrypted);
+                        if (arr.length > 12) {
+                            const bIv = arr.slice(0, 12);
+                            const bCiph = arr.slice(12);
+                            const baseAesKey = await window.crypto.subtle.importKey(
+                                "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["decrypt"]
+                            );
+                            const finalDec = await window.crypto.subtle.decrypt(
+                                { name: "AES-GCM", iv: bIv }, baseAesKey, bCiph
+                            );
+                            return new TextDecoder().decode(finalDec);
+                        }
+                    } catch(e) {}
 
-                    const baseIv = innerPayload.slice(0, 12);
-                    const firstCipher = innerPayload.slice(12);
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw",
-                        BASE_AES_KEY_BYTES,
-                        { name: "AES-GCM" },
-                        false,
-                        ["decrypt"]
-                    );
-                    const originalBytes = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: baseIv },
-                        baseAesKey,
-                        firstCipher
-                    );
-                    return new TextDecoder().decode(originalBytes);
+                    return new TextDecoder().decode(decrypted);
                 } else if (s.startsWith(MEOW_TAG)) {
                     const b64 = s.substring(6);
                     const full = base64ToBytes(b64);
                     const baseIv = full.slice(0, 12);
                     const cipher = full.slice(12);
                     const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw",
-                        BASE_AES_KEY_BYTES,
-                        { name: "AES-GCM" },
-                        false,
-                        ["decrypt"]
+                        "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["decrypt"]
                     );
                     const originalBytes = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: baseIv },
-                        baseAesKey,
-                        cipher
+                        { name: "AES-GCM", iv: baseIv }, baseAesKey, cipher
                     );
                     return new TextDecoder().decode(originalBytes);
                 }
@@ -1152,7 +1017,7 @@
             return encryptedText;
         }
 
-        // --- ДЕШИФРОВАНИЕ ФАЙЛОВ И МЕДИА (АНАЛОГ downloadAndDecryptToFile) ---
+        // --- ДЕШИФРОВАНИЕ МЕДИАФАЙЛОВ (АНАЛОГ downloadAndDecryptToFile) ---
 
         async function encryptBinary(arrayBuffer, peerId) {
             const isEncrypted = loadChatEncryptState(peerId);
@@ -1163,42 +1028,28 @@
                 if (e2eKey) {
                     const iv = window.crypto.getRandomValues(new Uint8Array(12));
                     const ciphertext = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: iv },
-                        e2eKey,
-                        arrayBuffer
+                        { name: "AES-GCM", iv: iv }, e2eKey, arrayBuffer
                     );
-                    const payload = concatBytes(iv, new Uint8Array(ciphertext));
-                    return payload.buffer;
+                    return concatBytes(iv, new Uint8Array(ciphertext)).buffer;
                 } else {
-                    const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw",
-                        BASE_AES_KEY_BYTES,
-                        { name: "AES-GCM" },
-                        false,
-                        ["encrypt"]
-                    );
-                    const firstLayerEncrypted = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: baseIv },
-                        baseAesKey,
-                        arrayBuffer
-                    );
-                    const innerPayload = concatBytes(baseIv, new Uint8Array(firstLayerEncrypted));
-
                     const chatPassOut = loadChatPassword(peerId, "out");
                     if (chatPassOut) {
                         const salt = window.crypto.getRandomValues(new Uint8Array(16));
                         const secondKey = await deriveKeyFromPassword(chatPassOut, salt);
                         const outerIv = window.crypto.getRandomValues(new Uint8Array(12));
-                        const secondLayerEncrypted = await window.crypto.subtle.encrypt(
-                            { name: "AES-GCM", iv: outerIv },
-                            secondKey,
-                            innerPayload
+                        const ciphertext = await window.crypto.subtle.encrypt(
+                            { name: "AES-GCM", iv: outerIv }, secondKey, arrayBuffer
                         );
-                        const finalEncryptedData = concatBytes(salt, outerIv, new Uint8Array(secondLayerEncrypted));
-                        return finalEncryptedData.buffer;
+                        return concatBytes(salt, outerIv, new Uint8Array(ciphertext)).buffer;
                     } else {
-                        return innerPayload.buffer;
+                        const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
+                        const baseAesKey = await window.crypto.subtle.importKey(
+                            "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["encrypt"]
+                        );
+                        const ciphertext = await window.crypto.subtle.encrypt(
+                            { name: "AES-GCM", iv: baseIv }, baseAesKey, arrayBuffer
+                        );
+                        return concatBytes(baseIv, new Uint8Array(ciphertext)).buffer;
                     }
                 }
             } catch (e) {
@@ -1206,89 +1057,55 @@
             }
         }
 
-        async function decryptBinary(arrayBuffer, peerId, isDouble, isEncrypted) {
-            if (!isEncrypted) return arrayBuffer;
+        async function decryptBinary(arrayBuffer, peerId, isSecure) {
             try {
                 const enc = new Uint8Array(arrayBuffer);
                 const shared = await deriveSharedKeyWithPeer(peerId);
+                
+                // 1. Попытка дешифрования E2E
                 if (shared && enc.length > 12) {
-                    const iv = enc.slice(0, 12);
-                    const cipher = enc.slice(12);
-                    return await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: iv },
-                        shared,
-                        cipher
-                    );
-                } else if (isDouble) {
-                    const pass = loadChatPassword(peerId, "in");
-                    if (!pass) return null;
-                    const passwordSalt = enc.slice(0, 16);
-                    const remaining = enc.slice(16);
-                    const outerIv = remaining.slice(0, 12);
-                    const outerCipher = remaining.slice(12);
-                    const secondKey = await deriveKeyFromPassword(pass, passwordSalt);
-                    const innerPayloadBuffer = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: outerIv },
-                        secondKey,
-                        outerCipher
-                    );
-                    const innerPayload = new Uint8Array(innerPayloadBuffer);
-                    const baseIv = innerPayload.slice(0, 12);
-                    const firstLayerCiphertext = innerPayload.slice(12);
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw",
-                        BASE_AES_KEY_BYTES,
-                        { name: "AES-GCM" },
-                        false,
-                        ["decrypt"]
-                    );
-                    return await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: baseIv },
-                        baseAesKey,
-                        firstLayerCiphertext
-                    );
-                } else {
-                    const baseIv = enc.slice(0, 12);
-                    const firstLayerCiphertext = enc.slice(12);
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw",
-                        BASE_AES_KEY_BYTES,
-                        { name: "AES-GCM" },
-                        false,
-                        ["decrypt"]
-                    );
-                    return await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: baseIv },
-                        baseAesKey,
-                        firstLayerCiphertext
-                    );
+                    try {
+                        const iv = enc.slice(0, 12);
+                        const cipher = enc.slice(12);
+                        return await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: iv }, shared, cipher
+                        );
+                    } catch(e) {}
                 }
-            } catch (e) {
-                console.error("Binary decryption error:", e);
-                return null;
-            }
+
+                // 2. Попытка дешифрования через Secure Password
+                const pass = loadChatPassword(peerId, "in");
+                if (isSecure && pass && enc.length > 28) {
+                    try {
+                        const salt = enc.slice(0, 16);
+                        const remaining = enc.slice(16);
+                        const outerIv = remaining.slice(0, 12);
+                        const outerCipher = remaining.slice(12);
+                        const secondKey = await deriveKeyFromPassword(pass, salt);
+                        return await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: outerIv }, secondKey, outerCipher
+                        );
+                    } catch(e) {}
+                }
+
+                // 3. Попытка дешифрования через классический ключ MEOW
+                if (enc.length > 12) {
+                    try {
+                        const baseIv = enc.slice(0, 12);
+                        const firstLayerCiphertext = enc.slice(12);
+                        const baseAesKey = await window.crypto.subtle.importKey(
+                            "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["decrypt"]
+                        );
+                        return await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: baseIv }, baseAesKey, firstLayerCiphertext
+                        );
+                    } catch(e) {}
+                }
+            } catch (e) {}
+            return null;
         }
 
-        // --- ЛОКАЛЬНЫЕ НАСТРОЙКИ ЧАТОВ ---
-
-        function loadChatEncryptState(peerId) {
-            const val = safeStorage.get("chat_enc_state_" + peerId);
-            return val === null ? true : val === "true";
-        }
-
-        function saveChatEncryptState(peerId, enabled) {
-            safeStorage.set("chat_enc_state_" + peerId, enabled ? "true" : "false");
-        }
-
-        function loadChatPassword(peerId, type) {
-            return safeStorage.get("chat_pass_" + type + "_" + peerId) || "";
-        }
-
-        function saveChatPassword(peerId, type, val) {
-            safeStorage.set("chat_pass_" + type + "_" + peerId, val);
-        }
-
-        // --- СЕТЕВОЕ ВЗАИМОДЕЙСТВИЕ VK API ---
+        // --- СЕТЕВОЙ СЛОЙ VK API ---
 
         function vkCall(method, params = {}) {
             return new Promise((resolve, reject) => {
@@ -1467,7 +1284,24 @@
             } catch(e) {}
         }
 
-        // --- ОТПРАВКА ШИФРОВАННЫХ ФАЙЛОВ ---
+        // --- ОТПРАВКА ДОКУМЕНТОВ/ФОТО В ВК (СОВМЕСТИМОСТЬ) ---
+
+        function loadChatEncryptState(peerId) {
+            const val = safeStorage.get("chat_enc_state_" + peerId);
+            return val === null ? true : val === "true";
+        }
+
+        function saveChatEncryptState(peerId, enabled) {
+            safeStorage.set("chat_enc_state_" + peerId, enabled ? "true" : "false");
+        }
+
+        function loadChatPassword(peerId, type) {
+            return safeStorage.get("chat_pass_" + type + "_" + peerId) || "";
+        }
+
+        function saveChatPassword(peerId, type, val) {
+            safeStorage.set("chat_pass_" + type + "_" + peerId, val);
+        }
 
         async function uploadFileToVk(file, isVoice = false) {
             const uploadServer = await vkCall("docs.getMessagesUploadServer", { peer_id: currentChatId, type: "doc" });
@@ -1501,7 +1335,13 @@
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
-            const res = await fetch("https://corsproxy.io/?" + encodeURIComponent(uploadUrl), { method: 'POST', body: formData });
+            // Кросс-доменный прокси с отказоустойчивым резервным проксированием
+            let res;
+            try {
+                res = await fetch("https://corsproxy.io/?" + encodeURIComponent(uploadUrl), { method: 'POST', body: formData });
+            } catch(err) {
+                res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(uploadUrl), { method: 'POST', body: formData });
+            }
             const uploadRes = await res.json();
 
             const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: finalName });
@@ -1516,8 +1356,7 @@
             const targetId = currentChatId;
             textarea.value = "";
             textarea.style.height = "auto";
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.disabled = true;
+            handleTypingEffect();
 
             try {
                 let attachStr = "";
@@ -1550,13 +1389,11 @@
                 await renderMessages();
                 renderChats();
             } catch (e) {
-                alert(`Ошибка: ${e.message}`);
-            } finally {
-                sendBtn.disabled = false;
+                alert(`Ошибка отправки: ${e.message}`);
             }
         }
 
-        // --- УМНЫЙ ДЕШИФРОВЩИК И ЗАГРУЗЧИК МЕДИА (БЕЗ CORS ЗАВИСАНИЙ) ---
+        // --- ПОЛНОСТЬЮ СОВМЕСТИМАЯ РАСШИФРОВКА ФОТО, ВИДЕО И ЗВУКА НА ЛЕТУ ---
 
         async function processAndDecryptAttachment(attachment, bubbleDiv, peerId, rawText) {
             if (attachment.type === 'doc') {
@@ -1573,25 +1410,23 @@
                 bubbleDiv.insertBefore(attachContainer, bubbleDiv.lastChild);
 
                 if (isEncrypted) {
-                    attachContainer.innerHTML = `<span style="font-size:12px;color:var(--text-muted);">🔒 Загрузка и дешифровка...</span>`;
+                    attachContainer.innerHTML = `<span style="font-size:12px;color:var(--text-muted);">🔒 Расшифровка медиа...</span>`;
                     
                     const decryptedCacheKey = "dec_file_" + doc.id;
                     let decryptedUrl = sessionStorage.getItem(decryptedCacheKey);
 
                     if (!decryptedUrl) {
                         try {
-                            let proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(doc.url);
                             let res;
                             try {
-                                res = await fetch(proxyUrl);
+                                res = await fetch("https://corsproxy.io/?" + encodeURIComponent(doc.url));
                             } catch(e) {
-                                proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(doc.url);
-                                res = await fetch(proxyUrl);
+                                res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(doc.url));
                             }
-                            
                             const encBuf = await res.arrayBuffer();
-                            const isDouble = rawText.startsWith(MEOW_SECURE_TAG);
-                            const decBuf = await decryptBinary(encBuf, peerId, isDouble, true);
+                            
+                            const isSecure = rawText.startsWith(MEOW_SECURE_TAG);
+                            const decBuf = await decryptBinary(encBuf, peerId, isSecure);
                             
                             if (decBuf) {
                                 let mime = "application/octet-stream";
@@ -1604,7 +1439,7 @@
                                 sessionStorage.setItem(decryptedCacheKey, decryptedUrl);
                             }
                         } catch (e) {
-                            attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Ошибка расшифровки</span>`;
+                            attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Сбой дешифровки</span>`;
                             return;
                         }
                     }
@@ -1639,7 +1474,7 @@
 
                             const metaDiv = document.createElement('div');
                             metaDiv.className = 'voice-meta';
-                            metaDiv.innerHTML = `<span class="voice-title">Голосовое сообщение</span><span class="voice-duration">Расшифровано (.mew)</span>`;
+                            metaDiv.innerHTML = `<span class="voice-title">Голосовое сообщение</span><span class="voice-duration">MEOW Audio</span>`;
                             playerDiv.appendChild(playBtn);
                             playerDiv.appendChild(metaDiv);
                             attachContainer.appendChild(playerDiv);
@@ -1653,9 +1488,10 @@
                             attachContainer.appendChild(docLink);
                         }
                     } else {
-                        attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось дешифровать</span>`;
+                        attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Ошибка ключа</span>`;
                     }
                 } else {
+                    // Обычный незашифрованный документ
                     if (title.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
                         attachContainer.innerHTML = `<img src="${doc.url}" class="bubble-media" onclick="window.open('${doc.url}', '_blank')">`;
                     } else if (title.match(/\.(mp4|avi|mov|mkv|webm)$/)) {
@@ -1671,10 +1507,121 @@
             }
         }
 
-        // --- ГОЛОСОВЫЕ ЗАПИСИ ---
+        // --- УМНЫЙ РЕНДЕРИНГ (БЕЗ МЕРЦАНИЙ И ПРЫЖКОВ СКРОЛЛА) ---
+
+        function isSystemFormat(text) {
+            return text && (text.includes("[Системное:") || text.includes("ключ обменян") || text.includes("E2EE защищен"));
+        }
+
+        async function renderMessages() {
+            const container = document.getElementById('messages-feed');
+            const chat = chats[currentChatId];
+            if (!chat) return;
+
+            // Полный сброс только при переходе в другой чат
+            if (container.dataset.chatId !== String(currentChatId)) {
+                container.innerHTML = "";
+                container.dataset.chatId = String(currentChatId);
+                renderedMessageIds.clear();
+            }
+
+            const messages = chat.messages || [];
+            if (messages.length === 0) {
+                container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните конфиденциальную сессию!</div>`;
+                renderedMessageIds.clear();
+                return;
+            }
+
+            const placeholder = container.querySelector('.empty-placeholder');
+            if (placeholder) placeholder.remove();
+
+            const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
+
+            for (const msg of messages) {
+                if (renderedMessageIds.has(msg.id)) continue; 
+
+                let displayText = "";
+                if (msg.rawText) {
+                    if (decryptedTextCache[msg.id]) {
+                        displayText = decryptedTextCache[msg.id];
+                    } else if (msg.rawText.startsWith("[MEOW") || msg.rawText.startsWith(MEOW_KEY_REQ_TAG) || msg.rawText.startsWith(MEOW_KEY_RES_TAG)) {
+                        displayText = await decryptText(msg.rawText, chat.id);
+                        decryptedTextCache[msg.id] = displayText;
+                    } else {
+                        displayText = msg.rawText;
+                        decryptedTextCache[msg.id] = msg.rawText;
+                    }
+                }
+
+                // Системные сообщения отрисовываем красивыми плоскими плашками
+                if (isSystemFormat(displayText)) {
+                    const sysDiv = document.createElement('div');
+                    sysDiv.className = 'system-badge';
+                    sysDiv.innerText = displayText;
+                    container.appendChild(sysDiv);
+                } else {
+                    const div = document.createElement('div');
+                    div.className = `bubble ${msg.out ? 'out' : 'in'}`;
+                    div.dataset.msgId = msg.id;
+
+                    const timeSpan = document.createElement('div');
+                    timeSpan.className = 'bubble-time';
+                    timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    div.appendChild(timeSpan);
+
+                    if (displayText) {
+                        const textSpan = document.createElement('div');
+                        textSpan.className = 'bubble-text';
+                        textSpan.innerHTML = escapeHtml(displayText);
+                        div.insertBefore(textSpan, div.lastChild);
+                    }
+
+                    if (msg.attachments && msg.attachments.length > 0) {
+                        for (const attach of msg.attachments) {
+                            processAndDecryptAttachment(attach, div, chat.id, msg.rawText);
+                        }
+                    }
+
+                    container.appendChild(div);
+                }
+                
+                renderedMessageIds.add(msg.id);
+            }
+
+            if (isAtBottom) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // --- УМНАЯ КНОПКА ОТПРАВКИ/ГОЛОСА (ВМЕСТО СТРЕЛКИ ЭМОДЗИ/КЛАВИШИ) ---
+
+        function handleTypingEffect() {
+            const textarea = document.getElementById('message-text');
+            const actionBtn = document.getElementById('action-btn');
+            
+            textarea.style.height = "auto";
+            textarea.style.height = textarea.scrollHeight + "px";
+
+            if (textarea.value.trim().length > 0) {
+                actionBtn.innerText = "🐾"; // Отправить (Лапка)
+                actionBtn.title = "Отправить";
+            } else {
+                actionBtn.innerText = "🎙️"; // Голос
+                actionBtn.title = "Записать голосовое";
+            }
+        }
+
+        async function handleActionButtonClick() {
+            const textarea = document.getElementById('message-text');
+            if (textarea.value.trim().length > 0) {
+                await sendVkMessage();
+            } else {
+                await toggleVoiceRecord();
+            }
+        }
 
         async function toggleVoiceRecord() {
-            const btn = document.getElementById('voice-btn');
+            const btn = document.getElementById('action-btn');
             if (!isRecording) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1703,94 +1650,18 @@
                     };
                     mediaRecorder.start();
                     isRecording = true;
-                    btn.classList.add('recording');
-                    btn.innerText = '🛑';
+                    btn.classList.add('voice-active');
+                    btn.innerText = "🛑";
                 } catch (err) { alert("Микрофон недоступен: " + err.message); }
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                btn.classList.remove('recording');
-                btn.innerText = '🎙️';
+                btn.classList.remove('voice-active');
+                btn.innerText = "🎙️";
             }
         }
 
-        // --- ПЛАВНЫЙ И КРАСИВЫЙ РЕНДЕРИНГ БЕЗ МЕРЦАНИЙ (РЕКОНСИЛЯЦИЯ DOM) ---
-
-        async function renderMessages() {
-            const container = document.getElementById('messages-feed');
-            const chat = chats[currentChatId];
-            if (!chat) return;
-
-            if (container.dataset.chatId !== String(currentChatId)) {
-                container.innerHTML = "";
-                container.dataset.chatId = String(currentChatId);
-                renderedMessageIds.clear();
-            }
-
-            const messages = chat.messages || [];
-            if (messages.length === 0) {
-                container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните защищенную переписку!</div>`;
-                renderedMessageIds.clear();
-                return;
-            }
-
-            const placeholder = container.querySelector('.empty-placeholder');
-            if (placeholder) placeholder.remove();
-
-            const previousScrollHeight = container.scrollHeight;
-            const previousScrollTop = container.scrollTop;
-            const isAtBottom = (previousScrollHeight - previousScrollTop - container.clientHeight) < 150;
-
-            for (const msg of messages) {
-                if (renderedMessageIds.has(msg.id)) continue; 
-
-                const div = document.createElement('div');
-                div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                div.dataset.msgId = msg.id;
-
-                const timeSpan = document.createElement('div');
-                timeSpan.className = 'bubble-time';
-                timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                div.appendChild(timeSpan);
-
-                let displayText = "";
-                if (msg.rawText) {
-                    if (decryptedTextCache[msg.id]) {
-                        displayText = decryptedTextCache[msg.id];
-                    } else if (msg.rawText.startsWith("[MEOW") || msg.rawText.startsWith(MEOW_KEY_REQ_TAG) || msg.rawText.startsWith(MEOW_KEY_RES_TAG)) {
-                        decryptText(msg.rawText, chat.id).then(dec => {
-                            decryptedTextCache[msg.id] = dec;
-                            const textEl = div.querySelector('.bubble-text');
-                            if (textEl) textEl.innerHTML = escapeHtml(dec);
-                        });
-                        displayText = "🔒 Расшифровка...";
-                    } else {
-                        displayText = msg.rawText;
-                        decryptedTextCache[msg.id] = msg.rawText;
-                    }
-                }
-
-                if (displayText) {
-                    const textSpan = document.createElement('div');
-                    textSpan.className = 'bubble-text';
-                    textSpan.innerHTML = escapeHtml(displayText);
-                    div.insertBefore(textSpan, div.lastChild);
-                }
-
-                if (msg.attachments && msg.attachments.length > 0) {
-                    for (const attach of msg.attachments) {
-                        processAndDecryptAttachment(attach, div, chat.id, msg.rawText);
-                    }
-                }
-
-                container.appendChild(div);
-                renderedMessageIds.add(msg.id);
-            }
-
-            if (isAtBottom || previousScrollHeight === 0) {
-                container.scrollTop = container.scrollHeight;
-            }
-        }
+        // --- ОСТАЛЬНЫЕ ФУНКЦИИ ИНТЕРФЕЙСА ---
 
         function renderChats() {
             const container = document.getElementById('chats-list');
@@ -1856,6 +1727,26 @@
             else cryptBtn.classList.remove('active');
         }
 
+        function triggerFileInput() {
+            document.getElementById('file-input').click();
+        }
+
+        function handleFileChange(event) {
+            if (event.target.files.length > 0) {
+                selectedFile = event.target.files[0];
+                document.getElementById('file-name').innerText = selectedFile.name;
+                document.getElementById('file-preview').style.display = 'flex';
+                handleTypingEffect();
+            }
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').style.display = 'none';
+            handleTypingEffect();
+        }
+
         function openProfileModal(chatId) {
             if (!chatId) return;
             document.getElementById('chat-pass-out').value = loadChatPassword(chatId, "out");
@@ -1888,20 +1779,6 @@
             renderChats();
         }
 
-        function handleFileChange(event) {
-            if (event.target.files.length > 0) {
-                selectedFile = event.target.files[0];
-                document.getElementById('file-name').innerText = selectedFile.name;
-                document.getElementById('file-preview').style.display = 'flex';
-            }
-        }
-
-        function removeFile() {
-            selectedFile = null;
-            document.getElementById('file-input').value = '';
-            document.getElementById('file-preview').style.display = 'none';
-        }
-
         function togglePasswordVisibility(fieldId) {
             const f = document.getElementById(fieldId);
             f.type = f.type === 'password' ? 'text' : 'password';
@@ -1927,4 +1804,4 @@
         }
     </script>
 </body>
-            </html>
+    </html>
