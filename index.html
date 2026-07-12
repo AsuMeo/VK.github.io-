@@ -606,7 +606,7 @@
                         <br>
                         <a href="https://oauth.vk.com/authorize?client_id=2274003&scope=messages,photos,video,docs,status,friends,wall,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
-                    <li>Авторизуйтесь, скопируйте ссылку из адресной строки и вставьте её ниже.</li>
+                    <li>Авторизуйтесь, скопируйте ссылку из адресной строки и вставьте её ниже.&lt;/li&gt;
                 </ol>
             </div>
 
@@ -644,7 +644,7 @@
         <div class="chat-window" id="chat-window-pane">
             <div class="chat-window-header">
                 <div class="back-btn" onclick="backToSidebar()">←</div>
-                <div class="avatar" id="active-chat-avatar" onclick="openProfile(currentChatId, chats[currentChatId].type === 'group')" style="cursor:pointer;">?</div>
+                <div class="avatar" id="active-chat-avatar" onclick="openProfile(currentChatId, chats[currentChatId] && chats[currentChatId].type === 'group')" style="cursor:pointer;">?</div>
                 <div class="chat-details" style="flex:1;">
                     <div class="chat-title" id="active-chat-name">Выберите чат</div>
                     <div class="chat-last-message" id="active-chat-status">Защищенный обмен готов</div>
@@ -694,15 +694,16 @@
 
     <script>
         // --- ВАЖНО: УЯЗВИМОСТЬ СИММЕТРИЧНОГО КЛЮЧА ---
-        // AES_KEY_STRING, жестко закодированный здесь, является серьезной уязвимостью
-        // для любого, кто может получить доступ к исходному коду.
-        // Сообщения, зашифрованные с MEOW_TAG, НЕ ЯВЛЯЮТСЯ конфиденциальными от сервера VK.
-        // Используйте E2EE (MEOW_E2E_TAG) для настоящей конфиденциальности.
-        const AES_KEY_STRING = "12345678901234567890123456789012";
+        // Жестко закодированный AES_KEY_STRING удален из логики шифрования,
+        // если пользователь явно включает шифрование для чата.
+        // Теперь всегда требуется установленный E2EE для шифрованных сообщений.
+        // Для нешифрованных сообщений (если пользователь отключил шифрование для чата),
+        // отправка происходит в открытом виде.
+        const AES_KEY_STRING = "12345678901234567890123456789012"; // Оставлен для обратной совместимости с расшифровкой старых сообщений, но не для нового шифрования
         const BASE_AES_KEY_BYTES = new TextEncoder().encode(AES_KEY_STRING);
         // --- КОНЕЦ ПРИМЕЧАНИЯ ОБ УЯЗВИМОСТИ ---
         
-        const MEOW_TAG = "[MEOW]";
+        const MEOW_TAG = "[MEOW]"; // Используется для нешифрованных служебных сообщений, или для файлов при отключенном шифровании.
         const MEOW_KEY_REQ_TAG = "[MEOW_KEY_REQ]";
         const MEOW_KEY_RES_TAG = "[MEOW_KEY_RES]";
         const MEOW_E2E_TAG = "[MEOW_E2E]";
@@ -736,8 +737,7 @@
                 document.getElementById('token-field').value = savedToken;
                 tryLogin(savedToken);
             }
-            // Обновляем состояние замка при загрузке
-            updateCryptBtnState();
+            updateCryptBtnState(); // Обновляем состояние замка при загрузке
         };
 
         function saveState() {
@@ -874,33 +874,17 @@
 
         async function encryptText(text, peerId) {
             if (!text) return "";
-            const isEncrypted = loadChatEncryptState(peerId);
-            if (!isEncrypted) return text;
-
-            try {
-                const e2eKey = await deriveSharedKeyWithPeer(peerId);
-                if (e2eKey) {
-                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                    const ciphertext = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: iv }, e2eKey, new TextEncoder().encode(text)
-                    );
-                    return MEOW_E2E_TAG + bytesToBase64(concatBytes(iv, new Uint8Array(ciphertext)));
-                } else {
-                    // Используем базовый AES, если E2EE не установлен. УЯЗВИМО!
-                    console.warn("E2EE не установлен, используется базовое AES шифрование. Это НЕБЕЗОПАСНО от VK.");
-                    const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["encrypt"]
-                    );
-                    const encryptedBytes = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: baseIv }, baseAesKey, new TextEncoder().encode(text)
-                    );
-                    return MEOW_TAG + bytesToBase64(concatBytes(baseIv, new Uint8Array(encryptedBytes)));
-                }
-            } catch (e) {
-                console.error("Ошибка шифрования текста:", e);
-                return text; // Возвращаем исходный текст, если шифрование не удалось
+            
+            const e2eKey = await deriveSharedKeyWithPeer(peerId);
+            if (!e2eKey) {
+                throw new Error("E2EE_NOT_ESTABLISHED"); // Принудительно требуем E2EE
             }
+
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv }, e2eKey, new TextEncoder().encode(text)
+            );
+            return MEOW_E2E_TAG + bytesToBase64(concatBytes(iv, new Uint8Array(ciphertext)));
         }
 
         async function decryptText(encryptedText, peerId) {
@@ -938,7 +922,7 @@
                         );
                         result = new TextDecoder().decode(dec);
                     }
-                } else if (s.startsWith(MEOW_TAG)) {
+                } else if (s.startsWith(MEOW_TAG)) { // Этот блок оставлен для расшифровки старых сообщений с общим ключом
                     const b64 = s.substring(MEOW_TAG.length);
                     const full = base64ToBytes(b64);
                     const baseIv = full.slice(0, 12);
@@ -960,32 +944,16 @@
         }
 
         async function encryptBinary(arrayBuffer, peerId) {
-            const isEncrypted = loadChatEncryptState(peerId);
-            if (!isEncrypted) return arrayBuffer;
-
-            try {
-                const e2eKey = await deriveSharedKeyWithPeer(peerId);
-                if (e2eKey) {
-                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                    const ciphertext = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: iv }, e2eKey, arrayBuffer
-                    );
-                    return concatBytes(iv, new Uint8Array(ciphertext)).buffer;
-                } else {
-                    console.warn("E2EE не установлен, используется базовое AES шифрование для файла. Это НЕБЕЗОПАСНО от VK.");
-                    const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
-                    const baseAesKey = await window.crypto.subtle.importKey(
-                        "raw", BASE_AES_KEY_BYTES, { name: "AES-GCM" }, false, ["encrypt"]
-                    );
-                    const ciphertext = await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: baseIv }, baseAesKey, arrayBuffer
-                    );
-                    return concatBytes(baseIv, new Uint8Array(ciphertext)).buffer;
-                }
-            } catch (e) {
-                console.error("Ошибка шифрования бинарных данных:", e);
-                return arrayBuffer;
+            const e2eKey = await deriveSharedKeyWithPeer(peerId);
+            if (!e2eKey) {
+                throw new Error("E2EE_NOT_ESTABLISHED"); // Принудительно требуем E2EE
             }
+
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv }, e2eKey, arrayBuffer
+            );
+            return concatBytes(iv, new Uint8Array(ciphertext)).buffer;
         }
 
         async function decryptBinary(arrayBuffer, peerId) {
@@ -1006,7 +974,7 @@
                     }
                 }
 
-                // Если E2EE не удалось, пробуем базовый ключ
+                // Fallback для старых сообщений, зашифрованных BASE_AES_KEY
                 const baseIv = enc.slice(0, 12);
                 const cipher = enc.slice(12);
                 const baseAesKey = await window.crypto.subtle.importKey(
@@ -1096,13 +1064,6 @@
                     vkUser = usersData[0];
                     safeStorage.set("saved_vk_token", tokenInput);
 
-                    // Убрано отображение имени пользователя в боковой панели, теперь там VK Meow
-                    // document.getElementById('bot-name-display').innerText = `${vkUser.first_name} ${vkUser.last_name}`;
-                    // if (vkUser.photo_100) {
-                    //     document.getElementById('bot-avatar-img').style.backgroundImage = `url(${vkUser.photo_100})`;
-                    //     document.getElementById('bot-avatar-img').innerText = "";
-                    // }
-
                     document.getElementById('login-screen').style.display = 'none';
                     await fetchDialogs();
                     startPoller();
@@ -1144,11 +1105,10 @@
                             type: peerInfo.type,
                             online: peerInfo.online,
                             messages: [],
-                            historyOffset: 0, // Добавили смещение для истории
-                            hasMoreHistory: true // Флаг, есть ли еще история
+                            historyOffset: 0, 
+                            hasMoreHistory: true 
                         };
                     } else {
-                        // Обновляем информацию, если чат уже существует
                         chats[peerId].name = peerInfo.name;
                         chats[peerId].photo = peerInfo.photo;
                         chats[peerId].type = peerInfo.type;
@@ -1175,26 +1135,26 @@
                 if (isPollingActive || !botToken) return;
                 isPollingActive = true;
                 try {
-                    // Только если активен чат, проверяем новые сообщения
                     if (currentChatId) {
-                        const res = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 1, offset: 0 }); // Берем только 1 последнее сообщение
-                        if (res && res.items && res.items.length > 0) {
-                            const chat = chats[currentChatId];
-                            if (chat) {
-                                const latestIncomingMsgId = Math.max(...chat.messages.filter(m => !m.out).map(m => m.id), 0);
+                        const chat = chats[currentChatId];
+                        if (chat) {
+                            const res = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 1, offset: 0 }); 
+                            if (res && res.items && res.items.length > 0) {
+                                // Получаем ID последнего сообщения, которое у нас есть локально
+                                const localLatestMsgId = chat.messages.length > 0 ? Math.max(...chat.messages.map(m => m.id)) : 0;
                                 const newLatestMsgId = res.items[0].id;
 
-                                if (newLatestMsgId > latestIncomingMsgId) { // Если есть более новое входящее сообщение
-                                    // Загружаем еще несколько, чтобы убедиться, что ничего не пропустили
-                                    const historyRes = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 20 });
-                                    if (historyRes && historyRes.items) {
+                                if (newLatestMsgId > localLatestMsgId) { // Если на сервере VK есть более новое сообщение
+                                    // Загружаем несколько последних сообщений, чтобы не пропустить
+                                    const newRecentMessagesRes = await vkCall("messages.getHistory", { peer_id: currentChatId, count: 20 });
+                                    if (newRecentMessagesRes && newRecentMessagesRes.items) {
                                         const existingIds = new Set(chat.messages.map(m => m.id));
                                         let addedNew = false;
                                         const itemsToAdd = [];
 
-                                        // Проверяем новые сообщения с конца (от API они приходят в обратном порядке)
-                                        for (let i = historyRes.items.length - 1; i >= 0; i--) {
-                                            const item = historyRes.items[i];
+                                        // Сообщения приходят в обратном порядке, итерируем с конца (самые старые из 20)
+                                        for (let i = newRecentMessagesRes.items.length - 1; i >= 0; i--) {
+                                            const item = newRecentMessagesRes.items[i];
                                             if (!existingIds.has(item.id)) {
                                                 itemsToAdd.push({
                                                     id: item.id,
@@ -1218,7 +1178,7 @@
                         }
                     }
 
-                    if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 5000) { // Обновляем сайдбар реже
+                    if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 5000) { 
                         await fetchDialogs();
                         window.lastSidebarUpdate = Date.now();
                     }
@@ -1227,16 +1187,15 @@
                 } finally {
                     isPollingActive = false;
                 }
-            }, 1000); // Опрашиваем каждую секунду
+            }, 1000); 
         }
 
-        // Загрузка истории чата с подгрузкой по скроллу
         async function loadHistoryForChat(peerId, offset = 0, count = 200, prepend = false) {
             if (isFetchingHistory || !chats[peerId] || (offset > 0 && !chats[peerId].hasMoreHistory)) return;
 
             isFetchingHistory = true;
             try {
-                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: count, offset: offset, rev: 0 }); // rev=0: от старых к новым
+                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: count, offset: offset, rev: 0 });
                 if (res && res.items) {
                     const chat = chats[peerId];
                     if (res.items.length === 0) {
@@ -1253,16 +1212,20 @@
                         attachments: item.attachments || []
                     }));
 
+                    // Объединяем сообщения, чтобы избежать дублирования
+                    const existingIds = new Set(chat.messages.map(m => m.id));
+                    const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg.id));
+
                     if (prepend) {
-                        chat.messages.unshift(...newMessages); // Добавляем в начало
+                        chat.messages.unshift(...uniqueNewMessages); 
                     } else {
-                        chat.messages = newMessages; // Заменяем всю историю
+                        chat.messages.push(...uniqueNewMessages); // Добавляем к существующим
                     }
                     
-                    chat.messages.sort((a, b) => a.time - b.time); // Убедимся, что отсортировано
+                    chat.messages.sort((a, b) => a.time - b.time); 
                     chat.historyOffset += res.items.length;
                     
-                    if (res.items.length < count) { // Если пришло меньше, чем просили, значит, история закончилась
+                    if (res.items.length < count) { 
                         chat.hasMoreHistory = false;
                     }
 
@@ -1278,32 +1241,22 @@
             }
         }
         
-        // Обработчик скролла для подгрузки старой истории
         let chatFeedScrollTimeout;
         async function handleChatFeedScroll() {
             const container = document.getElementById('messages-feed');
+            // Если прокрутили до верха и есть еще история для загрузки
             if (container.scrollTop === 0 && chats[currentChatId] && chats[currentChatId].hasMoreHistory && !isFetchingHistory) {
-                // Задержка, чтобы избежать многократных вызовов при быстром скролле
                 clearTimeout(chatFeedScrollTimeout);
                 chatFeedScrollTimeout = setTimeout(async () => {
                     const oldScrollHeight = container.scrollHeight;
-                    const oldFirstMessage = container.querySelector('.bubble, .system-badge');
                     
                     await loadHistoryForChat(currentChatId, chats[currentChatId].historyOffset, 200, true);
                     await renderMessages(true); // Перерисовываем с сохранением позиции
 
-                    // Сохраняем позицию скролла после подгрузки
-                    if (oldFirstMessage) {
-                        const newScrollHeight = container.scrollHeight;
-                        const firstMessageInNewRender = container.querySelector(`[data-msg-id="${oldFirstMessage.dataset.msgId}"]`);
-                        if (firstMessageInNewRender) {
-                            container.scrollTop = newScrollHeight - oldScrollHeight;
-                        } else {
-                            // Fallback if the original first message wasn't found in the new render
-                             container.scrollTop = container.scrollHeight - oldScrollHeight;
-                        }
-                    }
-                }, 300);
+                    // Корректируем скролл, чтобы вид не "прыгал"
+                    const newScrollHeight = container.scrollHeight;
+                    container.scrollTop = newScrollHeight - oldScrollHeight;
+                }, 300); // Небольшая задержка, чтобы избежать многократных запросов
             }
         }
 
@@ -1320,40 +1273,47 @@
         function updateCryptBtnState() {
             const cryptBtn = document.getElementById('toggle-crypt-btn');
             if (!cryptBtn) return;
-            const isEnc = currentChatId ? loadChatEncryptState(currentChatId) : true; // По умолчанию считаем активным
+            const isEnc = currentChatId ? loadChatEncryptState(currentChatId) : true; 
             cryptBtn.innerHTML = isEnc ? "🔒" : "🔓";
             cryptBtn.className = isEnc ? "input-side-btn active" : "input-side-btn inactive";
         }
 
         async function uploadFileToVk(file, isVoice = false) {
-            const uploadServer = await vkCall("docs.getMessagesUploadServer", { peer_id: currentChatId, type: "doc" });
-            const uploadUrl = uploadServer.upload_url;
+            const targetId = currentChatId;
+            const isEncrypted = loadChatEncryptState(targetId);
 
             let fileDataBlob;
             let finalName = file.name;
 
-            const isEncrypted = loadChatEncryptState(currentChatId);
             if (isEncrypted) {
+                const e2eKey = await deriveSharedKeyWithPeer(targetId);
+                if (!e2eKey) {
+                    throw new Error("E2EE_NOT_ESTABLISHED"); // Принудительно требуем E2EE для файлов
+                }
+
                 const arrayBuf = await file.arrayBuffer();
-                const encryptedBuf = await encryptBinary(arrayBuf, currentChatId);
+                const encryptedBuf = await encryptBinary(arrayBuf, targetId); // encryptBinary теперь тоже проверяет E2EE
                 fileDataBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
                 
                 if (isVoice) {
-                    finalName = "voice.mew"; // Encrypted voice
+                    finalName = "voice.mew"; 
                 } else {
                     const ext = file.name.split('.').pop().toLowerCase();
                     if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
-                        finalName = file.name + '.meow'; // Encrypted image
+                        finalName = file.name + '.meow'; 
                     } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
-                        finalName = file.name + '.mur'; // Encrypted video
+                        finalName = file.name + '.mur'; 
                     } else {
-                        finalName = file.name + '.enc'; // Generic encrypted file
+                        finalName = file.name + '.enc'; 
                     }
                 }
             } else {
-                fileDataBlob = file;
+                fileDataBlob = file; // Нешифрованный файл
             }
 
+            const uploadServer = await vkCall("docs.getMessagesUploadServer", { peer_id: targetId, type: "doc" });
+            const uploadUrl = uploadServer.upload_url;
+            
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
@@ -1367,41 +1327,63 @@
         async function sendVkMessage() {
             const textarea = document.getElementById('message-text');
             const text = textarea.value.trim();
-            if ((!text && !selectedFile) || !currentChatId) return;
-
             const targetId = currentChatId;
+
+            if ((!text && !selectedFile) || !targetId) return;
+
             textarea.value = "";
             textarea.style.height = "auto";
             handleTypingEffect();
 
             let finalMessage = text;
-            const isEncrypted = loadChatEncryptState(targetId);
-            if (isEncrypted && text) {
-                finalMessage = await encryptText(text, targetId);
-            } else if (isEncrypted && !text && selectedFile) {
-                finalMessage = MEOW_TAG + " Файл"; // Сообщение-заглушка для файла
-            }
+            let attachStr = "";
+            const isEncryptedChat = loadChatEncryptState(targetId); // Предпочтение пользователя
 
-            // Оптимистичное добавление сообщения
             const tempId = 'opt-' + Math.random();
+            // Добавляем оптимистичное сообщение. Оно будет удалено, если отправка не удалась.
             const optimisticMessage = {
                 id: tempId,
-                text: finalMessage,
-                rawText: finalMessage,
+                text: text, // Временный текст для отображения
+                rawText: text, // Временный rawText
                 time: Date.now(),
                 out: true,
                 isOptimistic: true,
                 attachments: selectedFile ? [{ type: 'doc', doc: { id: 'temp', title: selectedFile.name, url: '' } }] : []
             };
             chats[targetId].messages.push(optimisticMessage);
-            await renderMessages();
+            await renderMessages(); // Отображаем оптимистичное сообщение
 
             try {
-                let attachStr = "";
-                if (selectedFile) {
-                    attachStr = await uploadFileToVk(selectedFile, false);
+                if (isEncryptedChat) {
+                    // Проверка, установлены ли E2EE ключи
+                    const e2eKey = await deriveSharedKeyWithPeer(targetId);
+                    if (!e2eKey) {
+                        throw new Error("E2EE_NOT_ESTABLISHED"); // Вызываем ошибку, если ключи не установлены
+                    }
+                    
+                    // Шифруем текстовое сообщение
+                    if (text) {
+                        finalMessage = await encryptText(text, targetId); 
+                    } else if (selectedFile) {
+                        // Если отправляется только файл, отправляем зашифрованное сообщение-заполнитель
+                        finalMessage = await encryptText("[MEOW_FILE]", targetId); 
+                    } else {
+                        // Эта ситуация не должна возникать из-за начальной проверки (!text && !selectedFile)
+                        throw new Error("NO_CONTENT_TO_SEND"); 
+                    }
+
+                    // Шифруем и загружаем файл
+                    if (selectedFile) {
+                        attachStr = await uploadFileToVk(selectedFile, false); // Эта функция также проверит E2EE
+                    }
+                } else {
+                    // Если шифрование отключено, отправляем в открытом виде
+                    if (selectedFile) {
+                        attachStr = await uploadFileToVk(selectedFile, false); // Отправка файла без шифрования
+                    }
                 }
 
+                // Отправляем сообщение в VK
                 const randomId = Math.floor(Math.random() * 2000000000);
                 const vkResponse = await vkCall("messages.send", {
                     peer_id: targetId,
@@ -1410,23 +1392,27 @@
                     attachment: attachStr
                 });
 
-                // Обновляем оптимистичное сообщение
-                const optMsg = chats[targetId].messages.find(m => m.id === tempId);
-                if (optMsg) {
-                    optMsg.id = vkResponse; // VK API возвращает ID отправленного сообщения
-                    optMsg.isOptimistic = false;
-                    // TODO: Обновить attachments реальными данными из VK API если есть возможность
-                }
+                // Обновляем оптимистичное сообщение реальным ID и зашифрованным текстом
+                optimisticMessage.id = vkResponse;
+                optimisticMessage.isOptimistic = false;
+                optimisticMessage.rawText = finalMessage; // Сохраняем зашифрованную версию
+                optimisticMessage.text = finalMessage; // И для отображения
 
                 removeFile();
-                await renderMessages();
-                await fetchDialogs(); // Обновить список диалогов для последнего сообщения
+                await renderMessages(); // Перерисовываем для обновления статуса сообщения
+                await fetchDialogs(); // Обновляем список диалогов для последнего сообщения
             } catch (e) {
-                alert(`Сбой отправки: ${e.message}`);
-                console.error("Ошибка при отправке сообщения:", e);
-                // Удаляем оптимистичное сообщение при ошибке
+                // Удаляем оптимистичное сообщение, если отправка не удалась
                 chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
                 await renderMessages();
+
+                if (e.message === "E2EE_NOT_ESTABLISHED") {
+                    alert("Шифрование E2EE включено, но ключи не установлены. Отправьте E2EE запрос, чтобы установить защищенное соединение.");
+                    await sendOwnPublicKeyIfNeeded(targetId, true); // Принудительный обмен ключами
+                } else if (e.message !== "NO_CONTENT_TO_SEND") { 
+                    alert(`Сбой отправки: ${e.message}`);
+                }
+                console.error("Ошибка при отправке сообщения:", e);
             }
         }
 
@@ -1594,7 +1580,7 @@
             const isAtBottom = preserveScroll ? false : (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
             
             const fragment = document.createDocumentFragment();
-            let firstNewMessageElement = null;
+            let addedNewMessages = false;
 
             for (const msg of messages) {
                 if (renderedMessageIds.has(msg.id)) continue; 
@@ -1630,26 +1616,30 @@
                     element = div;
                 }
                 
-                fragment.appendChild(element);
-                if (!firstNewMessageElement) {
-                    firstNewMessageElement = element;
+                // Добавляем сообщения в начало или конец в зависимости от режима
+                if (preserveScroll) {
+                    fragment.prepend(element); // Добавляем в начало фрагмента
+                } else {
+                    fragment.appendChild(element); // Добавляем в конец фрагмента
                 }
+                
                 renderedMessageIds.add(msg.id);
+                addedNewMessages = true;
             }
             
-            if (preserveScroll) {
-                container.prepend(fragment); // Добавляем новые сообщения в начало
-            } else {
-                container.appendChild(fragment); // Добавляем в конец
+            if (addedNewMessages) {
+                 if (preserveScroll) {
+                    container.prepend(fragment); // Добавляем в DOM в начало
+                } else {
+                    container.appendChild(fragment); // Добавляем в DOM в конец
+                }
             }
 
 
             if (isAtBottom && !preserveScroll) {
                 container.scrollTop = container.scrollHeight;
-            } else if (preserveScroll && firstNewMessageElement) {
-                // Если мы загружали историю вверх, надо скорректировать скролл
-                // Эту часть лучше перенести в handleChatFeedScroll после renderMessages
             }
+            // Коррекция скролла для preserveScroll происходит в handleChatFeedScroll
         }
 
         function handleTypingEffect() {
@@ -1680,8 +1670,21 @@
 
         async function toggleVoiceRecord() {
             const btn = document.getElementById('action-btn');
+            const targetId = currentChatId;
+            const isEncryptedChat = loadChatEncryptState(targetId);
+
             if (!isRecording) {
                 try {
+                    // Проверка E2EE для голосового сообщения, если шифрование включено
+                    if (isEncryptedChat) {
+                         const e2eKey = await deriveSharedKeyWithPeer(targetId);
+                        if (!e2eKey) {
+                            alert("Шифрование E2EE включено, но ключи не установлены для голосовых сообщений. Отправьте E2EE запрос, чтобы установить защищенное соединение.");
+                            await sendOwnPublicKeyIfNeeded(targetId, true); // Принудительный обмен ключами
+                            return; // Прерываем запись
+                        }
+                    }
+
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
@@ -1692,17 +1695,19 @@
                         const randomId = Math.floor(Math.random() * 2000000000);
                         
                         let msgBody = "Голосовое сообщение";
-                        if (loadChatEncryptState(currentChatId)) {
-                            msgBody = MEOW_TAG + " Голосовое";
+                        if (isEncryptedChat) {
+                            // Шифруем заголовок голосового сообщения, если E2EE активно
+                            msgBody = await encryptText("[MEOW_VOICE]", targetId);
                         }
 
                         await vkCall("messages.send", {
-                            peer_id: currentChatId,
+                            peer_id: targetId,
                             random_id: randomId,
                             message: msgBody,
                             attachment: attachStr
                         });
                         stream.getTracks().forEach(track => track.stop());
+                        await fetchDialogs(); // Обновить список диалогов
                     };
                     mediaRecorder.start();
                     isRecording = true;
@@ -1732,7 +1737,7 @@
                 
                 if (currentTab === "groups" && !isGroupChat) return;
                 if (currentTab === "all" && isGroupChat) return;
-                if (currentTab === "newsfeed") return; // Новости отображаются в другом контейнере
+                if (currentTab === "newsfeed") return; 
 
                 if (searchVal && !chat.name.toLowerCase().includes(searchVal)) return;
 
@@ -1763,7 +1768,8 @@
             
             document.body.classList.add('chat-opened');
             document.getElementById('active-chat-name').innerText = chat.name;
-            document.getElementById('active-chat-status').innerText = `${chat.type === 'group' ? 'Группа' : 'ID'}: ${chat.id} ${chat.online ? '(в сети)' : ''}`;
+            // Убрано отображение ID, остался только статус
+            document.getElementById('active-chat-status').innerText = chat.online ? '(в сети)' : ''; 
             document.getElementById('chat-input-bar').style.display = 'flex';
 
             const chatHeaderAvatar = document.getElementById('active-chat-avatar');
@@ -1775,7 +1781,7 @@
                 chatHeaderAvatar.innerText = chat.name[0].toUpperCase();
             }
 
-            updateCryptBtnState(); // Обновляем состояние замка
+            updateCryptBtnState(); 
             
             // Сбрасываем историю и offset при открытии нового чата
             chat.messages = [];
@@ -1791,16 +1797,16 @@
             const messagesFeed = document.getElementById('messages-feed');
             messagesFeed.onscroll = handleChatFeedScroll;
 
-            renderChats(); // Обновляем активный чат в списке
-            handleTypingEffect(); // Обновляем кнопку отправки
-            messagesFeed.scrollTop = messagesFeed.scrollHeight; // Скролл в самый низ
+            renderChats(); 
+            handleTypingEffect(); 
+            messagesFeed.scrollTop = messagesFeed.scrollHeight; 
         }
 
         function toggleCryptForCurrentChat() {
             if (!currentChatId) return;
             const isEnc = !loadChatEncryptState(currentChatId);
             saveChatEncryptState(currentChatId, isEnc);
-            updateCryptBtnState(); // Обновляем состояние замка
+            updateCryptBtnState(); 
             alert(`Шифрование для чата ${chats[currentChatId].name} ${isEnc ? 'включено' : 'отключено'}.`);
         }
 
@@ -1844,7 +1850,6 @@
             if (tab === 'newsfeed') {
                 chatsContainer.style.display = 'none';
                 newsfeedContainer.style.display = 'flex';
-                // TODO: Здесь нужно вызывать функцию для загрузки ленты новостей
                 await fetchNewsfeed();
             } else {
                 chatsContainer.style.display = 'flex';
@@ -1939,7 +1944,7 @@
             currentChatId = null;
             const messagesFeed = document.getElementById('messages-feed');
             messagesFeed.onscroll = null; // Отключаем слушатель скролла
-            renderChats(); // Обновляем список чатов
+            renderChats(); 
         }
     </script>
 </body>
