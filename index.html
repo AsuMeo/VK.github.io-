@@ -676,7 +676,7 @@
         let isRecording = false;
 
         const decryptedTextCache = {}; 
-        let renderedMessageIds = new Set(); // Kept for reference, but re-rendered completely now.
+        let renderedMessageIds = new Set(); 
 
         const safeStorage = {
             get(key) { try { return localStorage.getItem(key); } catch(e) { console.error("localStorage get error:", e); return null; } },
@@ -757,7 +757,6 @@
 
         async function sendOwnPublicKeyIfNeeded(peerId, force = false) {
             const peerPub = safeStorage.get("peer_pub_" + peerId);
-            // Only send key request if peer's public key is not stored or force option is used
             if (peerPub && !force) {
                 console.log(`Peer public key for ${peerId} already exists. Not sending request.`);
                 return; 
@@ -861,7 +860,7 @@
             }
         }
 
-        async function decryptText(encryptedText, peerId, isOutgoing = false) { // Added isOutgoing parameter
+        async function decryptText(encryptedText, peerId, isOutgoing = false) {
             if (!encryptedText) return "";
             const s = unescapeHtml(encryptedText);
             
@@ -869,28 +868,31 @@
 
             let result = encryptedText;
             try {
-                // Process MEOW_KEY_REQ_TAG and MEOW_KEY_RES_TAG ONLY if the message is INCOMING
                 if (!isOutgoing) { 
                     if (s.startsWith(MEOW_KEY_REQ_TAG)) {
                         const pub = s.substring(MEOW_KEY_REQ_TAG.length);
-                        console.log(`Received MEOW_KEY_REQ from peer ${peerId}. Storing public key.`);
-                        safeStorage.set("peer_pub_" + peerId, pub);
-                        await ensureECKeyPair();
-                        const ownPub = safeStorage.get("ec_pub");
-                        if (ownPub) {
-                            console.log(`Responding with MEOW_KEY_RES to peer ${peerId}.`);
-                            await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
+                        const currentStoredPub = safeStorage.get("peer_pub_" + peerId);
+                        if (currentStoredPub !== pub) {
+                            console.log(`Received NEW MEOW_KEY_REQ from peer ${peerId}. Storing and responding.`);
+                            safeStorage.set("peer_pub_" + peerId, pub);
+                            await ensureECKeyPair();
+                            const ownPub = safeStorage.get("ec_pub");
+                            if (ownPub) {
+                                await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
+                            }
                         }
                         result = "🐾 [Системное: E2EE защищен (Запрос ключа)]";
                     } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
                         const pub = s.substring(MEOW_KEY_RES_TAG.length);
-                        console.log(`Received MEOW_KEY_RES from peer ${peerId}. Storing public key.`);
-                        safeStorage.set("peer_pub_" + peerId, pub);
+                        const currentStoredPub = safeStorage.get("peer_pub_" + peerId);
+                        if (currentStoredPub !== pub) {
+                            console.log(`Received NEW MEOW_KEY_RES from peer ${peerId}. Storing.`);
+                            safeStorage.set("peer_pub_" + peerId, pub);
+                        }
                         result = "🐾 [Системное: E2EE защищен (Связь установлена)]";
                     }
                 }
 
-                // Normal message decryption (E2E or Base)
                 if (s.startsWith(MEOW_E2E_TAG)) {
                     const b64 = s.substring(MEOW_E2E_TAG.length);
                     const data = base64ToBytes(b64);
@@ -972,7 +974,6 @@
                     }
                 }
 
-                // Fallback to base AES key if E2E fails or not available
                 const baseIv = enc.slice(0, 12);
                 const cipher = enc.slice(12);
                 const baseAesKey = await window.crypto.subtle.importKey(
@@ -1118,17 +1119,39 @@
                     }
                     
                     if (lastMsgObj) {
-                        const isLastMsgOutgoing = lastMsgObj.from_id === vkUser.id; // Determine if last message is outgoing
-                        const dec = await decryptText(lastMsgObj.text || "", peerId, isLastMsgOutgoing); // Pass isOutgoing
+                        const isLastMsgOutgoing = lastMsgObj.from_id === vkUser.id;
+                        const dec = await decryptText(lastMsgObj.text || "", peerId, isLastMsgOutgoing);
                         chats[peerId].last_message_display = dec.startsWith("🐾") ? "🔒 Метаданные E2EE" : dec;
                     } else {
                         chats[peerId].last_message_display = "История пуста";
                     }
                 }
+                updateActiveChatHeader();
                 renderChats();
                 saveState();
             } catch (e) {
                 console.error("Error fetching dialogs:", e);
+            }
+        }
+
+        function updateActiveChatHeader() {
+            if (!currentChatId) return;
+            const chat = chats[currentChatId];
+            if (!chat) return;
+
+            document.getElementById('active-chat-name').innerText = chat.name;
+            
+            let statusText = "";
+            if (chat.type === 'group') {
+                statusText = "группа";
+            } else {
+                statusText = chat.online ? "в сети" : "был(а) в сети недавно";
+            }
+
+            const statusEl = document.getElementById('active-chat-status');
+            if (statusEl.innerText !== statusText) {
+                statusEl.innerText = statusText;
+                statusEl.style.color = chat.online ? "var(--success)" : "var(--text-muted)";
             }
         }
 
@@ -1143,72 +1166,46 @@
                         if (res && res.items) {
                             const chat = chats[currentChatId];
                             if (chat) {
-                                const fetchedItems = res.items.reverse(); // Ensure chronological order
+                                const serverItems = res.items || [];
+                                
+                                // Пересобираем массив актуальных сообщений, пришедших с сервера
+                                const serverMessages = serverItems.map(item => ({
+                                    id: item.id,
+                                    text: item.text,
+                                    rawText: item.text,
+                                    time: item.date * 1000,
+                                    out: item.from_id === vkUser.id,
+                                    attachments: item.attachments || []
+                                })).reverse(); // Хронологический порядок
 
-                                const newChatMessages = [];
-                                // Use a map to track fetched message IDs to avoid duplicates from server response
-                                const fetchedMessageIds = new Set(fetchedItems.map(item => item.id));
+                                // Оставляем только те оптимистичные сообщения, которых еще нет в ответе сервера
+                                const optimisticMessages = chat.messages.filter(m => m.isOptimistic);
+                                const unmatchedOptimistic = [];
 
-                                // 1. Preserve and confirm optimistic messages
-                                for (const optMsg of chat.messages) {
-                                    if (optMsg.isOptimistic) {
-                                        // Try to find a matching server message for this optimistic one
-                                        // Using rawText and from_id as temporary identifiers until actual server ID is known
-                                        const confirmedServerMsg = fetchedItems.find(item => 
-                                            item.text === optMsg.rawText && item.from_id === vkUser.id
-                                        );
-
-                                        if (confirmedServerMsg) {
-                                            // This optimistic message has been confirmed by the server
-                                            newChatMessages.push({
-                                                id: confirmedServerMsg.id,
-                                                text: confirmedServerMsg.text,
-                                                rawText: confirmedServerMsg.text,
-                                                time: confirmedServerMsg.date * 1000,
-                                                out: true, // Optimistic messages are always outgoing
-                                                isOptimistic: false,
-                                                attachments: confirmedServerMsg.attachments || []
-                                            });
-                                            // Remove confirmed message from fetchedMessageIds so it's not added again as a "new" server message
-                                            fetchedMessageIds.delete(confirmedServerMsg.id);
-                                        } else {
-                                            // This optimistic message is still pending server confirmation, keep it
-                                            newChatMessages.push(optMsg);
-                                        }
+                                for (const opt of optimisticMessages) {
+                                    // Если сервер уже прислал сообщение с таким же текстом от нашего лица, оптимистичное считается доставленным
+                                    const isConfirmed = serverMessages.some(srv => srv.rawText === opt.rawText && srv.out);
+                                    if (!isConfirmed) {
+                                        unmatchedOptimistic.push(opt);
                                     }
                                 }
 
-                                // 2. Add all remaining messages from the server response
-                                fetchedItems.forEach(item => {
-                                    if (fetchedMessageIds.has(item.id)) { // Only add if not already added as a confirmed optimistic message
-                                        newChatMessages.push({
-                                            id: item.id,
-                                            text: item.text,
-                                            rawText: item.text,
-                                            time: item.date * 1000,
-                                            out: item.from_id === vkUser.id,
-                                            attachments: item.attachments || []
-                                        });
-                                    }
-                                });
+                                // Итоговый массив содержит серверный слепок + недоставленные оптимистичные сообщения
+                                const finalMessages = [...serverMessages, ...unmatchedOptimistic];
+                                finalMessages.sort((a, b) => a.time - b.time);
 
-                                // Sort by time to ensure correct chronological display
-                                newChatMessages.sort((a, b) => a.time - b.time);
+                                // Проверяем на различие списков (по составу ID) для полной реактивной отрисовки и дедупликации
+                                const currentIds = chat.messages.map(m => m.id).join(',');
+                                const finalIds = finalMessages.map(m => m.id).join(',');
 
-                                // Compare current chat.messages with newChatMessages to decide if re-render is needed
-                                // A simple way is to check the stringified IDs
-                                const currentMessageIds = JSON.stringify(chat.messages.map(m => m.id));
-                                const newMesageIds = JSON.stringify(newChatMessages.map(m => m.id));
-
-                                if (currentMessageIds !== newMesageIds) {
-                                    chat.messages = newChatMessages;
-                                    await renderMessages(); // Re-render if messages changed
+                                if (currentIds !== finalIds) {
+                                    chat.messages = finalMessages;
+                                    await renderMessages();
                                 }
                             }
                         }
                     }
 
-                    // Update sidebar dialogs periodically
                     if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 2000) {
                         await fetchDialogs();
                         window.lastSidebarUpdate = Date.now();
@@ -1218,15 +1215,15 @@
                 } finally {
                     isPollingActive = false;
                 }
-            }, 100); // Poll every 100ms for responsiveness
+            }, 1000); // 1 секунда для моментального реалтайма без угрозы лимитам API VK
         }
 
         async function loadHistoryForChat(peerId) {
             try {
-                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 40 }); // Load up to 40 messages
+                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 40 });
                 if (res && res.items) {
-                    chats[peerId].messages = []; // Clear existing for a fresh load
-                    res.items.reverse().forEach(item => { // Reverse to get chronological order
+                    chats[peerId].messages = [];
+                    res.items.reverse().forEach(item => {
                         chats[peerId].messages.push({
                             id: item.id,
                             text: item.text,
@@ -1245,7 +1242,7 @@
 
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
-            return val === null ? true : val === "true"; // Default to true if not set
+            return val === null ? true : val === "true";
         }
 
         function saveChatEncryptState(peerId, enabled) {
@@ -1299,28 +1296,27 @@
             const targetId = currentChatId;
             textarea.value = "";
             textarea.style.height = "auto";
-            handleTypingEffect(); // Reset button after clearing text
+            handleTypingEffect();
 
             let finalMessage = text;
             const isEncrypted = loadChatEncryptState(targetId);
             if (isEncrypted && text) {
                 finalMessage = await encryptText(text, targetId);
             } else if (isEncrypted && !text && selectedFile) {
-                finalMessage = MEOW_TAG + " Файл"; // Placeholder for encrypted files without text
+                finalMessage = MEOW_TAG + " Файл";
             }
 
-            // Add optimistic message to the chat
-            const tempId = 'opt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9); // Unique temporary ID
+            const tempId = 'opt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
             chats[targetId].messages.push({
                 id: tempId,
                 text: finalMessage,
-                rawText: finalMessage, // Store raw for matching
+                rawText: finalMessage,
                 time: Date.now(),
                 out: true,
                 isOptimistic: true,
                 attachments: selectedFile ? [{ type: 'doc', doc: { id: 'temp', title: selectedFile.name, url: '' } }] : []
             });
-            await renderMessages(); // Render immediately
+            await renderMessages();
 
             try {
                 let attachStr = "";
@@ -1329,7 +1325,6 @@
                 }
 
                 const randomId = Math.floor(Math.random() * 2000000000);
-                // VK API requires message text even for attachments. If it's empty, use a placeholder.
                 const messageToSend = finalMessage || (isEncrypted ? MEOW_TAG + " Файл" : "Файл");
 
                 await vkCall("messages.send", {
@@ -1339,11 +1334,9 @@
                     attachment: attachStr
                 });
                 
-                removeFile(); // Clear file selection
-                // The poller will pick up the actual message from VK and replace the optimistic one.
+                removeFile();
             } catch (e) {
                 alert(`Сбой отправки: ${e.message}`);
-                // Remove optimistic message if sending failed
                 chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
                 await renderMessages();
             }
@@ -1490,12 +1483,10 @@
             const chat = chats[currentChatId];
             if (!chat) return;
 
-            // Preserve scroll position if near bottom before re-rendering
             const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
 
-            // Clear existing messages
             container.innerHTML = "";
-            renderedMessageIds.clear(); // Clear the set as we are rebuilding
+            renderedMessageIds.clear(); 
 
             const messages = chat.messages || [];
             if (messages.length === 0) {
@@ -1503,7 +1494,6 @@
                 return;
             }
 
-            // Re-render all messages from scratch
             for (const msg of messages) {
                 let displayText = await decryptText(msg.rawText || "", chat.id, msg.out); 
 
@@ -1515,7 +1505,7 @@
                 } else {
                     const div = document.createElement('div');
                     div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                    div.dataset.msgId = msg.id; // Store ID for potential future diffing or lookup
+                    div.dataset.msgId = msg.id; 
 
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'bubble-time';
@@ -1531,12 +1521,12 @@
 
                     if (msg.attachments && msg.attachments.length > 0) {
                         for (const attach of msg.attachments) {
-                            await processAndDecryptAttachment(attach, div, chat.id); // Await for correct order
+                            await processAndDecryptAttachment(attach, div, chat.id); 
                         }
                     }
                     container.appendChild(div);
                 }
-                renderedMessageIds.add(msg.id); // Add to set for reference if needed
+                renderedMessageIds.add(msg.id); 
             }
 
             if (isAtBottom) {
@@ -1595,7 +1585,7 @@
                             attachment: attachStr
                         });
                         stream.getTracks().forEach(track => track.stop());
-                        handleTypingEffect(); // Reset button after stopping recording and sending
+                        handleTypingEffect(); 
                     };
                     mediaRecorder.start();
                     isRecording = true;
@@ -1608,7 +1598,6 @@
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                // handleTypingEffect() is called in mediaRecorder.onstop now
             }
         }
 
@@ -1655,8 +1644,7 @@
             const chat = chats[id];
             
             document.body.classList.add('chat-opened');
-            document.getElementById('active-chat-name').innerText = chat.name;
-            document.getElementById('active-chat-status').innerText = `ID: ${chat.id} ${chat.online ? '(в сети)' : ''}`;
+            updateActiveChatHeader();
             document.getElementById('chat-input-bar').style.display = 'flex';
 
             const chatHeaderAvatar = document.getElementById('active-chat-avatar');
@@ -1673,11 +1661,11 @@
             if (isEnc) cryptBtn.classList.add('active');
             else cryptBtn.classList.remove('active');
 
-            await sendOwnPublicKeyIfNeeded(id); // Attempt key exchange if not already established
-            await loadHistoryForChat(id); // Load history from VK
-            await renderMessages(); // Render messages based on loaded history
-            renderChats(); // Re-render chat list to highlight active chat
-            handleTypingEffect(); // Update input bar button state
+            await sendOwnPublicKeyIfNeeded(id); 
+            await loadHistoryForChat(id); 
+            await renderMessages(); 
+            renderChats(); 
+            handleTypingEffect(); 
         }
 
         function toggleCryptForCurrentChat() {
@@ -1743,7 +1731,6 @@
         function backToSidebar() {
             document.body.classList.remove('chat-opened');
             currentChatId = null;
-            // Optionally clear chat feed or reset header
             document.getElementById('messages-feed').innerHTML = `<div class="empty-placeholder">Выберите чат для начала защищенной сессии.</div>`;
             document.getElementById('active-chat-name').innerText = 'Выберите чат';
             document.getElementById('active-chat-status').innerText = 'Защищенный обмен готов';
