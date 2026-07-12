@@ -431,7 +431,7 @@
             padding: 12px 16px;
             background: var(--bg-surface);
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             gap: 10px;
             border-top: 1px solid var(--border-color);
             width: 100%;
@@ -444,8 +444,8 @@
             border: 1px solid var(--border-color);
             border-radius: 24px;
             display: flex;
-            align-items: flex-end;
-            padding: 4px 10px;
+            align-items: center;
+            padding: 2px 8px;
             min-width: 0;
         }
 
@@ -491,7 +491,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            flex-shrink: 0;
+            flex-shrink: 0 !important;
         }
 
         .action-round-btn.voice-active {
@@ -549,6 +549,23 @@
             text-align: center;
         }
 
+        .date-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .date-divider::before, .date-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            margin: 0 15px;
+        }
+
         @media (max-width: 768px) {
             .sidebar { width: 100%; }
             body.chat-opened .sidebar { display: none !important; }
@@ -589,7 +606,7 @@
                 <div class="avatar" id="bot-avatar-img">?</div>
                 <div class="chat-details">
                     <div class="chat-title" id="bot-name-display">Загрузка...</div>
-                    <div style="font-size: 11px; color: var(--success)">online (polling)</div>
+                    <div style="font-size: 11px; color: var(--success)">online</div>
                 </div>
             </div>
 
@@ -676,7 +693,6 @@
         let isRecording = false;
 
         const decryptedTextCache = {}; 
-        let renderedMessageIds = new Set(); 
 
         const safeStorage = {
             get(key) { try { return localStorage.getItem(key); } catch(e) { return null; } },
@@ -758,10 +774,14 @@
             const peerPub = safeStorage.get("peer_pub_" + peerId);
             if (peerPub && !force) return; 
 
+            const alreadySent = safeStorage.get("own_pub_sent_" + peerId);
+            if (alreadySent && !force) return;
+
             await ensureECKeyPair();
             const ownPub = safeStorage.get("ec_pub");
             if (ownPub) {
                 await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
+                safeStorage.set("own_pub_sent_" + peerId, "true");
             }
         }
 
@@ -1071,8 +1091,10 @@
                     });
                 }
 
+                const activePeerIds = new Set();
                 for (const item of data.items) {
                     const peerId = item.conversation.peer.id;
+                    activePeerIds.add(peerId);
                     const lastMsgObj = item.last_message;
                     const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private', online: false };
 
@@ -1096,6 +1118,13 @@
                         chats[peerId].last_message_display = "История пуста";
                     }
                 }
+
+                for (const peerId in chats) {
+                    if (!activePeerIds.has(Number(peerId))) {
+                        delete chats[peerId];
+                    }
+                }
+
                 renderChats();
                 saveState();
             } catch (e) {}
@@ -1112,34 +1141,42 @@
                         if (res && res.items) {
                             const chat = chats[currentChatId];
                             if (chat) {
-                                const existingIds = new Set(chat.messages.map(m => m.id));
-                                let addedNew = false;
+                                const optimistic = chat.messages.filter(m => m.isOptimistic);
                                 const items = [...res.items].reverse();
-                                
-                                for (const item of items) {
-                                    if (!existingIds.has(item.id)) {
-                                        const optIndex = chat.messages.findIndex(m => m.isOptimistic && m.rawText === item.text);
-                                        if (optIndex !== -1) {
-                                            chat.messages[optIndex].id = item.id;
-                                            chat.messages[optIndex].isOptimistic = false;
-                                            chat.messages[optIndex].attachments = item.attachments || [];
-                                        } else {
-                                            chat.messages.push({
-                                                id: item.id,
-                                                text: item.text,
-                                                rawText: item.text,
-                                                time: item.date * 1000,
-                                                out: item.from_id === vkUser.id,
-                                                attachments: item.attachments || []
-                                            });
-                                            addedNew = true;
-                                        }
+
+                                items.forEach(item => {
+                                    const txt = item.text || "";
+                                    if (txt.startsWith(MEOW_KEY_REQ_TAG)) {
+                                        const pub = txt.substring(MEOW_KEY_REQ_TAG.length);
+                                        safeStorage.set("peer_pub_" + currentChatId, pub);
+                                    } else if (txt.startsWith(MEOW_KEY_RES_TAG)) {
+                                        const pub = txt.substring(MEOW_KEY_RES_TAG.length);
+                                        safeStorage.set("peer_pub_" + currentChatId, pub);
                                     }
-                                }
-                                if (addedNew) {
-                                    chat.messages.sort((a, b) => a.time - b.time);
-                                    await renderMessages();
-                                }
+                                });
+
+                                const newMessages = items.map(item => ({
+                                    id: item.id,
+                                    text: item.text,
+                                    rawText: item.text,
+                                    time: item.date * 1000,
+                                    out: item.from_id === vkUser.id,
+                                    attachments: item.attachments || []
+                                }));
+
+                                const finalMessages = [];
+                                newMessages.forEach(nm => {
+                                    finalMessages.push(nm);
+                                });
+                                optimistic.forEach(om => {
+                                    const alreadySent = newMessages.some(nm => nm.text === om.text || nm.rawText === om.rawText || nm.id === om.id);
+                                    if (!alreadySent) {
+                                        finalMessages.push(om);
+                                    }
+                                });
+
+                                chat.messages = finalMessages.sort((a, b) => a.time - b.time);
+                                await renderMessages();
                             }
                         }
                     }
@@ -1152,7 +1189,7 @@
                 } finally {
                     isPollingActive = false;
                 }
-            }, 100);
+            }, 1000);
         }
 
         async function loadHistoryForChat(peerId) {
@@ -1160,7 +1197,18 @@
                 const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 100 });
                 if (res && res.items) {
                     chats[peerId].messages = [];
-                    res.items.reverse().forEach(item => {
+                    const items = [...res.items].reverse();
+
+                    items.forEach(item => {
+                        const txt = item.text || "";
+                        if (txt.startsWith(MEOW_KEY_REQ_TAG)) {
+                            const pub = txt.substring(MEOW_KEY_REQ_TAG.length);
+                            safeStorage.set("peer_pub_" + peerId, pub);
+                        } else if (txt.startsWith(MEOW_KEY_RES_TAG)) {
+                            const pub = txt.substring(MEOW_KEY_RES_TAG.length);
+                            safeStorage.set("peer_pub_" + peerId, pub);
+                        }
+
                         chats[peerId].messages.push({
                             id: item.id,
                             text: item.text,
@@ -1428,25 +1476,29 @@
             const chat = chats[currentChatId];
             if (!chat) return;
 
-            if (container.dataset.chatId !== String(currentChatId)) {
-                container.innerHTML = "";
-                container.dataset.chatId = String(currentChatId);
-                renderedMessageIds.clear();
-            }
-
+            const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 150;
             const messages = chat.messages || [];
-            if (messages.length === 0 && renderedMessageIds.size === 0) {
+            
+            if (messages.length === 0) {
                 container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните конфиденциальную сессию!</div>`;
+                container.dataset.chatId = String(currentChatId);
                 return;
             }
 
-            const placeholder = container.querySelector('.empty-placeholder');
-            if (placeholder) placeholder.remove();
-
-            const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
+            container.innerHTML = "";
+            let lastDateStr = "";
 
             for (const msg of messages) {
-                if (renderedMessageIds.has(msg.id)) continue; 
+                const msgDateObj = new Date(msg.time);
+                const msgDateStr = msgDateObj.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
+                
+                if (msgDateStr !== lastDateStr) {
+                    const divider = document.createElement('div');
+                    divider.className = 'date-divider';
+                    divider.innerText = msgDateStr;
+                    container.appendChild(divider);
+                    lastDateStr = msgDateStr;
+                }
 
                 let displayText = await decryptText(msg.rawText || "", chat.id); 
 
@@ -1462,7 +1514,7 @@
 
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'bubble-time';
-                    timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    timeSpan.innerText = msgDateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     div.appendChild(timeSpan);
 
                     if (displayText) {
@@ -1474,19 +1526,18 @@
 
                     if (msg.attachments && msg.attachments.length > 0) {
                         for (const attach of msg.attachments) {
-                            processAndDecryptAttachment(attach, div, chat.id);
+                            await processAndDecryptAttachment(attach, div, chat.id);
                         }
                     }
 
                     container.appendChild(div);
                 }
-                
-                renderedMessageIds.add(msg.id);
             }
 
-            if (isAtBottom) {
+            if (isAtBottom || container.dataset.chatId !== String(currentChatId)) {
                 container.scrollTop = container.scrollHeight;
             }
+            container.dataset.chatId = String(currentChatId);
         }
 
         function handleTypingEffect() {
