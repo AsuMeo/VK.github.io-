@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Web Client Pro</title>
+    <title>VK Meow Crypt Web Pro</title>
     <style>
         :root {
             --bg-dark: #000000;         /* Чистый черный AMOLED */
@@ -398,16 +398,6 @@
             line-height: 1.6;
         }
 
-        .date-divider {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 15px 0;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 600;
-        }
-
         .bubble {
             max-width: 68%;
             padding: 12px 16px;
@@ -418,6 +408,12 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .bubble.in {
@@ -443,7 +439,7 @@
         .bubble-media {
             max-width: 100%;
             height: auto;
-            max-height: 360px;
+            max-height: 300px;
             border-radius: 12px;
             margin-bottom: 6px;
             display: block;
@@ -710,7 +706,7 @@
                 <ol>
                     <li>Нажмите на кнопку ниже:
                         <br>
-                        <a href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,photos,video,docs,status,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
+                        <a href="https://oauth.vk.com/authorize?client_id=2274003&scope=messages,photos,video,docs,status,friends,wall,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
                     <li>Разрешите доступ, скопируйте всю строку адреса из браузера и вставьте её ниже.</li>
                 </ol>
@@ -837,7 +833,10 @@
         let audioChunks = [];
         let isRecording = false;
 
-        const derivedKeysCache = {};
+        // КЭШ И ОПТИМИЗАЦИЯ ДЛЯ УСТРАНЕНИЯ ЛАГОВ
+        const derivedKeysCache = {}; 
+        const decryptedTextCache = {}; 
+        let renderedMessageIds = new Set();
 
         const safeStorage = {
             get(key) { try { return localStorage.getItem(key); } catch(e) { return null; } },
@@ -864,7 +863,7 @@
             safeStorage.set("saved_vk_chats", JSON.stringify(chats));
         }
 
-        // --- ECDH E2EE (СКВОЗНОЕ ШИФРОВАНИЕ НА КРИВОЙ SECP256R1) ---
+        // --- ECDH E2EE (ОБМЕН КЛЮЧАМИ СТРОГО 1 РАЗ) ---
 
         async function ensureECKeyPair() {
             if (safeStorage.get("ec_pub") && safeStorage.get("ec_priv")) return;
@@ -923,11 +922,12 @@
 
         async function sendOwnPublicKeyIfNeeded(peerId) {
             const peerPub = safeStorage.get("peer_pub_" + peerId);
-            if (!peerPub) {
-                await ensureECKeyPair();
-                const ownPub = safeStorage.get("ec_pub");
-                await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
-            }
+            // Если публичный ключ уже сохранен в браузере, прерываем процедуру и больше ничего не шлем!
+            if (peerPub) return;
+
+            await ensureECKeyPair();
+            const ownPub = safeStorage.get("ec_pub");
+            await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
         }
 
         async function sendMeowRaw(text, peerId) {
@@ -941,7 +941,7 @@
             } catch(e) {}
         }
 
-        // --- ВСПОМОГАТЕЛЬНЫЕ КРИПТО-МЕТОДЫ (PBKDF2 И AES-GCM) ---
+        // --- ВСПОМОГАТЕЛЬНЫЕ КРИПТО-МЕТОДЫ ---
 
         function bytesToBase64(bytes) {
             let binary = '';
@@ -1011,7 +1011,7 @@
                        .replace(/&#39;/g, "'");
         }
 
-        // --- ШИФРОВАНИЕ И РАСШИФРОВКА ТЕКСТА (100% СОВМЕСТИМОСТЬ) ---
+        // --- ДЕШИФРОВАНИЕ ТЕКСТА (ПРИНЦИП РАБОТЫ КАК В JAVA) ---
 
         async function encryptText(text, peerId) {
             if (!text) return "";
@@ -1076,11 +1076,11 @@
                     await ensureECKeyPair();
                     const ownPub = safeStorage.get("ec_pub");
                     await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
-                    return "[E2EE ключ обменян (запрос)]";
+                    return "[E2EE ключ получен (запрос)]";
                 } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
                     const pub = s.substring(14);
                     safeStorage.set("peer_pub_" + peerId, pub);
-                    return "[E2EE ключ обменян (ответ)]";
+                    return "[E2EE ключ получен (ответ)]";
                 } else if (s.startsWith(MEOW_E2E_TAG)) {
                     const b64 = s.substring(10);
                     const data = base64ToBytes(b64);
@@ -1152,7 +1152,7 @@
             return encryptedText;
         }
 
-        // --- БИНАРНОЕ ШИФРОВАНИЕ ДЛЯ ФАЙЛОВ И ГОЛОСОВЫХ ---
+        // --- ДЕШИФРОВАНИЕ ФАЙЛОВ И МЕДИА (АНАЛОГ downloadAndDecryptToFile) ---
 
         async function encryptBinary(arrayBuffer, peerId) {
             const isEncrypted = loadChatEncryptState(peerId);
@@ -1214,12 +1214,11 @@
                 if (shared && enc.length > 12) {
                     const iv = enc.slice(0, 12);
                     const cipher = enc.slice(12);
-                    const dec = await window.crypto.subtle.decrypt(
+                    return await window.crypto.subtle.decrypt(
                         { name: "AES-GCM", iv: iv },
                         shared,
                         cipher
                     );
-                    return dec;
                 } else if (isDouble) {
                     const pass = loadChatPassword(peerId, "in");
                     if (!pass) return null;
@@ -1228,11 +1227,12 @@
                     const outerIv = remaining.slice(0, 12);
                     const outerCipher = remaining.slice(12);
                     const secondKey = await deriveKeyFromPassword(pass, passwordSalt);
-                    const innerPayload = await window.crypto.subtle.decrypt(
+                    const innerPayloadBuffer = await window.crypto.subtle.decrypt(
                         { name: "AES-GCM", iv: outerIv },
                         secondKey,
                         outerCipher
                     );
+                    const innerPayload = new Uint8Array(innerPayloadBuffer);
                     const baseIv = innerPayload.slice(0, 12);
                     const firstLayerCiphertext = innerPayload.slice(12);
                     const baseAesKey = await window.crypto.subtle.importKey(
@@ -1242,12 +1242,11 @@
                         false,
                         ["decrypt"]
                     );
-                    const dec = await window.crypto.subtle.decrypt(
+                    return await window.crypto.subtle.decrypt(
                         { name: "AES-GCM", iv: baseIv },
                         baseAesKey,
                         firstLayerCiphertext
                     );
-                    return dec;
                 } else {
                     const baseIv = enc.slice(0, 12);
                     const firstLayerCiphertext = enc.slice(12);
@@ -1258,19 +1257,19 @@
                         false,
                         ["decrypt"]
                     );
-                    const dec = await window.crypto.subtle.decrypt(
+                    return await window.crypto.subtle.decrypt(
                         { name: "AES-GCM", iv: baseIv },
                         baseAesKey,
                         firstLayerCiphertext
                     );
-                    return dec;
                 }
             } catch (e) {
+                console.error("Binary decryption error:", e);
                 return null;
             }
         }
 
-        // --- УПРАВЛЕНИЕ ЛОКАЛЬНЫМИ НАСТРОЙКАМИ ШИФРОВАНИЯ ---
+        // --- ЛОКАЛЬНЫЕ НАСТРОЙКИ ЧАТОВ ---
 
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
@@ -1289,7 +1288,7 @@
             safeStorage.set("chat_pass_" + type + "_" + peerId, val);
         }
 
-        // --- ВК СЕТЕВЫЕ МЕТОДЫ (JSONP) ---
+        // --- СЕТЕВОЕ ВЗАИМОДЕЙСТВИЕ VK API ---
 
         function vkCall(method, params = {}) {
             return new Promise((resolve, reject) => {
@@ -1428,14 +1427,13 @@
                         if (update.updates) {
                             let triggered = false;
                             for (const up of update.updates) {
-                                if (up[0] === 4) {
-                                    triggered = true;
-                                }
+                                if (up[0] === 4) triggered = true;
                             }
                             if (triggered) {
                                 await fetchDialogs();
                                 if (currentChatId) {
                                     await loadHistoryForChat(currentChatId);
+                                    await renderMessages();
                                 }
                             }
                         }
@@ -1469,7 +1467,7 @@
             } catch(e) {}
         }
 
-        // ---ОТПРАВКА И ЗАГРУЗКА ШИФРОВАННЫХ МЕДИА (МЕДИА СТРОГО В ДОКУМЕНТЫ) ---
+        // --- ОТПРАВКА ШИФРОВАННЫХ ФАЙЛОВ ---
 
         async function uploadFileToVk(file, isVoice = false) {
             const uploadServer = await vkCall("docs.getMessagesUploadServer", { peer_id: currentChatId, type: "doc" });
@@ -1549,7 +1547,7 @@
 
                 removeFile();
                 await loadHistoryForChat(targetId);
-                renderMessages();
+                await renderMessages();
                 renderChats();
             } catch (e) {
                 alert(`Ошибка: ${e.message}`);
@@ -1558,25 +1556,41 @@
             }
         }
 
-        // --- ПОЛНОСТЬЮ СОВМЕСТИМАЯ РАСШИФРОВКА КАРТИНОК, ВИДЕО И ЗВУКА ---
+        // --- УМНЫЙ ДЕШИФРОВЩИК И ЗАГРУЗЧИК МЕДИА (БЕЗ CORS ЗАВИСАНИЙ) ---
 
-        async function processAndDecryptAttachment(attachment, bubbleDiv, peerId) {
+        async function processAndDecryptAttachment(attachment, bubbleDiv, peerId, rawText) {
             if (attachment.type === 'doc') {
                 const doc = attachment.doc;
                 const title = doc.title.toLowerCase();
                 const isEncrypted = title.endsWith('.meow') || title.endsWith('.mur') || title.endsWith('.mew') || title.endsWith('.enc');
 
+                const docIdAttr = `doc-${doc.id}`;
+                if (bubbleDiv.querySelector(`[data-doc-id="${docIdAttr}"]`)) return;
+
+                const attachContainer = document.createElement('div');
+                attachContainer.dataset.docId = docIdAttr;
+                attachContainer.style.marginTop = "6px";
+                bubbleDiv.insertBefore(attachContainer, bubbleDiv.lastChild);
+
                 if (isEncrypted) {
+                    attachContainer.innerHTML = `<span style="font-size:12px;color:var(--text-muted);">🔒 Загрузка и дешифровка...</span>`;
+                    
                     const decryptedCacheKey = "dec_file_" + doc.id;
                     let decryptedUrl = sessionStorage.getItem(decryptedCacheKey);
 
                     if (!decryptedUrl) {
                         try {
-                            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(doc.url);
-                            const res = await fetch(proxyUrl);
-                            const encBuf = await res.arrayBuffer();
+                            let proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(doc.url);
+                            let res;
+                            try {
+                                res = await fetch(proxyUrl);
+                            } catch(e) {
+                                proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(doc.url);
+                                res = await fetch(proxyUrl);
+                            }
                             
-                            const isDouble = !!loadChatPassword(peerId, "in");
+                            const encBuf = await res.arrayBuffer();
+                            const isDouble = rawText.startsWith(MEOW_SECURE_TAG);
                             const decBuf = await decryptBinary(encBuf, peerId, isDouble, true);
                             
                             if (decBuf) {
@@ -1589,22 +1603,26 @@
                                 decryptedUrl = URL.createObjectURL(blob);
                                 sessionStorage.setItem(decryptedCacheKey, decryptedUrl);
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Ошибка расшифровки</span>`;
+                            return;
+                        }
                     }
 
                     if (decryptedUrl) {
+                        attachContainer.innerHTML = ""; 
                         if (title.endsWith('.meow')) {
                             const img = document.createElement('img');
                             img.src = decryptedUrl;
                             img.className = 'bubble-media';
                             img.onclick = () => window.open(decryptedUrl, '_blank');
-                            bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
+                            attachContainer.appendChild(img);
                         } else if (title.endsWith('.mur')) {
                             const video = document.createElement('video');
                             video.src = decryptedUrl;
                             video.className = 'bubble-media';
                             video.controls = true;
-                            bubbleDiv.insertBefore(video, bubbleDiv.lastChild);
+                            attachContainer.appendChild(video);
                         } else if (title.endsWith('.mew')) {
                             const playerDiv = document.createElement('div');
                             playerDiv.className = 'voice-player';
@@ -1624,7 +1642,7 @@
                             metaDiv.innerHTML = `<span class="voice-title">Голосовое сообщение</span><span class="voice-duration">Расшифровано (.mew)</span>`;
                             playerDiv.appendChild(playBtn);
                             playerDiv.appendChild(metaDiv);
-                            bubbleDiv.insertBefore(playerDiv, bubbleDiv.lastChild);
+                            attachContainer.appendChild(playerDiv);
                         } else {
                             const realName = doc.title.slice(0, -4);
                             const docLink = document.createElement('a');
@@ -1632,14 +1650,28 @@
                             docLink.download = realName;
                             docLink.className = 'document-link';
                             docLink.innerHTML = `<div class="document-icon">📄</div><div><span>${escapeHtml(realName)}</span></div>`;
-                            bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
+                            attachContainer.appendChild(docLink);
                         }
+                    } else {
+                        attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось дешифровать</span>`;
+                    }
+                } else {
+                    if (title.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
+                        attachContainer.innerHTML = `<img src="${doc.url}" class="bubble-media" onclick="window.open('${doc.url}', '_blank')">`;
+                    } else if (title.match(/\.(mp4|avi|mov|mkv|webm)$/)) {
+                        attachContainer.innerHTML = `<video src="${doc.url}" class="bubble-media" controls></video>`;
+                    } else {
+                        attachContainer.innerHTML = `
+                            <a href="${doc.url}" target="_blank" class="document-link">
+                                <div class="document-icon">📄</div>
+                                <div><span>${escapeHtml(doc.title)}</span></div>
+                            </a>`;
                     }
                 }
             }
         }
 
-        // --- ГОЛОСОВОЙ ЗАПИСЫВАТЕЛЬ ---
+        // --- ГОЛОСОВЫЕ ЗАПИСИ ---
 
         async function toggleVoiceRecord() {
             const btn = document.getElementById('voice-btn');
@@ -1653,7 +1685,6 @@
                         const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
                         const attachStr = await uploadFileToVk(new File([audioBlob], "voice.ogg"), true);
                         const randomId = Math.floor(Math.random() * 2000000000);
-                        const chat = chats[currentChatId];
                         
                         let msgBody = "Голосовое сообщение";
                         if (loadChatEncryptState(currentChatId)) {
@@ -1667,7 +1698,7 @@
                             attachment: attachStr
                         });
                         await loadHistoryForChat(currentChatId);
-                        renderMessages();
+                        await renderMessages();
                         stream.getTracks().forEach(track => track.stop());
                     };
                     mediaRecorder.start();
@@ -1683,36 +1714,60 @@
             }
         }
 
-        // --- РЕНДЕРИНГ ИНТЕРФЕЙСА ---
+        // --- ПЛАВНЫЙ И КРАСИВЫЙ РЕНДЕРИНГ БЕЗ МЕРЦАНИЙ (РЕКОНСИЛЯЦИЯ DOM) ---
 
         async function renderMessages() {
             const container = document.getElementById('messages-feed');
             const chat = chats[currentChatId];
-            container.innerHTML = "";
+            if (!chat) return;
 
-            if (!chat || !chat.messages || chat.messages.length === 0) {
+            if (container.dataset.chatId !== String(currentChatId)) {
+                container.innerHTML = "";
+                container.dataset.chatId = String(currentChatId);
+                renderedMessageIds.clear();
+            }
+
+            const messages = chat.messages || [];
+            if (messages.length === 0) {
                 container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните защищенную переписку!</div>`;
+                renderedMessageIds.clear();
                 return;
             }
 
-            for (const msg of chat.messages) {
+            const placeholder = container.querySelector('.empty-placeholder');
+            if (placeholder) placeholder.remove();
+
+            const previousScrollHeight = container.scrollHeight;
+            const previousScrollTop = container.scrollTop;
+            const isAtBottom = (previousScrollHeight - previousScrollTop - container.clientHeight) < 150;
+
+            for (const msg of messages) {
+                if (renderedMessageIds.has(msg.id)) continue; 
+
                 const div = document.createElement('div');
                 div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                
+                div.dataset.msgId = msg.id;
+
                 const timeSpan = document.createElement('div');
                 timeSpan.className = 'bubble-time';
                 timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 div.appendChild(timeSpan);
 
-                if (msg.attachments && msg.attachments.length > 0) {
-                    for (const attach of msg.attachments) {
-                        await processAndDecryptAttachment(attach, div, chat.id);
+                let displayText = "";
+                if (msg.rawText) {
+                    if (decryptedTextCache[msg.id]) {
+                        displayText = decryptedTextCache[msg.id];
+                    } else if (msg.rawText.startsWith("[MEOW") || msg.rawText.startsWith(MEOW_KEY_REQ_TAG) || msg.rawText.startsWith(MEOW_KEY_RES_TAG)) {
+                        decryptText(msg.rawText, chat.id).then(dec => {
+                            decryptedTextCache[msg.id] = dec;
+                            const textEl = div.querySelector('.bubble-text');
+                            if (textEl) textEl.innerHTML = escapeHtml(dec);
+                        });
+                        displayText = "🔒 Расшифровка...";
+                    } else {
+                        displayText = msg.rawText;
+                        decryptedTextCache[msg.id] = msg.rawText;
                     }
-                }
-
-                let displayText = msg.rawText;
-                if (msg.rawText && (msg.rawText.startsWith("[MEOW") || msg.rawText.startsWith(MEOW_KEY_REQ_TAG) || msg.rawText.startsWith(MEOW_KEY_RES_TAG))) {
-                    displayText = await decryptText(msg.rawText, chat.id);
                 }
 
                 if (displayText) {
@@ -1722,9 +1777,19 @@
                     div.insertBefore(textSpan, div.lastChild);
                 }
 
+                if (msg.attachments && msg.attachments.length > 0) {
+                    for (const attach of msg.attachments) {
+                        processAndDecryptAttachment(attach, div, chat.id, msg.rawText);
+                    }
+                }
+
                 container.appendChild(div);
+                renderedMessageIds.add(msg.id);
             }
-            container.scrollTop = container.scrollHeight;
+
+            if (isAtBottom || previousScrollHeight === 0) {
+                container.scrollTop = container.scrollHeight;
+            }
         }
 
         function renderChats() {
@@ -1779,7 +1844,7 @@
 
             await sendOwnPublicKeyIfNeeded(id);
             await loadHistoryForChat(id);
-            renderMessages();
+            await renderMessages();
             renderChats();
         }
 
@@ -1862,4 +1927,4 @@
         }
     </script>
 </body>
-    </html>
+            </html>
