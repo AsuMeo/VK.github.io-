@@ -758,8 +758,14 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
+        .input-with-button {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
         .modal-profile-info .inline-input {
-            width: 100%;
+            flex: 1;
             padding: 10px 14px;
             border-radius: 10px;
             border: 1px solid var(--border-color);
@@ -767,11 +773,28 @@
             color: white;
             font-size: 14px;
             outline: none;
-            margin-top: 4px;
             transition: all 0.2s;
         }
 
         .modal-profile-info .inline-input:focus {
+            border-color: var(--accent);
+        }
+
+        .eye-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 10px;
+            padding: 0 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .eye-btn:hover {
+            color: white;
             border-color: var(--accent);
         }
 
@@ -788,6 +811,9 @@
                 width: 100%; 
                 height: 100%;
             }
+            body.chat-opened .sidebar {
+                display: none !important;
+            }
             .chat-window {
                 display: none;
                 position: fixed;
@@ -795,7 +821,9 @@
                 z-index: 500;
                 background-color: var(--bg-dark);
             }
-            .chat-window.active { display: flex; }
+            body.chat-opened .chat-window {
+                display: flex !important;
+            }
             .back-btn { display: flex; }
             .chat-feed {
                 padding: 16px;
@@ -943,7 +971,10 @@
                 <div style="margin-top: 15px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 14px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
                     <p>
                         <b>Общий ключ шифрования для этого чата</b>
-                        <input type="password" id="chat-shared-key-field" class="inline-input" placeholder="Общий пароль для шифрации и дешифрации" oninput="updateChatSharedKey()">
+                        <div class="input-with-button">
+                            <input type="password" id="chat-shared-key-field" class="inline-input" placeholder="Общий пароль для шифрации и дешифрации" oninput="updateChatSharedKey()">
+                            <button class="eye-btn" onclick="togglePasswordVisibility('chat-shared-key-field')">👁️</button>
+                        </div>
                     </p>
                 </div>
             </div>
@@ -1027,16 +1058,20 @@
             );
         }
 
-        function bytesToBase64(bytes) {
+        function bytesToBase64Safe(bytes) {
             let binary = '';
             const len = bytes.byteLength;
             for (let i = 0; i < len; i++) {
                 binary += String.fromCharCode(bytes[i]);
             }
-            return btoa(binary);
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         }
 
-        function base64ToBytes(base64) {
+        function base64SafeToBytes(safeBase64) {
+            let base64 = safeBase64.replace(/-/g, '+').replace(/_/g, '/');
+            while (base64.length % 4) {
+                base64 += '=';
+            }
             const binary = atob(base64);
             const len = binary.length;
             const bytes = new Uint8Array(len);
@@ -1060,7 +1095,7 @@
                 const combined = new Uint8Array(iv.length + ciphertext.byteLength);
                 combined.set(iv);
                 combined.set(new Uint8Array(ciphertext), iv.length);
-                return "🔒" + bytesToBase64(combined);
+                return "🔒" + bytesToBase64Safe(combined);
             } catch(e) {
                 return text;
             }
@@ -1071,7 +1106,7 @@
             if (!keyStr) return "[Зашифровано - введите пароль в Подробнее]";
             try {
                 const derivedKey = await initCrypto(keyStr);
-                const combined = base64ToBytes(encryptedBase64.slice(1));
+                const combined = base64SafeToBytes(encryptedBase64.slice(1));
                 const iv = combined.slice(0, 12);
                 const ciphertext = combined.slice(12);
                 const dec = new TextDecoder();
@@ -1646,7 +1681,6 @@
 
             updateAvatarUI(chat.id, chat.name, 'active-chat-avatar');
 
-            // Показываем заглушку на время загрузки
             document.getElementById('messages-feed').innerHTML = `<div class="empty-placeholder">Загрузка переписки...</div>`;
 
             await loadHistoryForChat(id);
@@ -1672,7 +1706,6 @@
 
         async function processAndDecryptAttachment(attachment, container, bubbleDiv, decryptKey) {
             if (attachment.type === 'photo') {
-                // Обычное фото из ВК
                 const sizes = attachment.photo.sizes;
                 const bestSize = sizes[sizes.length - 1].url;
                 const img = document.createElement('img');
@@ -1682,7 +1715,6 @@
                 bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
             } 
             else if (attachment.type === 'video') {
-                // Обычное видео из ВК
                 const video = attachment.video;
                 const videoText = document.createElement('div');
                 videoText.className = 'document-link';
@@ -1704,7 +1736,8 @@
 
                     if (!decryptedUrl) {
                         try {
-                            const res = await fetch(doc.url);
+                            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(doc.url);
+                            const res = await fetch(proxyUrl);
                             const encBuf = await res.arrayBuffer();
                             const decBuf = await decryptBinary(encBuf, decryptKey);
                             if (decBuf) {
@@ -1784,7 +1817,6 @@
                         bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                     }
                 } else {
-                    // Обычный документ без шифрования
                     const docLink = document.createElement('a');
                     docLink.href = doc.url;
                     docLink.target = '_blank';
@@ -1836,14 +1868,12 @@
 
                 const decryptKey = chat.sharedKey;
 
-                // Сначала обрабатываем вложения
                 if (msg.attachments && msg.attachments.length > 0) {
                     for (const attach of msg.attachments) {
                         await processAndDecryptAttachment(attach, container, div, decryptKey);
                     }
                 }
 
-                // Дешифрация текста на лету
                 let displayText = msg.rawText;
                 if (msg.rawText && msg.rawText.startsWith("🔒")) {
                     displayText = await decryptText(msg.rawText, decryptKey);
@@ -1905,6 +1935,15 @@
             if (!currentChatId || !chats[currentChatId]) return;
             chats[currentChatId].sharedKey = document.getElementById('chat-shared-key-field').value;
             saveState();
+        }
+
+        function togglePasswordVisibility(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field.type === "password") {
+                field.type = "text";
+            } else {
+                field.type = "password";
+            }
         }
 
         function closeProfileModal() {
@@ -1973,4 +2012,4 @@
         // мяу, я устала писать
     </script>
 </body>
-</html>
+                    </html>
