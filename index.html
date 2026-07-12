@@ -571,7 +571,7 @@
                 <ol>
                     <li>Нажмите на кнопку ниже:
                         <br>
-                        <a href="https://oauth.vk.com/authorize?client_id=2274003&amp;scope=messages,photos,video,docs,status,friends,wall,offline&amp;redirect_uri=https://oauth.vk.com/blank.html&amp;display=page&amp;response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
+                        <a href="https://oauth.vk.com/authorize?client_id=2274003&scope=messages,photos,video,docs,status,friends,wall,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
                     <li>Авторизуйтесь, скопируйте ссылку из адресной строки и вставьте её ниже.</li>
                 </ol>
@@ -676,18 +676,18 @@
         let isRecording = false;
 
         const decryptedTextCache = {}; 
-        let renderedMessageIds = new Set(); 
+        let renderedMessageIds = new Set(); // Kept for reference, but re-rendered completely now.
 
         const safeStorage = {
-            get(key) { try { return localStorage.getItem(key); } catch(e) { return null; } },
-            set(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+            get(key) { try { return localStorage.getItem(key); } catch(e) { console.error("localStorage get error:", e); return null; } },
+            set(key, val) { try { localStorage.setItem(key, val); } catch(e) { console.error("localStorage set error:", e); } }
         };
 
         window.onload = function() {
             const savedToken = safeStorage.get("saved_vk_token");
             const savedChats = safeStorage.get("saved_vk_chats");
             if (savedChats) {
-                try { chats = JSON.parse(savedChats); } catch(e) { chats = {}; }
+                try { chats = JSON.parse(savedChats); } catch(e) { console.error("Error parsing saved chats:", e); chats = {}; }
             }
             if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
@@ -712,7 +712,7 @@
                 safeStorage.set("ec_pub", bytesToBase64(pubBuf));
                 safeStorage.set("ec_priv", bytesToBase64(privBuf));
             } catch (e) {
-                console.error(e);
+                console.error("Error generating EC key pair:", e);
             }
         }
 
@@ -750,42 +750,24 @@
                     ["encrypt", "decrypt"]
                 );
             } catch (e) {
+                console.error("Error deriving shared key:", e);
                 return null;
-            }
-        }
-
-        // Оптимизированный поиск ключей в истории без лишнего спама
-        function scanMessageForKeys(msgText, isOut, peerId) {
-            const s = unescapeHtml(msgText || "");
-            if (s.startsWith(MEOW_KEY_REQ_TAG)) {
-                const pub = s.substring(MEOW_KEY_REQ_TAG.length);
-                if (isOut) {
-                    safeStorage.set("own_pub_shared_with_" + peerId, "true");
-                } else {
-                    safeStorage.set("peer_pub_" + peerId, pub);
-                }
-            } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
-                const pub = s.substring(MEOW_KEY_RES_TAG.length);
-                if (isOut) {
-                    safeStorage.set("own_pub_shared_with_" + peerId, "true");
-                } else {
-                    safeStorage.set("peer_pub_" + peerId, pub);
-                }
             }
         }
 
         async function sendOwnPublicKeyIfNeeded(peerId, force = false) {
             const peerPub = safeStorage.get("peer_pub_" + peerId);
-            const ownShared = safeStorage.get("own_pub_shared_with_" + peerId);
-            if (peerPub && ownShared && !force) return; 
+            // Only send key request if peer's public key is not stored or force option is used
+            if (peerPub && !force) {
+                console.log(`Peer public key for ${peerId} already exists. Not sending request.`);
+                return; 
+            }
 
+            console.log(`Peer public key for ${peerId} not found or forced. Sending request.`);
             await ensureECKeyPair();
             const ownPub = safeStorage.get("ec_pub");
             if (ownPub) {
-                if (!ownShared || force) {
-                    await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
-                    safeStorage.set("own_pub_shared_with_" + peerId, "true");
-                }
+                await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
             }
         }
 
@@ -805,7 +787,9 @@
                     random_id: randomId,
                     message: text
                 });
-            } catch(e) {}
+            } catch(e) {
+                console.error("Failed to send raw MEOW message:", e);
+            }
         }
 
         function bytesToBase64(bytes) {
@@ -845,7 +829,7 @@
                        .replace(/&lt;/g, "<")
                        .replace(/&gt;/g, ">")
                        .replace(/&quot;/g, '"')
-                       .replace(/&#39;/g, "'");
+                       .replace(/&amp;#39;/g, "'");
         }
 
         async function encryptText(text, peerId) {
@@ -872,11 +856,12 @@
                     return MEOW_TAG + bytesToBase64(concatBytes(baseIv, new Uint8Array(encryptedBytes)));
                 }
             } catch (e) {
+                console.error("Error encrypting text:", e);
                 return text;
             }
         }
 
-        async function decryptText(encryptedText, peerId) {
+        async function decryptText(encryptedText, peerId, isOutgoing = false) { // Added isOutgoing parameter
             if (!encryptedText) return "";
             const s = unescapeHtml(encryptedText);
             
@@ -884,15 +869,29 @@
 
             let result = encryptedText;
             try {
-                if (s.startsWith(MEOW_KEY_REQ_TAG)) {
-                    const pub = s.substring(MEOW_KEY_REQ_TAG.length);
-                    safeStorage.set("peer_pub_" + peerId, pub);
-                    result = "🐾 [Системное: E2EE защищен (Запрос ключа)]";
-                } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
-                    const pub = s.substring(MEOW_KEY_RES_TAG.length);
-                    safeStorage.set("peer_pub_" + peerId, pub);
-                    result = "🐾 [Системное: E2EE защищен (Связь установлена)]";
-                } else if (s.startsWith(MEOW_E2E_TAG)) {
+                // Process MEOW_KEY_REQ_TAG and MEOW_KEY_RES_TAG ONLY if the message is INCOMING
+                if (!isOutgoing) { 
+                    if (s.startsWith(MEOW_KEY_REQ_TAG)) {
+                        const pub = s.substring(MEOW_KEY_REQ_TAG.length);
+                        console.log(`Received MEOW_KEY_REQ from peer ${peerId}. Storing public key.`);
+                        safeStorage.set("peer_pub_" + peerId, pub);
+                        await ensureECKeyPair();
+                        const ownPub = safeStorage.get("ec_pub");
+                        if (ownPub) {
+                            console.log(`Responding with MEOW_KEY_RES to peer ${peerId}.`);
+                            await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
+                        }
+                        result = "🐾 [Системное: E2EE защищен (Запрос ключа)]";
+                    } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
+                        const pub = s.substring(MEOW_KEY_RES_TAG.length);
+                        console.log(`Received MEOW_KEY_RES from peer ${peerId}. Storing public key.`);
+                        safeStorage.set("peer_pub_" + peerId, pub);
+                        result = "🐾 [Системное: E2EE защищен (Связь установлена)]";
+                    }
+                }
+
+                // Normal message decryption (E2E or Base)
+                if (s.startsWith(MEOW_E2E_TAG)) {
                     const b64 = s.substring(MEOW_E2E_TAG.length);
                     const data = base64ToBytes(b64);
                     const iv = data.slice(0, 12);
@@ -920,6 +919,7 @@
                     result = new TextDecoder().decode(originalBytes);
                 }
             } catch (e) {
+                console.warn("Failed to decrypt message:", e);
                 result = "[Ошибка расшифровки]";
             }
             decryptedTextCache[s] = result;
@@ -949,6 +949,7 @@
                     return concatBytes(baseIv, new Uint8Array(ciphertext)).buffer;
                 }
             } catch (e) {
+                console.error("Error encrypting binary:", e);
                 return arrayBuffer;
             }
         }
@@ -966,9 +967,12 @@
                         return await window.crypto.subtle.decrypt(
                             { name: "AES-GCM", iv: iv }, shared, cipher
                         );
-                    } catch(e) {}
+                    } catch(e) {
+                        console.warn("Failed to decrypt with E2E key, trying base AES:", e);
+                    }
                 }
 
+                // Fallback to base AES key if E2E fails or not available
                 const baseIv = enc.slice(0, 12);
                 const cipher = enc.slice(12);
                 const baseAesKey = await window.crypto.subtle.importKey(
@@ -978,7 +982,7 @@
                     { name: "AES-GCM", iv: baseIv }, baseAesKey, cipher
                 );
             } catch (e) {
-                console.error(e);
+                console.error("Error decrypting binary:", e);
                 return null;
             }
         }
@@ -996,10 +1000,10 @@
                         return await res.arrayBuffer();
                     }
                 } catch(e) {
-                    console.warn(target);
+                    console.warn(`Failed to fetch from ${target}:`, e);
                 }
             }
-            throw new Error();
+            throw new Error("Failed to fetch binary data from all proxies.");
         }
 
         function vkCall(method, params = {}) {
@@ -1020,6 +1024,7 @@
                     delete window[callbackName];
                     document.body.removeChild(script);
                     if (response.error) {
+                        console.error(`VK API Error (${method}):`, response.error.error_msg);
                         reject(new Error(response.error.error_msg));
                     } else {
                         resolve(response.response);
@@ -1027,7 +1032,8 @@
                 };
                 script.onerror = () => {
                     delete window[callbackName];
-                    reject(new Error());
+                    console.error(`VK API script load error (${method})`);
+                    reject(new Error(`Failed to load VK API script for ${method}`));
                 };
                 document.body.appendChild(script);
             });
@@ -1066,8 +1072,11 @@
                     document.getElementById('login-screen').style.display = 'none';
                     await fetchDialogs();
                     startPoller();
+                } else {
+                    throw new Error("Не удалось получить данные пользователя.");
                 }
             } catch (e) {
+                console.error("Login error:", e);
                 errorDiv.innerText = "Ошибка входа: " + e.message;
                 errorDiv.style.display = "block";
             } finally {
@@ -1090,11 +1099,8 @@
                     });
                 }
 
-                const currentIncomingPeerIds = new Set();
-
                 for (const item of data.items) {
                     const peerId = item.conversation.peer.id;
-                    currentIncomingPeerIds.add(peerId);
                     const lastMsgObj = item.last_message;
                     const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private', online: false };
 
@@ -1112,36 +1118,17 @@
                     }
                     
                     if (lastMsgObj) {
-                        const dec = await decryptText(lastMsgObj.text || "", peerId);
+                        const isLastMsgOutgoing = lastMsgObj.from_id === vkUser.id; // Determine if last message is outgoing
+                        const dec = await decryptText(lastMsgObj.text || "", peerId, isLastMsgOutgoing); // Pass isOutgoing
                         chats[peerId].last_message_display = dec.startsWith("🐾") ? "🔒 Метаданные E2EE" : dec;
                     } else {
                         chats[peerId].last_message_display = "История пуста";
                     }
                 }
-
-                // Полный реал-тайм: удаляем диалоги на сайте, если они удалены в VK
-                for (const localPeerId in chats) {
-                    if (!currentIncomingPeerIds.has(Number(localPeerId))) {
-                        delete chats[localPeerId];
-                        if (currentChatId === Number(localPeerId)) {
-                            backToSidebar();
-                        }
-                    }
-                }
-
                 renderChats();
                 saveState();
-            } catch (e) {}
-        }
-
-        function updateMessageIdInDomAndCache(oldId, newId) {
-            if (renderedMessageIds.has(oldId)) {
-                renderedMessageIds.delete(oldId);
-                renderedMessageIds.add(newId);
-                const el = document.querySelector(`[data-msg-id="${oldId}"]`);
-                if (el) {
-                    el.dataset.msgId = newId;
-                }
+            } catch (e) {
+                console.error("Error fetching dialogs:", e);
             }
         }
 
@@ -1156,109 +1143,109 @@
                         if (res && res.items) {
                             const chat = chats[currentChatId];
                             if (chat) {
-                                const incomingMessages = [...res.items].reverse();
-                                const incomingIds = new Set(incomingMessages.map(m => m.id));
+                                const fetchedItems = res.items.reverse(); // Ensure chronological order
 
-                                // Полный реал-тайм: удаляем сообщения на сайте, если они удалены в VK
-                                if (incomingMessages.length > 0) {
-                                    const minIncomingId = incomingMessages[0].id;
-                                    chat.messages = chat.messages.filter(localMsg => {
-                                        if (localMsg.isOptimistic) return true;
-                                        if (localMsg.id >= minIncomingId) {
-                                            if (!incomingIds.has(localMsg.id)) {
-                                                renderedMessageIds.delete(localMsg.id);
-                                                const el = document.querySelector(`[data-msg-id="${localMsg.id}"]`);
-                                                if (el) el.remove();
-                                                return false;
-                                            }
-                                        }
-                                        return true;
-                                    });
-                                }
+                                const newChatMessages = [];
+                                // Use a map to track fetched message IDs to avoid duplicates from server response
+                                const fetchedMessageIds = new Set(fetchedItems.map(item => item.id));
 
-                                let addedOrUpdated = false;
+                                // 1. Preserve and confirm optimistic messages
+                                for (const optMsg of chat.messages) {
+                                    if (optMsg.isOptimistic) {
+                                        // Try to find a matching server message for this optimistic one
+                                        // Using rawText and from_id as temporary identifiers until actual server ID is known
+                                        const confirmedServerMsg = fetchedItems.find(item => 
+                                            item.text === optMsg.rawText && item.from_id === vkUser.id
+                                        );
 
-                                for (const item of incomingMessages) {
-                                    const isOut = item.from_id === vkUser.id;
-                                    scanMessageForKeys(item.text, isOut, currentChatId);
-
-                                    const localMsg = chat.messages.find(m => m.id === item.id);
-                                    if (localMsg) {
-                                        // Если изменился текст или вложения (например, сообщение отредактировано)
-                                        if (localMsg.text !== item.text || (item.attachments && item.attachments.length !== (localMsg.attachments ? localMsg.attachments.length : 0))) {
-                                            localMsg.text = item.text;
-                                            localMsg.rawText = item.text;
-                                            localMsg.attachments = item.attachments || [];
-                                            renderedMessageIds.delete(item.id);
-                                            const el = document.querySelector(`[data-msg-id="${item.id}"]`);
-                                            if (el) el.remove();
-                                            addedOrUpdated = true;
-                                        }
-                                    } else {
-                                        const optIndex = chat.messages.findIndex(m => m.isOptimistic && m.rawText === item.text);
-                                        if (optIndex !== -1) {
-                                            const oldId = chat.messages[optIndex].id;
-                                            chat.messages[optIndex].id = item.id;
-                                            chat.messages[optIndex].isOptimistic = false;
-                                            chat.messages[optIndex].attachments = item.attachments || [];
-                                            updateMessageIdInDomAndCache(oldId, item.id);
-                                        } else {
-                                            chat.messages.push({
-                                                id: item.id,
-                                                text: item.text,
-                                                rawText: item.text,
-                                                time: item.date * 1000,
-                                                out: isOut,
-                                                attachments: item.attachments || []
+                                        if (confirmedServerMsg) {
+                                            // This optimistic message has been confirmed by the server
+                                            newChatMessages.push({
+                                                id: confirmedServerMsg.id,
+                                                text: confirmedServerMsg.text,
+                                                rawText: confirmedServerMsg.text,
+                                                time: confirmedServerMsg.date * 1000,
+                                                out: true, // Optimistic messages are always outgoing
+                                                isOptimistic: false,
+                                                attachments: confirmedServerMsg.attachments || []
                                             });
-                                            addedOrUpdated = true;
+                                            // Remove confirmed message from fetchedMessageIds so it's not added again as a "new" server message
+                                            fetchedMessageIds.delete(confirmedServerMsg.id);
+                                        } else {
+                                            // This optimistic message is still pending server confirmation, keep it
+                                            newChatMessages.push(optMsg);
                                         }
                                     }
                                 }
-                                if (addedOrUpdated) {
-                                    chat.messages.sort((a, b) => a.time - b.time);
-                                    await renderMessages();
+
+                                // 2. Add all remaining messages from the server response
+                                fetchedItems.forEach(item => {
+                                    if (fetchedMessageIds.has(item.id)) { // Only add if not already added as a confirmed optimistic message
+                                        newChatMessages.push({
+                                            id: item.id,
+                                            text: item.text,
+                                            rawText: item.text,
+                                            time: item.date * 1000,
+                                            out: item.from_id === vkUser.id,
+                                            attachments: item.attachments || []
+                                        });
+                                    }
+                                });
+
+                                // Sort by time to ensure correct chronological display
+                                newChatMessages.sort((a, b) => a.time - b.time);
+
+                                // Compare current chat.messages with newChatMessages to decide if re-render is needed
+                                // A simple way is to check the stringified IDs
+                                const currentMessageIds = JSON.stringify(chat.messages.map(m => m.id));
+                                const newMesageIds = JSON.stringify(newChatMessages.map(m => m.id));
+
+                                if (currentMessageIds !== newMesageIds) {
+                                    chat.messages = newChatMessages;
+                                    await renderMessages(); // Re-render if messages changed
                                 }
                             }
                         }
                     }
 
+                    // Update sidebar dialogs periodically
                     if (!window.lastSidebarUpdate || Date.now() - window.lastSidebarUpdate > 2000) {
                         await fetchDialogs();
                         window.lastSidebarUpdate = Date.now();
                     }
                 } catch (e) {
+                    console.error("Polling error:", e);
                 } finally {
                     isPollingActive = false;
                 }
-            }, 100);
+            }, 100); // Poll every 100ms for responsiveness
         }
 
         async function loadHistoryForChat(peerId) {
             try {
-                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 100 });
+                const res = await vkCall("messages.getHistory", { peer_id: peerId, count: 40 }); // Load up to 40 messages
                 if (res && res.items) {
-                    chats[peerId].messages = [];
-                    res.items.reverse().forEach(item => {
-                        const isOut = item.from_id === vkUser.id;
-                        scanMessageForKeys(item.text, isOut, peerId);
+                    chats[peerId].messages = []; // Clear existing for a fresh load
+                    res.items.reverse().forEach(item => { // Reverse to get chronological order
                         chats[peerId].messages.push({
                             id: item.id,
                             text: item.text,
                             rawText: item.text,
                             time: item.date * 1000,
-                            out: isOut,
+                            out: item.from_id === vkUser.id,
                             attachments: item.attachments || []
                         });
                     });
                     saveState();
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error("Error loading history for chat:", e);
+            }
         }
 
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
-            return val === null ? true : val === "true";
+            return val === null ? true : val === "true"; // Default to true if not set
         }
 
         function saveChatEncryptState(peerId, enabled) {
@@ -1307,32 +1294,33 @@
         async function sendVkMessage() {
             const textarea = document.getElementById('message-text');
             const text = textarea.value.trim();
-            if (!text && !selectedFile || !currentChatId) return;
+            if ((!text && !selectedFile) || !currentChatId) return;
 
             const targetId = currentChatId;
             textarea.value = "";
             textarea.style.height = "auto";
-            handleTypingEffect();
+            handleTypingEffect(); // Reset button after clearing text
 
             let finalMessage = text;
             const isEncrypted = loadChatEncryptState(targetId);
             if (isEncrypted && text) {
                 finalMessage = await encryptText(text, targetId);
-            } else if (isEncrypted && !text) {
-                finalMessage = MEOW_TAG + " Файл";
+            } else if (isEncrypted && !text && selectedFile) {
+                finalMessage = MEOW_TAG + " Файл"; // Placeholder for encrypted files without text
             }
 
-            const tempId = 'opt-' + Math.random();
+            // Add optimistic message to the chat
+            const tempId = 'opt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9); // Unique temporary ID
             chats[targetId].messages.push({
                 id: tempId,
                 text: finalMessage,
-                rawText: finalMessage,
+                rawText: finalMessage, // Store raw for matching
                 time: Date.now(),
                 out: true,
                 isOptimistic: true,
                 attachments: selectedFile ? [{ type: 'doc', doc: { id: 'temp', title: selectedFile.name, url: '' } }] : []
             });
-            await renderMessages();
+            await renderMessages(); // Render immediately
 
             try {
                 let attachStr = "";
@@ -1341,29 +1329,21 @@
                 }
 
                 const randomId = Math.floor(Math.random() * 2000000000);
-                const vkResponse = await vkCall("messages.send", {
+                // VK API requires message text even for attachments. If it's empty, use a placeholder.
+                const messageToSend = finalMessage || (isEncrypted ? MEOW_TAG + " Файл" : "Файл");
+
+                await vkCall("messages.send", {
                     peer_id: targetId,
                     random_id: randomId,
-                    message: finalMessage,
+                    message: messageToSend,
                     attachment: attachStr
                 });
-
-                const optMsg = chats[targetId].messages.find(m => m.id === tempId);
-                if (optMsg) {
-                    const oldId = optMsg.id;
-                    optMsg.id = vkResponse;
-                    optMsg.isOptimistic = false;
-                    updateMessageIdInDomAndCache(oldId, vkResponse);
-                }
-
-                removeFile();
-                await renderMessages();
-                await fetchDialogs();
+                
+                removeFile(); // Clear file selection
+                // The poller will pick up the actual message from VK and replace the optimistic one.
             } catch (e) {
                 alert(`Сбой отправки: ${e.message}`);
-                renderedMessageIds.delete(tempId);
-                const el = document.querySelector(`[data-msg-id="${tempId}"]`);
-                if (el) el.remove();
+                // Remove optimistic message if sending failed
                 chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
                 await renderMessages();
             }
@@ -1407,11 +1387,7 @@
                 const title = doc.title.toLowerCase();
                 const isEncryptedFile = title.endsWith('.meow') || title.endsWith('.mur') || title.endsWith('.mew') || title.endsWith('.enc');
 
-                const docIdAttr = `doc-${doc.id}`;
-                if (bubbleDiv.querySelector(`[data-doc-id="${docIdAttr}"]`)) return; 
-
                 const attachContainer = document.createElement('div');
-                attachContainer.dataset.docId = docIdAttr;
                 attachContainer.style.marginTop = "6px";
                 bubbleDiv.insertBefore(attachContainer, bubbleDiv.lastChild);
 
@@ -1437,7 +1413,7 @@
                                 sessionStorage.setItem(decryptedCacheKey, decryptedUrl);
                             }
                         } catch (e) {
-                            console.error(e);
+                            console.error("Error decrypting attached file:", e);
                             attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось расшифровать</span>`;
                             return;
                         }
@@ -1514,38 +1490,32 @@
             const chat = chats[currentChatId];
             if (!chat) return;
 
-            if (container.dataset.chatId !== String(currentChatId)) {
-                container.innerHTML = "";
-                container.dataset.chatId = String(currentChatId);
-                renderedMessageIds.clear();
-            }
+            // Preserve scroll position if near bottom before re-rendering
+            const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
+
+            // Clear existing messages
+            container.innerHTML = "";
+            renderedMessageIds.clear(); // Clear the set as we are rebuilding
 
             const messages = chat.messages || [];
-            if (messages.length === 0 && renderedMessageIds.size === 0) {
+            if (messages.length === 0) {
                 container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните конфиденциальную сессию!</div>`;
                 return;
             }
 
-            const placeholder = container.querySelector('.empty-placeholder');
-            if (placeholder) placeholder.remove();
-
-            const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
-
+            // Re-render all messages from scratch
             for (const msg of messages) {
-                if (renderedMessageIds.has(msg.id)) continue; 
-
-                let displayText = await decryptText(msg.rawText || "", chat.id); 
+                let displayText = await decryptText(msg.rawText || "", chat.id, msg.out); 
 
                 if (isSystemMessage(displayText)) {
                     const sysDiv = document.createElement('div');
                     sysDiv.className = 'system-badge';
-                    sysDiv.dataset.msgId = msg.id;
                     sysDiv.innerText = displayText;
                     container.appendChild(sysDiv);
                 } else {
                     const div = document.createElement('div');
                     div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                    div.dataset.msgId = msg.id;
+                    div.dataset.msgId = msg.id; // Store ID for potential future diffing or lookup
 
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'bubble-time';
@@ -1561,14 +1531,12 @@
 
                     if (msg.attachments && msg.attachments.length > 0) {
                         for (const attach of msg.attachments) {
-                            processAndDecryptAttachment(attach, div, chat.id);
+                            await processAndDecryptAttachment(attach, div, chat.id); // Await for correct order
                         }
                     }
-
                     container.appendChild(div);
                 }
-                
-                renderedMessageIds.add(msg.id);
+                renderedMessageIds.add(msg.id); // Add to set for reference if needed
             }
 
             if (isAtBottom) {
@@ -1627,16 +1595,20 @@
                             attachment: attachStr
                         });
                         stream.getTracks().forEach(track => track.stop());
+                        handleTypingEffect(); // Reset button after stopping recording and sending
                     };
                     mediaRecorder.start();
                     isRecording = true;
                     btn.classList.add('voice-active');
                     btn.innerText = "🛑";
-                } catch (err) { alert("Микрофон недоступен!"); }
+                } catch (err) { 
+                    console.error("Microphone access error:", err);
+                    alert("Микрофон недоступен!"); 
+                }
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                handleTypingEffect();
+                // handleTypingEffect() is called in mediaRecorder.onstop now
             }
         }
 
@@ -1701,11 +1673,11 @@
             if (isEnc) cryptBtn.classList.add('active');
             else cryptBtn.classList.remove('active');
 
-            await loadHistoryForChat(id); 
-            await sendOwnPublicKeyIfNeeded(id); 
-            await renderMessages();
-            renderChats();
-            handleTypingEffect();
+            await sendOwnPublicKeyIfNeeded(id); // Attempt key exchange if not already established
+            await loadHistoryForChat(id); // Load history from VK
+            await renderMessages(); // Render messages based on loaded history
+            renderChats(); // Re-render chat list to highlight active chat
+            handleTypingEffect(); // Update input bar button state
         }
 
         function toggleCryptForCurrentChat() {
@@ -1714,6 +1686,7 @@
             const cryptBtn = document.getElementById('toggle-crypt-btn');
             if (isEnc) cryptBtn.classList.add('active');
             else cryptBtn.classList.remove('active');
+            alert(`Шифрование для этого чата ${isEnc ? 'включено' : 'отключено'}.`);
         }
 
         function triggerFileInput() {
@@ -1756,7 +1729,7 @@
         function escapeHtml(text) {
             if (!text) return "";
             return text.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&amp;#39;', '"': '&amp;quot;'
             }[tag] || tag));
         }
 
@@ -1770,6 +1743,11 @@
         function backToSidebar() {
             document.body.classList.remove('chat-opened');
             currentChatId = null;
+            // Optionally clear chat feed or reset header
+            document.getElementById('messages-feed').innerHTML = `<div class="empty-placeholder">Выберите чат для начала защищенной сессии.</div>`;
+            document.getElementById('active-chat-name').innerText = 'Выберите чат';
+            document.getElementById('active-chat-status').innerText = 'Защищенный обмен готов';
+            document.getElementById('chat-input-bar').style.display = 'none';
         }
     </script>
 </body>
