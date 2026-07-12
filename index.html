@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Crypt Web (GitHub Pages Edition)</title>
+    <title>VK Meow Web Client Ultra</title>
     <style>
         :root {
-            --bg-dark: #000000;         /* AMOLED черный */
-            --bg-surface: #0d0d0e;      /* Угольный черный */
-            --bg-input: #161618;        /* Контрастный темный */
-            --accent: #2f80ed;          /* Эстетичный синий */
+            --bg-dark: #000000;
+            --bg-surface: #0d0d0e;
+            --bg-input: #161618;
+            --accent: #2f80ed;
             --accent-hover: #4f9bfd;
-            --text-main: #f5f5f7;       /* Белый */
-            --text-muted: #6e6e73;      /* Серый */
-            --msg-in: #161618;          /* Входящие */
-            --msg-out: #2f80ed;         /* Исходящие */
+            --text-main: #f5f5f7;
+            --text-muted: #6e6e73;
+            --msg-in: #161618;
+            --msg-out: #2f80ed;
             --error: #ff453a;
-            --success: #30d158;         /* Зеленый */
+            --success: #30d158;
             --border-color: #1c1c1e;
         }
 
@@ -564,7 +564,7 @@
         <div class="login-card">
             <div class="login-logo">🐾</div>
             <h1>VK Meow Crypt Web</h1>
-            <p>Стабильное мгновенное шифрование Сайт-Сайт (GitHub Pages Edition)</p>
+            <p>Стабильное мгновенное шифрование Сайт-Сайт</p>
             
             <div class="instruction-box">
                 <b>Инструкция получения токена:</b>
@@ -657,7 +657,6 @@
     </div>
 
     <script>
-        // --- СТАБИЛЬНЫЕ КОНСТАНТЫ КРИПТОГРАФИИ ---
         const AES_KEY_STRING = "12345678901234567890123456789012";
         const BASE_AES_KEY_BYTES = new TextEncoder().encode(AES_KEY_STRING);
         
@@ -676,9 +675,6 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
-        
-        // Переменные для динамического регулирования интервала полинга
-        let pollerInterval = 1500; 
 
         const decryptedTextCache = {}; 
         let renderedMessageIds = new Set(); 
@@ -689,23 +685,12 @@
         };
 
         window.onload = function() {
-            // ОПТИМИЗАЦИЯ ДЛЯ GITHUB PAGES: Автоматически парсим токен из ссылки, если настроен собственный redirect_uri
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            let parsedToken = hashParams.get("access_token");
-            
             const savedToken = safeStorage.get("saved_vk_token");
             const savedChats = safeStorage.get("saved_vk_chats");
-
             if (savedChats) {
                 try { chats = JSON.parse(savedChats); } catch(e) { chats = {}; }
             }
-
-            if (parsedToken) {
-                // Если зашли по редиректу OAuth
-                window.location.hash = ""; // Очищаем строку
-                document.getElementById('token-field').value = parsedToken;
-                tryLogin(parsedToken);
-            } else if (savedToken) {
+            if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
                 tryLogin(savedToken);
             }
@@ -714,8 +699,6 @@
         function saveState() {
             safeStorage.set("saved_vk_chats", JSON.stringify(chats));
         }
-
-        // --- ECDH E2EE (СКВОЗНОЙ КАНАЛ СВЯЗИ) ---
 
         async function ensureECKeyPair() {
             if (safeStorage.get("ec_pub") && safeStorage.get("ec_priv")) return;
@@ -802,8 +785,6 @@
             } catch(e) {}
         }
 
-        // --- КРИПТОГРАФИЧЕСКИЕ МЕТОДЫ ---
-
         function bytesToBase64(bytes) {
             let binary = '';
             const len = bytes.byteLength;
@@ -843,8 +824,6 @@
                        .replace(/&quot;/g, '"')
                        .replace(/&#39;/g, "'");
         }
-
-        // --- ДЕШИФРОВАНИЕ И ШИФРОВАНИЕ СТРОК ---
 
         async function encryptText(text, peerId) {
             if (!text) return "";
@@ -929,8 +908,6 @@
             return result;
         }
 
-        // --- БИНАРНОЕ ШИФРОВАНИЕ И РАСШИФРОВКА ---
-
         async function encryptBinary(arrayBuffer, peerId) {
             const isEncrypted = loadChatEncryptState(peerId);
             if (!isEncrypted) return arrayBuffer;
@@ -988,15 +965,11 @@
             }
         }
 
-        // --- УДАЛЕНИЕ CORS-БЛОКИРОВОК (КАРУСЕЛЬ ДЛЯ GITHUB PAGES) ---
-
         async function fetchBinaryData(url) {
-            // Массив доступных шлюзов для обхода жесткой CORS политики GitHub Pages
             const proxies = [
-                url, // Напрямую
+                url, 
                 "https://corsproxy.io/?" + encodeURIComponent(url), 
-                "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
-                "https://thingproxy.freeboard.io/fetch/" + url
+                "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)
             ];
             for (const target of proxies) {
                 try {
@@ -1005,13 +978,11 @@
                         return await res.arrayBuffer();
                     }
                 } catch(e) {
-                    console.warn("CORS Proxy bypass fallback used for: " + target);
+                    console.warn("Proxy failed: " + target);
                 }
             }
-            throw new Error("Не удалось обойти CORS на GitHub Pages");
+            throw new Error("Не удалось загрузить медиа-файл");
         }
-
-        // --- СЕТЕВОЙ КЛИЕНТ VK API ---
 
         function vkCall(method, params = {}) {
             return new Promise((resolve, reject) => {
@@ -1031,7 +1002,7 @@
                     delete window[callbackName];
                     document.body.removeChild(script);
                     if (response.error) {
-                        reject(response.error);
+                        reject(new Error(response.error.error_msg));
                     } else {
                         resolve(response.response);
                     }
@@ -1079,7 +1050,7 @@
                     startPoller();
                 }
             } catch (e) {
-                errorDiv.innerText = "Ошибка входа: " + (e.message || JSON.stringify(e));
+                errorDiv.innerText = "Ошибка входа: " + e.message;
                 errorDiv.style.display = "block";
             } finally {
                 loginBtn.disabled = false;
@@ -1131,11 +1102,11 @@
             } catch (e) {}
         }
 
-        // --- ВЫСОКОСКОРОСТНОЙ ПОЛЛИНГ С ЗАЩИТОЙ FLOOD CONTROL ---
-
+        let isPollingActive = false;
         function startPoller() {
-            async function pollIteration() {
-                if (!botToken) return;
+            setInterval(async () => {
+                if (isPollingActive || !botToken) return;
+                isPollingActive = true;
                 try {
                     const data = await vkCall("messages.getConversations", { count: 30 });
                     let anyNewMessages = false;
@@ -1168,19 +1139,12 @@
                     if (anyNewMessages) {
                         await fetchDialogs();
                     }
-                    
-                    // Восстанавливаем интервал на стандартный при успешном вызове
-                    pollerInterval = 1500;
                 } catch (e) {
-                    if (e && e.error_code === 9) { // Ошибка 9: Flood control (слишком много запросов)
-                        console.warn("Flood control hit, backing off poller...");
-                        pollerInterval = Math.min(pollerInterval + 1000, 10000); // Плавно замедляемся до 10 сек
-                    }
+                    console.warn("Fast check failed...");
                 } finally {
-                    setTimeout(pollIteration, pollerInterval);
+                    isPollingActive = false;
                 }
-            }
-            setTimeout(pollIteration, pollerInterval);
+            }, 100);
         }
 
         async function loadHistoryForChat(peerId) {
@@ -1202,8 +1166,6 @@
                 }
             } catch(e) {}
         }
-
-        // --- ШИФРОВАНИЕ И ОТПРАВКА ---
 
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
@@ -1246,17 +1208,8 @@
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
-            // ОПТИМИЗАЦИЯ GITHUB PAGES: Пробуем прямую отправку. Если CORS блокирует - автоматически пускаем через CORS туннель
-            let uploadRes;
-            try {
-                const res = await fetch(uploadUrl, { method: 'POST', body: formData });
-                uploadRes = await res.json();
-            } catch(corsError) {
-                console.warn("Direct upload blocked by CORS on GitHub Pages, routing through proxy tunnel...");
-                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(uploadUrl);
-                const res = await fetch(proxyUrl, { method: 'POST', body: formData });
-                uploadRes = await res.json();
-            }
+            const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+            const uploadRes = await res.json();
 
             const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: finalName });
             return `doc${savedDoc.doc.owner_id}_${savedDoc.doc.id}`;
@@ -1280,7 +1233,6 @@
                 finalMessage = MEOW_TAG + " Файл";
             }
 
-            // OPTIMISTIC UI: Моментально добавляем отправленное в контейнер на экране
             const tempId = 'opt-' + Math.random();
             chats[targetId].messages.push({
                 id: tempId,
@@ -1307,7 +1259,6 @@
                     attachment: attachStr
                 });
 
-                // Подменяем временный ID на официальный полученный от серверов VK
                 const optMsg = chats[targetId].messages.find(m => m.id === tempId);
                 if (optMsg) {
                     optMsg.id = vkResponse;
@@ -1324,10 +1275,40 @@
             }
         }
 
-        // --- ДЕШИФРОВАНИЕ МЕДИАФАЙЛОВ НА ЛЕТУ С ИСПРАВЛЕНИЕМ CORS ---
-
         async function processAndDecryptAttachment(attachment, bubbleDiv, peerId) {
-            if (attachment.type === 'doc') {
+            if (attachment.type === 'photo') {
+                const photo = attachment.photo;
+                const size = photo.sizes.reduce((prev, curr) => (prev.width > curr.width) ? prev : curr);
+                const img = document.createElement('img');
+                img.src = size.url;
+                img.className = 'bubble-media';
+                img.onclick = () => window.open(size.url, '_blank');
+                bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
+            } else if (attachment.type === 'video') {
+                const video = attachment.video;
+                const size = video.image ? video.image.reduce((prev, curr) => (prev.width > curr.width) ? prev : curr) : null;
+                const thumbUrl = size ? size.url : '';
+                
+                const videoCard = document.createElement('div');
+                videoCard.className = 'document-link';
+                videoCard.style.cursor = 'pointer';
+                videoCard.onclick = () => window.open(`https://vk.com/video${video.owner_id}_${video.id}`, '_blank');
+                videoCard.innerHTML = `
+                    <div class="document-icon">🎥</div>
+                    <div>
+                        <span style="font-weight:bold;display:block;">${escapeHtml(video.title || 'Видео')}</span>
+                        <span style="font-size:11px;color:var(--text-muted);">Открыть в VK</span>
+                    </div>
+                `;
+                
+                if (thumbUrl) {
+                    const img = document.createElement('img');
+                    img.src = thumbUrl;
+                    img.className = 'bubble-media';
+                    bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
+                }
+                bubbleDiv.insertBefore(videoCard, bubbleDiv.lastChild);
+            } else if (attachment.type === 'doc') {
                 const doc = attachment.doc;
                 const title = doc.title.toLowerCase();
                 const isEncryptedFile = title.endsWith('.meow') || title.endsWith('.mur') || title.endsWith('.mew') || title.endsWith('.enc');
@@ -1430,8 +1411,6 @@
             }
         }
 
-        // --- УМНЫЙ РЕНДЕРИНГ БЕЗ СКРОЛЛ-ПРЫЖКОВ ---
-
         function isSystemMessage(text) {
             return text && (text.startsWith("🐾 [Системное:") || text.includes("[Ожидание E2EE обмена...]"));
         }
@@ -1502,8 +1481,6 @@
             }
         }
 
-        // --- КНОПКА ОТПРАВКИ И ГОЛОСОВЫЕ ---
-
         function handleTypingEffect() {
             const textarea = document.getElementById('message-text');
             const actionBtn = document.getElementById('action-btn');
@@ -1568,8 +1545,6 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ ИНТЕРФЕЙСОМ ---
-
         function renderChats() {
             const container = document.getElementById('chats-list');
             const searchVal = document.getElementById('search-input').value.toLowerCase();
@@ -1617,7 +1592,6 @@
             document.getElementById('active-chat-status').innerText = `ID: ${chat.id} ${chat.online ? '(в сети)' : ''}`;
             document.getElementById('chat-input-bar').style.display = 'flex';
 
-            // Отрисовка аватарки в шапке чата
             const chatHeaderAvatar = document.getElementById('active-chat-avatar');
             if (chat.photo) {
                 chatHeaderAvatar.style.backgroundImage = `url(${chat.photo})`;
@@ -1704,4 +1678,5 @@
         }
     </script>
 </body>
-    </html>
+</html>
+<!-- мяу -->
