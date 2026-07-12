@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Graph VK Crypt Client Pro</title>
+    <title>VK Meow Web Client Pro</title>
     <style>
         :root {
-            --bg-dark: #050508;
-            --bg-surface: #0c0d12;
-            --bg-input: #14161f;
-            --accent: #2481cc;          
+            --bg-dark: #000000;         /* Чистый черный AMOLED */
+            --bg-surface: #161618;      /* Темный уголь */
+            --bg-input: #1c1c1e;        /* Плоский темный для полей */
+            --accent: #1f80e0;          /* Насыщенный синий */
             --accent-hover: #2f94e3;
-            --vk-color: #0077ff;
-            --vk-hover: #2688f5;
-            --text-main: #f0f2f5;
-            --text-muted: #70798a;
-            --msg-in: #161822;
-            --msg-out: #1c2b3d;
-            --error: #ff4d4d;
-            --success: #2ecc71;
-            --border-color: #1a1d29;
+            --text-main: #f2f2f7;       /* Элегантный белый */
+            --text-muted: #8e8e93;      /* Серый приглушенный */
+            --msg-in: #212123;          /* Входящие сообщения */
+            --msg-out: #1f80e0;         /* Исходящие сообщения */
+            --error: #ff3b30;
+            --success: #34c759;         /* Сочный зеленый */
+            --border-color: #2c2c2e;
         }
 
         * {
@@ -43,7 +41,7 @@
         #login-screen {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #101424 0%, var(--bg-dark) 100%);
+            background: radial-gradient(circle at center, #161618 0%, var(--bg-dark) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -71,7 +69,7 @@
             color: var(--accent);
             display: inline-block;
             animation: float 4s ease-in-out infinite;
-            text-shadow: 0 0 20px rgba(36, 129, 204, 0.3);
+            text-shadow: 0 0 20px rgba(31, 128, 224, 0.3);
         }
 
         @keyframes float {
@@ -84,7 +82,7 @@
             font-weight: 800;
             margin-bottom: 10px;
             letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #fff 0%, #a0a5b5 100%);
+            background: linear-gradient(135deg, #fff 0%, #8e8e93 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -97,8 +95,8 @@
         }
 
         .instruction-box {
-            background: rgba(36, 129, 204, 0.08);
-            border: 1px solid rgba(36, 129, 204, 0.2);
+            background: rgba(31, 128, 224, 0.08);
+            border: 1px solid rgba(31, 128, 224, 0.2);
             border-radius: 14px;
             padding: 15px;
             text-align: left;
@@ -126,7 +124,7 @@
             border-radius: 8px;
             font-weight: 600;
             margin-top: 5px;
-            border: 1px solid rgba(36, 129, 204, 0.3);
+            border: 1px solid rgba(31, 128, 224, 0.3);
             transition: all 0.2s;
         }
 
@@ -150,8 +148,8 @@
 
         .login-input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 14px rgba(36, 129, 204, 0.25);
-            background: #181b26;
+            box-shadow: 0 0 14px rgba(31, 128, 224, 0.25);
+            background: #1c1c1e;
         }
 
         .btn {
@@ -165,27 +163,27 @@
             font-size: 16px;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(36, 129, 204, 0.3);
+            box-shadow: 0 4px 15px rgba(31, 128, 224, 0.3);
         }
 
         .btn:hover { 
             background: var(--accent-hover);
-            box-shadow: 0 6px 20px rgba(36, 129, 204, 0.45);
+            box-shadow: 0 6px 20px rgba(31, 128, 224, 0.45);
         }
         .btn:active { transform: scale(0.98); }
-        .btn:disabled { background: #2c3245; color: #5a627a; cursor: not-allowed; box-shadow: none; }
+        .btn:disabled { background: #2c2c2e; color: #8e8e93; cursor: not-allowed; box-shadow: none; }
 
         .error-log {
             color: var(--error);
             font-size: 13px;
             margin-top: 15px;
-            background: rgba(255, 77, 77, 0.08);
+            background: rgba(255, 59, 48, 0.08);
             padding: 14px;
             border-radius: 10px;
             display: none;
             word-break: break-all;
             text-align: left;
-            border: 1px solid rgba(255, 77, 77, 0.2);
+            border: 1px solid rgba(255, 59, 48, 0.2);
         }
 
         .wrapper {
@@ -196,7 +194,7 @@
 
         .sidebar {
             width: 380px;
-            background: var(--bg-surface);
+            background: var(--bg-dark);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
@@ -210,8 +208,7 @@
             display: flex;
             align-items: center;
             border-bottom: 1px solid var(--border-color);
-            background: rgba(12, 13, 18, 0.5);
-            backdrop-filter: blur(10px);
+            background: var(--bg-surface);
         }
 
         .search-area {
@@ -227,8 +224,8 @@
         .search-field {
             flex: 1;
             padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px solid transparent;
+            border-radius: 22px;
+            border: 1px solid var(--border-color);
             background: var(--bg-input);
             color: white;
             font-size: 14.5px;
@@ -237,8 +234,8 @@
         }
 
         .search-field:focus {
-            background: #181b26;
-            border-color: rgba(36, 129, 204, 0.5);
+            background: #1c1c1e;
+            border-color: var(--accent);
         }
 
         .tabs {
@@ -251,7 +248,7 @@
         .tab-btn {
             flex: 1;
             padding: 10px 5px;
-            border-radius: 10px;
+            border-radius: 8px;
             background: var(--bg-input);
             border: none;
             color: var(--text-muted);
@@ -263,25 +260,14 @@
         }
 
         .tab-btn.active {
-            background: var(--accent);
+            background: #2c2c2e;
             color: white;
-            box-shadow: 0 4px 12px rgba(36, 129, 204, 0.25);
         }
 
         .chats-container {
             flex: 1;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.05) transparent;
-        }
-
-        .chats-container::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .chats-container::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.05);
-            border-radius: 2px;
         }
 
         .chat-row {
@@ -290,11 +276,11 @@
             padding: 14px 20px;
             cursor: pointer;
             transition: background 0.2s;
-            border-bottom: 1px solid rgba(255,255,255,0.01);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .chat-row:hover { background: rgba(255, 255, 255, 0.02); }
-        .chat-row.active { background: #191e2b; }
+        .chat-row.active { background: #1c1c1e; }
 
         .avatar {
             width: 52px;
@@ -313,6 +299,17 @@
             flex-shrink: 0;
             position: relative;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .online-dot {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: var(--success);
+            border-radius: 50%;
+            border: 2px solid var(--bg-dark);
         }
 
         .chat-details {
@@ -380,11 +377,6 @@
             justify-content: center;
             border-radius: 50%;
             background: var(--bg-input);
-            transition: background 0.2s;
-        }
-
-        .back-btn:active {
-            background: rgba(255, 255, 255, 0.05);
         }
 
         .chat-feed {
@@ -394,8 +386,6 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            background-image: radial-gradient(rgba(255,255,255,0.015) 1.2px, transparent 0);
-            background-size: 28px 28px;
             scrollbar-width: thin;
         }
 
@@ -418,13 +408,6 @@
             font-weight: 600;
         }
 
-        .date-divider::before, .date-divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-            margin: 0 15px;
-        }
-
         .bubble {
             max-width: 68%;
             padding: 12px 16px;
@@ -433,29 +416,20 @@
             line-height: 1.5;
             word-wrap: break-word;
             position: relative;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            animation: messageAppear 0.25s cubic-bezier(0.1, 0.8, 0.3, 1);
-        }
-
-        @keyframes messageAppear {
-            from { transform: translateY(8px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
         }
 
         .bubble.in {
             align-self: flex-start;
             background-color: var(--msg-in);
             border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.015);
         }
 
         .bubble.out {
             align-self: flex-end;
             background-color: var(--msg-out);
             border-bottom-right-radius: 4px;
-            border: 1px solid rgba(36, 129, 204, 0.08);
         }
 
         .bubble-time {
@@ -474,16 +448,7 @@
             margin-bottom: 6px;
             display: block;
             cursor: pointer;
-            transition: opacity 0.2s;
             object-fit: cover;
-        }
-
-        .bubble-media:hover {
-            opacity: 0.9;
-        }
-
-        .bubble-text {
-            color: var(--text-main);
         }
 
         .document-link {
@@ -498,17 +463,11 @@
             font-size: 14px;
             word-break: break-all;
             border: 1px solid rgba(255,255,255,0.03);
-            transition: all 0.2s;
-        }
-
-        .document-link:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(36, 129, 204, 0.3);
         }
 
         .document-icon {
             font-size: 24px;
-            background: rgba(36, 129, 204, 0.15);
+            background: rgba(31, 128, 224, 0.15);
             width: 44px;
             height: 44px;
             border-radius: 10px;
@@ -540,11 +499,6 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: background 0.2s;
-        }
-
-        .voice-play-btn:hover {
-            background: var(--accent-hover);
         }
 
         .voice-meta {
@@ -588,7 +542,7 @@
             padding: 12px 16px;
             background: var(--bg-input);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 22px;
             color: white;
             outline: none;
             font-size: 14.5px;
@@ -596,33 +550,22 @@
             max-height: 120px;
             min-height: 44px;
             overflow-y: auto;
-            transition: border-color 0.2s;
-        }
-
-        .textarea-message:focus {
-            border-color: rgba(36, 129, 204, 0.4);
         }
 
         .attachment-btn, .voice-btn, .toggle-crypt-btn, #send-btn {
             width: 44px;
             height: 44px;
-            border-radius: 12px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             background: var(--bg-input);
             border: 1px solid var(--border-color);
-            color: #a0a5b5;
+            color: #8e8e93;
             font-size: 16px;
             cursor: pointer;
             flex-shrink: 0;
             transition: all 0.2s ease;
-        }
-
-        .attachment-btn:hover, .voice-btn:hover, .toggle-crypt-btn:hover {
-            color: white;
-            background: rgba(255,255,255,0.04);
-            border-color: rgba(255,255,255,0.1);
         }
 
         .voice-btn.recording {
@@ -633,15 +576,14 @@
         }
 
         @keyframes pulse-red {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+            0% { transform: scale(1); }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         .toggle-crypt-btn.active {
-            color: var(--success);
-            border-color: var(--success);
-            background: rgba(46, 204, 113, 0.05);
+            color: var(--accent);
+            border-color: var(--accent);
         }
 
         #send-btn {
@@ -649,19 +591,7 @@
             color: white;
             border: none;
             font-size: 18px;
-            box-shadow: 0 4px 12px rgba(36, 129, 204, 0.3);
-            flex-shrink: 0 !important; /* Гарантия видимости на мобильных */
-        }
-
-        #send-btn:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 6px 16px rgba(36, 129, 204, 0.45);
-        }
-
-        #send-btn:disabled {
-            background: #2c3245;
-            color: #5a627a;
-            box-shadow: none;
+            flex-shrink: 0 !important;
         }
 
         .file-upload-input {
@@ -672,19 +602,13 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: #181c2b;
+            background: #1c1c1e;
             padding: 10px 16px;
             border-radius: 12px;
             margin-bottom: 10px;
             font-size: 13.5px;
             color: var(--text-main);
-            border: 1px solid rgba(36, 129, 204, 0.2);
-            animation: slideDown 0.2s ease-out;
-        }
-
-        @keyframes slideDown {
-            from { transform: translateY(-10px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            border: 1px solid var(--accent);
         }
 
         .file-preview-close {
@@ -692,11 +616,6 @@
             font-size: 20px;
             cursor: pointer;
             margin-left: auto;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .modal-overlay {
@@ -720,12 +639,6 @@
             border-radius: 24px;
             padding: 30px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            animation: modalZoom 0.25s cubic-bezier(0.1, 0.8, 0.3, 1);
-        }
-
-        @keyframes modalZoom {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
         }
 
         .modal-header {
@@ -733,19 +646,9 @@
             font-weight: 800;
             margin-bottom: 18px;
             color: white;
+            text-align: center;
         }
 
-        .modal-content-scroll {
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .modal-footer {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        
         .modal-profile-info p {
             margin-bottom: 12px;
             font-size: 14.5px;
@@ -758,11 +661,6 @@
 
         .modal-profile-info b { color: var(--text-muted); font-weight: 500; }
         .modal-profile-info span { color: white; font-weight: 600; }
-
-        .modal-profile-info .avatar {
-            width: 90px; height: 90px; font-size: 32px; margin: 0 auto 24px auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
 
         .input-with-button {
             display: flex;
@@ -779,11 +677,6 @@
             color: white;
             font-size: 14px;
             outline: none;
-            transition: all 0.2s;
-        }
-
-        .modal-profile-info .inline-input:focus {
-            border-color: var(--accent);
         }
 
         .eye-btn {
@@ -793,90 +686,14 @@
             border-radius: 10px;
             padding: 0 12px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .eye-btn:hover {
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .modal-media-viewer {
-            max-width: 95vw;
-            max-height: 85vh;
-            object-fit: contain;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
         @media (max-width: 768px) {
-            .sidebar { 
-                width: 100%; 
-                height: 100%;
-            }
-            body.chat-opened .sidebar {
-                display: none !important;
-            }
-            .chat-window {
-                display: none;
-                position: fixed;
-                top: 0; left: 0; width: 100%; height: 100%;
-                z-index: 500;
-                background-color: var(--bg-dark);
-            }
-            body.chat-opened .chat-window {
-                display: flex !important;
-            }
+            .sidebar { width: 100%; }
+            body.chat-opened .sidebar { display: none !important; }
+            .chat-window { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 500; }
+            body.chat-opened .chat-window { display: flex !important; }
             .back-btn { display: flex; }
-            .chat-feed {
-                padding: 16px;
-                gap: 10px;
-            }
-            .bubble {
-                max-width: 85%;
-                font-size: 14px;
-                padding: 10px 14px;
-                border-radius: 16px;
-            }
-            .chat-input-bar {
-                padding: 8px 10px;
-                gap: 6px;
-            }
-            .textarea-message {
-                padding: 10px 12px;
-                font-size: 14px;
-                min-height: 38px;
-            }
-            .attachment-btn, .voice-btn, .toggle-crypt-btn, #send-btn {
-                width: 38px;
-                height: 38px;
-                border-radius: 10px;
-                font-size: 14px;
-            }
-            .btn {
-                padding: 11px 18px;
-                font-size: 14px;
-                border-radius: 12px;
-            }
-            .chat-row {
-                padding: 16px 20px;
-            }
-            .avatar {
-                width: 46px;
-                height: 46px;
-                font-size: 16px;
-            }
-            .bot-header {
-                height: 70px;
-                padding: 10px 16px;
-            }
-            .chat-window-header {
-                height: 70px;
-                padding: 10px 16px;
-            }
         }
     </style>
 </head>
@@ -884,23 +701,22 @@
 
     <div id="login-screen">
         <div class="login-card">
-            <div class="login-logo">🔒</div>
-            <h1>Graph VK Crypt Client</h1>
-            <p>Сквозное AES-256 шифрование сообщений, голосовых и файлов.</p>
+            <div class="login-logo">🐾</div>
+            <h1>VK Meow Crypt Web</h1>
+            <p>100% совместимость с Android-версией [MEOW], [MEOW_SECURE] и [MEOW_E2E]</p>
             
             <div class="instruction-box">
                 <b>Инструкция получения токена:</b>
                 <ol>
-                    <li>Нажмите на ссылку ниже для получения токена:
+                    <li>Нажмите на кнопку ниже:
                         <br>
                         <a href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,photos,video,docs,status,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
-                    <li>В открывшемся окне разрешите доступ.</li>
-                    <li>Вас перенаправит на пустую страницу. <b>Полностью скопируйте адрес этой страницы из адресной строки браузера</b> и вставьте её целиком в поле ввода ниже!</li>
+                    <li>Разрешите доступ, скопируйте всю строку адреса из браузера и вставьте её ниже.</li>
                 </ol>
             </div>
 
-            <input type="text" id="token-field" class="login-input" placeholder="Вставьте скопированную ссылку или токен">
+            <input type="text" id="token-field" class="login-input" placeholder="Вставьте ссылку или токен">
             <button class="btn" id="login-action-btn" onclick="tryLogin()">ВОЙТИ</button>
             <div id="login-error" class="error-log"></div>
         </div>
@@ -918,13 +734,13 @@
 
             <div class="search-area">
                 <div class="search-wrapper">
-                    <input type="text" id="search-input" class="search-field" placeholder="Поиск по имени или ID..." oninput="renderChats()">
+                    <input type="text" id="search-input" class="search-field" placeholder="Поиск чатов..." oninput="renderChats()">
                 </div>
             </div>
 
             <div class="tabs">
-                <button class="tab-btn active" id="tab-all" onclick="switchTab('all')">Все</button>
-                <button class="tab-btn" id="tab-users" onclick="switchTab('users')">Люди</button>
+                <button class="tab-btn active" id="tab-all" onclick="switchTab('all')">Чаты</button>
+                <button class="tab-btn" id="tab-groups" onclick="switchTab('groups')">Группы</button>
             </div>
 
             <div class="chats-container" id="chats-list"></div>
@@ -936,14 +752,14 @@
                 <div class="avatar" id="active-chat-avatar">?</div>
                 <div class="chat-details" style="flex:1;">
                     <div class="chat-title" id="active-chat-name">Выберите чат</div>
-                    <div class="chat-last-message" id="active-chat-status">и начнется общение</div>
+                    <div class="chat-last-message" id="active-chat-status">и начнется безопасное общение</div>
                 </div>
                 <button class="btn" style="width: auto; padding: 8px 15px; font-size: 13px;" onclick="openProfileModal(currentChatId)">Подробнее</button>
             </div>
 
             <div class="chat-feed" id="messages-feed">
                 <div class="empty-placeholder">
-                    Здесь будет отображаться история переписки. Нажмите на любой чат для начала зашифрованного общения.
+                    Здесь будет отображаться история переписки. Нажмите на любой чат для начала общения.
                 </div>
             </div>
 
@@ -966,36 +782,50 @@
         </div>
     </div>
 
+    <!-- Настройки шифрования в стиле Android -->
     <div class="modal-overlay" id="profile-modal">
         <div class="modal">
-            <div class="modal-header">Настройки шифрования</div>
+            <div class="modal-header">Пароли чата</div>
             <div class="modal-content-scroll modal-profile-info">
-                <div class="avatar" id="profile-modal-avatar">?</div>
-                <p><b>Имя</b> <span id="profile-modal-name"></span></p>
-                <p><b>Chat ID</b> <span id="profile-modal-id"></span></p>
-                
-                <div style="margin-top: 15px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 14px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
-                    <p>
-                        <b>Общий ключ шифрования для этого чата</b>
-                        <div class="input-with-button">
-                            <input type="password" id="chat-shared-key-field" class="inline-input" placeholder="Общий пароль для шифрации и дешифрации" oninput="updateChatSharedKey()">
-                            <button class="eye-btn" onclick="togglePasswordVisibility('chat-shared-key-field')">👁️</button>
-                        </div>
-                    </p>
+                <p>
+                    <b>Ваш пароль (исходящие):</b>
+                    <div class="input-with-button">
+                        <input type="password" id="chat-pass-out" class="inline-input" placeholder="Пароль для ваших сообщений" oninput="updateChatPasswords()">
+                        <button class="eye-btn" onclick="togglePasswordVisibility('chat-pass-out')">👁️</button>
+                    </div>
+                </p>
+                <p>
+                    <b>Пароль собеседника (входящие):</b>
+                    <div class="input-with-button">
+                        <input type="password" id="chat-pass-in" class="inline-input" placeholder="Пароль для расшифровки собеседника" oninput="updateChatPasswords()">
+                        <button class="eye-btn" onclick="togglePasswordVisibility('chat-pass-in')">👁️</button>
+                    </div>
+                </p>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 15px; text-align: center;">
+                    * Если пароли пустые, используется классическое шифрование [MEOW].
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn" style="background:var(--bg-input); color:var(--text-main); border: 1px solid var(--border-color);" onclick="closeProfileModal()">Сохранить</button>
+            <div class="modal-footer" style="margin-top: 20px;">
+                <button class="btn" onclick="closeProfileModal()">Сохранить и Перезагрузить</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="media-viewer-modal" onclick="closeMediaViewer()">
-        <img id="media-viewer-img" class="modal-media-viewer" style="display:none;">
-        <video id="media-viewer-video" class="modal-media-viewer" style="display:none;" controls></video>
-    </div>
-
     <script>
+        // --- КОНСТАНТЫ КРИПТОГРАФИИ (ПОЛНОЕ СООТВЕТСТВИЕ С JAVA) ---
+        const AES_KEY_STRING = "12345678901234567890123456789012";
+        const BASE_AES_KEY_BYTES = new TextEncoder().encode(AES_KEY_STRING);
+        
+        const MEOW_TAG = "[MEOW]";
+        const MEOW_SECURE_TAG = "[MEOW_SECURE]";
+        const MEOW_KEY_REQ_TAG = "[MEOW_KEY_REQ]";
+        const MEOW_KEY_RES_TAG = "[MEOW_KEY_RES]";
+        const MEOW_E2E_TAG = "[MEOW_E2E]";
+
+        const PBKDF2_ITERATIONS = 1000000; // Твой миллион итераций из Android-кода!
+        const GCM_IV_LENGTH = 12;
+        const PBKDF2_SALT_LENGTH = 16;
+
         let botToken = "";
         let vkUser = {};
         let chats = {};
@@ -1007,17 +837,11 @@
         let audioChunks = [];
         let isRecording = false;
 
-        const derivedKeyCache = {};
+        const derivedKeysCache = {};
 
         const safeStorage = {
-            get(key) { 
-                try { return localStorage.getItem(key); } 
-                catch(e) { return null; } 
-            },
-            set(key, val) { 
-                try { localStorage.setItem(key, val); } 
-                catch(e) {} 
-            }
+            get(key) { try { return localStorage.getItem(key); } catch(e) { return null; } },
+            set(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
         };
 
         window.onload = function() {
@@ -1027,63 +851,104 @@
             if (savedChats) {
                 try { 
                     chats = JSON.parse(savedChats);
-                    for (const id in chats) {
-                        if (!chats[id].messages) chats[id].messages = [];
-                        chats[id].lastTime = chats[id].lastTime || 0; 
-                    }
-                } catch(e) {
-                    chats = {};
-                }
+                } catch(e) { chats = {}; }
             }
 
             if (savedToken) {
                 document.getElementById('token-field').value = savedToken;
                 tryLogin(savedToken);
             }
-            adjustTextareaHeight();
         };
 
         function saveState() {
             safeStorage.set("saved_vk_chats", JSON.stringify(chats));
         }
 
-        async function initCrypto(keyStr) {
-            const enc = new TextEncoder();
-            const keyMaterial = await window.crypto.subtle.importKey(
-                "raw", enc.encode(keyStr), "PBKDF2", false, ["deriveKey"]
-            );
-            return await window.crypto.subtle.deriveKey(
-                {
-                    name: "PBKDF2",
-                    salt: enc.encode("vk-crypto-salt-asu-meo"),
-                    iterations: 100000,
-                    hash: "SHA-256"
-                },
-                keyMaterial,
-                { name: "AES-GCM", length: 256 },
-                false,
-                ["encrypt", "decrypt"]
-            );
-        }
+        // --- ECDH E2EE (СКВОЗНОЕ ШИФРОВАНИЕ НА КРИВОЙ SECP256R1) ---
 
-        async function getDerivedKey(keyStr) {
-            if (!keyStr) return null;
-            const trimmed = keyStr.trim();
-            if (!trimmed) return null;
-            if (derivedKeyCache[trimmed]) {
-                return derivedKeyCache[trimmed];
+        async function ensureECKeyPair() {
+            if (safeStorage.get("ec_pub") && safeStorage.get("ec_priv")) return;
+            try {
+                const kp = await window.crypto.subtle.generateKey(
+                    { name: "ECDH", namedCurve: "P-256" },
+                    true,
+                    ["deriveBits"]
+                );
+                const pubBuf = await window.crypto.subtle.exportKey("spki", kp.publicKey);
+                const privBuf = await window.crypto.subtle.exportKey("pkcs8", kp.privateKey);
+                safeStorage.set("ec_pub", bytesToBase64(pubBuf));
+                safeStorage.set("ec_priv", bytesToBase64(privBuf));
+            } catch (e) {
+                console.error("EC Generation failed:", e);
             }
-            const derived = await initCrypto(trimmed);
-            derivedKeyCache[trimmed] = derived;
-            return derived;
         }
 
-        // Чистый стандартный Base64 перевод
+        async function deriveSharedKeyWithPeer(peerId) {
+            try {
+                const peerPubB64 = safeStorage.get("peer_pub_" + peerId);
+                const ownPrivB64 = safeStorage.get("ec_priv");
+                if (!peerPubB64 || !ownPrivB64) return null;
+
+                const ownPrivKey = await window.crypto.subtle.importKey(
+                    "pkcs8",
+                    base64ToBytes(ownPrivB64),
+                    { name: "ECDH", namedCurve: "P-256" },
+                    false,
+                    ["deriveBits"]
+                );
+                const peerPubKey = await window.crypto.subtle.importKey(
+                    "spki",
+                    base64ToBytes(peerPubB64),
+                    { name: "ECDH", namedCurve: "P-256" },
+                    false,
+                    []
+                );
+                const sharedBits = await window.crypto.subtle.deriveBits(
+                    { name: "ECDH", public: peerPubKey },
+                    ownPrivKey,
+                    256
+                );
+                const hash = await window.crypto.subtle.digest("SHA-256", sharedBits);
+                return await window.crypto.subtle.importKey(
+                    "raw",
+                    hash,
+                    { name: "AES-GCM" },
+                    false,
+                    ["encrypt", "decrypt"]
+                );
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function sendOwnPublicKeyIfNeeded(peerId) {
+            const peerPub = safeStorage.get("peer_pub_" + peerId);
+            if (!peerPub) {
+                await ensureECKeyPair();
+                const ownPub = safeStorage.get("ec_pub");
+                await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
+            }
+        }
+
+        async function sendMeowRaw(text, peerId) {
+            const randomId = Math.floor(Math.random() * 2000000000);
+            try {
+                await vkCall("messages.send", {
+                    peer_id: peerId,
+                    random_id: randomId,
+                    message: text
+                });
+            } catch(e) {}
+        }
+
+        // --- ВСПОМОГАТЕЛЬНЫЕ КРИПТО-МЕТОДЫ (PBKDF2 И AES-GCM) ---
+
         function bytesToBase64(bytes) {
             let binary = '';
             const len = bytes.byteLength;
+            const uints = new Uint8Array(bytes);
             for (let i = 0; i < len; i++) {
-                binary += String.fromCharCode(bytes[i]);
+                binary += String.fromCharCode(uints[i]);
             }
             return btoa(binary);
         }
@@ -1098,7 +963,45 @@
             return bytes;
         }
 
-        // Очистка HTML-искажений ВКонтакте
+        function concatBytes(...arrays) {
+            let totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
+            let result = new Uint8Array(totalLength);
+            let length = 0;
+            for(let array of arrays) {
+                result.set(array, length);
+                length += array.length;
+            }
+            return result;
+        }
+
+        async function deriveKeyFromPassword(password, salt) {
+            const cacheKey = password + ":" + bytesToBase64(salt);
+            if (derivedKeysCache[cacheKey]) return derivedKeysCache[cacheKey];
+
+            const enc = new TextEncoder();
+            const baseKey = await window.crypto.subtle.importKey(
+                "raw",
+                enc.encode(password),
+                "PBKDF2",
+                false,
+                ["deriveKey"]
+            );
+            const derived = await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: PBKDF2_ITERATIONS,
+                    hash: "SHA-256"
+                },
+                baseKey,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt", "decrypt"]
+            );
+            derivedKeysCache[cacheKey] = derived;
+            return derived;
+        }
+
         function unescapeHtml(text) {
             if (!text) return "";
             return text.replace(/&amp;/g, "&")
@@ -1108,83 +1011,285 @@
                        .replace(/&#39;/g, "'");
         }
 
-        async function encryptText(text, keyStr) {
-            if (!text || !keyStr) return text;
+        // --- ШИФРОВАНИЕ И РАСШИФРОВКА ТЕКСТА (100% СОВМЕСТИМОСТЬ) ---
+
+        async function encryptText(text, peerId) {
+            if (!text) return "";
+            const isEncrypted = loadChatEncryptState(peerId);
+            if (!isEncrypted) return text;
+
             try {
-                const derivedKey = await getDerivedKey(keyStr);
-                const enc = new TextEncoder();
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const ciphertext = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv },
-                    derivedKey,
-                    enc.encode(text)
-                );
-                const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-                combined.set(iv);
-                combined.set(new Uint8Array(ciphertext), iv.length);
-                return "🔒" + bytesToBase64(combined);
-            } catch(e) {
+                const e2eKey = await deriveSharedKeyWithPeer(peerId);
+                if (e2eKey) {
+                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const ciphertext = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv },
+                        e2eKey,
+                        new TextEncoder().encode(text)
+                    );
+                    const payload = concatBytes(iv, new Uint8Array(ciphertext));
+                    return MEOW_E2E_TAG + bytesToBase64(payload);
+                } else {
+                    const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const baseAesKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        BASE_AES_KEY_BYTES,
+                        { name: "AES-GCM" },
+                        false,
+                        ["encrypt"]
+                    );
+                    const firstLayerEncrypted = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: baseIv },
+                        baseAesKey,
+                        new TextEncoder().encode(text)
+                    );
+                    const innerPayload = concatBytes(baseIv, new Uint8Array(firstLayerEncrypted));
+
+                    const chatPassOut = loadChatPassword(peerId, "out");
+                    if (chatPassOut) {
+                        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                        const secondKey = await deriveKeyFromPassword(chatPassOut, salt);
+                        const outerIv = window.crypto.getRandomValues(new Uint8Array(12));
+                        const secondLayerEncrypted = await window.crypto.subtle.encrypt(
+                            { name: "AES-GCM", iv: outerIv },
+                            secondKey,
+                            innerPayload
+                        );
+                        const finalEncryptedData = concatBytes(salt, outerIv, new Uint8Array(secondLayerEncrypted));
+                        return MEOW_SECURE_TAG + bytesToBase64(finalEncryptedData);
+                    } else {
+                        return MEOW_TAG + bytesToBase64(innerPayload);
+                    }
+                }
+            } catch (e) {
                 return text;
             }
         }
 
-        async function decryptText(encryptedBase64, keyStr) {
-            if (!encryptedBase64 || !encryptedBase64.startsWith("🔒")) return encryptedBase64;
-            if (!keyStr) return "[Зашифровано - введите пароль в Подробнее]";
+        async function decryptText(encryptedText, peerId) {
+            if (!encryptedText) return "";
+            const s = unescapeHtml(encryptedText);
             try {
-                const cleanedBase64 = unescapeHtml(encryptedBase64.slice(1));
-                const derivedKey = await getDerivedKey(keyStr);
-                const combined = base64ToBytes(cleanedBase64);
-                const iv = combined.slice(0, 12);
-                const ciphertext = combined.slice(12);
-                const dec = new TextDecoder();
-                const decrypted = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    derivedKey,
-                    ciphertext
-                );
-                return dec.decode(decrypted);
+                if (s.startsWith(MEOW_KEY_REQ_TAG)) {
+                    const pub = s.substring(14);
+                    safeStorage.set("peer_pub_" + peerId, pub);
+                    await ensureECKeyPair();
+                    const ownPub = safeStorage.get("ec_pub");
+                    await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
+                    return "[E2EE ключ обменян (запрос)]";
+                } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
+                    const pub = s.substring(14);
+                    safeStorage.set("peer_pub_" + peerId, pub);
+                    return "[E2EE ключ обменян (ответ)]";
+                } else if (s.startsWith(MEOW_E2E_TAG)) {
+                    const b64 = s.substring(10);
+                    const data = base64ToBytes(b64);
+                    if (data.length < 12) return "[Ошибка E2E]";
+                    const iv = data.slice(0, 12);
+                    const cipher = data.slice(12);
+                    const sharedKey = await deriveSharedKeyWithPeer(peerId);
+                    if (!sharedKey) return "[Нет E2EE ключа]";
+                    const dec = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        sharedKey,
+                        cipher
+                    );
+                    return new TextDecoder().decode(dec);
+                } else if (s.startsWith(MEOW_SECURE_TAG)) {
+                    const b64 = s.substring(13);
+                    const fullEncryptedData = base64ToBytes(b64);
+                    const salt = fullEncryptedData.slice(0, 16);
+                    const remaining = fullEncryptedData.slice(16);
+                    const outerIv = remaining.slice(0, 12);
+                    const outerCipher = remaining.slice(12);
+
+                    const passIn = loadChatPassword(peerId, "in");
+                    if (!passIn) return "[Нужен пароль для расшифровки]";
+                    const secondKey = await deriveKeyFromPassword(passIn, salt);
+                    const innerPayload = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: outerIv },
+                        secondKey,
+                        outerCipher
+                    );
+
+                    const baseIv = innerPayload.slice(0, 12);
+                    const firstCipher = innerPayload.slice(12);
+                    const baseAesKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        BASE_AES_KEY_BYTES,
+                        { name: "AES-GCM" },
+                        false,
+                        ["decrypt"]
+                    );
+                    const originalBytes = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: baseIv },
+                        baseAesKey,
+                        firstCipher
+                    );
+                    return new TextDecoder().decode(originalBytes);
+                } else if (s.startsWith(MEOW_TAG)) {
+                    const b64 = s.substring(6);
+                    const full = base64ToBytes(b64);
+                    const baseIv = full.slice(0, 12);
+                    const cipher = full.slice(12);
+                    const baseAesKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        BASE_AES_KEY_BYTES,
+                        { name: "AES-GCM" },
+                        false,
+                        ["decrypt"]
+                    );
+                    const originalBytes = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: baseIv },
+                        baseAesKey,
+                        cipher
+                    );
+                    return new TextDecoder().decode(originalBytes);
+                }
             } catch (e) {
-                return "[Нерасшифрованное сообщение - неверный ключ]";
+                return "[Ошибка расшифровки]";
             }
+            return encryptedText;
         }
 
-        async function encryptBinary(arrayBuffer, keyStr) {
-            if (!keyStr) return arrayBuffer;
+        // --- БИНАРНОЕ ШИФРОВАНИЕ ДЛЯ ФАЙЛОВ И ГОЛОСОВЫХ ---
+
+        async function encryptBinary(arrayBuffer, peerId) {
+            const isEncrypted = loadChatEncryptState(peerId);
+            if (!isEncrypted) return arrayBuffer;
+
             try {
-                const derivedKey = await getDerivedKey(keyStr);
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const ciphertext = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv },
-                    derivedKey,
-                    arrayBuffer
-                );
-                const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-                combined.set(iv);
-                combined.set(new Uint8Array(ciphertext), iv.length);
-                return combined.buffer;
-            } catch(e) {
+                const e2eKey = await deriveSharedKeyWithPeer(peerId);
+                if (e2eKey) {
+                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const ciphertext = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv },
+                        e2eKey,
+                        arrayBuffer
+                    );
+                    const payload = concatBytes(iv, new Uint8Array(ciphertext));
+                    return payload.buffer;
+                } else {
+                    const baseIv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const baseAesKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        BASE_AES_KEY_BYTES,
+                        { name: "AES-GCM" },
+                        false,
+                        ["encrypt"]
+                    );
+                    const firstLayerEncrypted = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: baseIv },
+                        baseAesKey,
+                        arrayBuffer
+                    );
+                    const innerPayload = concatBytes(baseIv, new Uint8Array(firstLayerEncrypted));
+
+                    const chatPassOut = loadChatPassword(peerId, "out");
+                    if (chatPassOut) {
+                        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                        const secondKey = await deriveKeyFromPassword(chatPassOut, salt);
+                        const outerIv = window.crypto.getRandomValues(new Uint8Array(12));
+                        const secondLayerEncrypted = await window.crypto.subtle.encrypt(
+                            { name: "AES-GCM", iv: outerIv },
+                            secondKey,
+                            innerPayload
+                        );
+                        const finalEncryptedData = concatBytes(salt, outerIv, new Uint8Array(secondLayerEncrypted));
+                        return finalEncryptedData.buffer;
+                    } else {
+                        return innerPayload.buffer;
+                    }
+                }
+            } catch (e) {
                 return arrayBuffer;
             }
         }
 
-        async function decryptBinary(arrayBuffer, keyStr) {
-            if (!keyStr) return null;
+        async function decryptBinary(arrayBuffer, peerId, isDouble, isEncrypted) {
+            if (!isEncrypted) return arrayBuffer;
             try {
-                const derivedKey = await getDerivedKey(keyStr);
-                const combined = new Uint8Array(arrayBuffer);
-                const iv = combined.slice(0, 12);
-                const ciphertext = combined.slice(12);
-                const decrypted = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    derivedKey,
-                    ciphertext
-                );
-                return decrypted;
+                const enc = new Uint8Array(arrayBuffer);
+                const shared = await deriveSharedKeyWithPeer(peerId);
+                if (shared && enc.length > 12) {
+                    const iv = enc.slice(0, 12);
+                    const cipher = enc.slice(12);
+                    const dec = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        shared,
+                        cipher
+                    );
+                    return dec;
+                } else if (isDouble) {
+                    const pass = loadChatPassword(peerId, "in");
+                    if (!pass) return null;
+                    const passwordSalt = enc.slice(0, 16);
+                    const remaining = enc.slice(16);
+                    const outerIv = remaining.slice(0, 12);
+                    const outerCipher = remaining.slice(12);
+                    const secondKey = await deriveKeyFromPassword(pass, passwordSalt);
+                    const innerPayload = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: outerIv },
+                        secondKey,
+                        outerCipher
+                    );
+                    const baseIv = innerPayload.slice(0, 12);
+                    const firstLayerCiphertext = innerPayload.slice(12);
+                    const baseAesKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        BASE_AES_KEY_BYTES,
+                        { name: "AES-GCM" },
+                        false,
+                        ["decrypt"]
+                    );
+                    const dec = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: baseIv },
+                        baseAesKey,
+                        firstLayerCiphertext
+                    );
+                    return dec;
+                } else {
+                    const baseIv = enc.slice(0, 12);
+                    const firstLayerCiphertext = enc.slice(12);
+                    const baseAesKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        BASE_AES_KEY_BYTES,
+                        { name: "AES-GCM" },
+                        false,
+                        ["decrypt"]
+                    );
+                    const dec = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: baseIv },
+                        baseAesKey,
+                        firstLayerCiphertext
+                    );
+                    return dec;
+                }
             } catch (e) {
                 return null;
             }
         }
+
+        // --- УПРАВЛЕНИЕ ЛОКАЛЬНЫМИ НАСТРОЙКАМИ ШИФРОВАНИЯ ---
+
+        function loadChatEncryptState(peerId) {
+            const val = safeStorage.get("chat_enc_state_" + peerId);
+            return val === null ? true : val === "true";
+        }
+
+        function saveChatEncryptState(peerId, enabled) {
+            safeStorage.set("chat_enc_state_" + peerId, enabled ? "true" : "false");
+        }
+
+        function loadChatPassword(peerId, type) {
+            return safeStorage.get("chat_pass_" + type + "_" + peerId) || "";
+        }
+
+        function saveChatPassword(peerId, type, val) {
+            safeStorage.set("chat_pass_" + type + "_" + peerId, val);
+        }
+
+        // --- ВК СЕТЕВЫЕ МЕТОДЫ (JSONP) ---
 
         function vkCall(method, params = {}) {
             return new Promise((resolve, reject) => {
@@ -1204,35 +1309,17 @@
                     delete window[callbackName];
                     document.body.removeChild(script);
                     if (response.error) {
-                        reject(new Error(response.error.error_msg || `Ошибка VK API [${response.error.error_code}]`));
+                        reject(new Error(response.error.error_msg));
                     } else {
                         resolve(response.response);
                     }
                 };
-                
                 script.onerror = () => {
                     delete window[callbackName];
-                    if (document.body.contains(script)) {
-                        document.body.removeChild(script);
-                    }
-                    reject(new Error("Не удалось связаться с серверами VK. Ошибка запроса."));
+                    reject(new Error("Ошибка VK API"));
                 };
-                
                 document.body.appendChild(script);
             });
-        }
-
-        function extractToken(input) {
-            if (!input) return "";
-            if (input.includes("access_token=")) {
-                try {
-                    const hashParams = new URLSearchParams(input.split('#')[1] || input.split('?')[1]);
-                    return hashParams.get("access_token") || input;
-                } catch (e) {
-                    return input;
-                }
-            }
-            return input;
         }
 
         async function tryLogin(tokenOverride = null) {
@@ -1241,24 +1328,23 @@
             const errorDiv = document.getElementById('login-error');
             
             let tokenInput = tokenOverride || inputField.value.trim();
-            const token = extractToken(tokenInput);
+            if (tokenInput.includes("access_token=")) {
+                tokenInput = tokenInput.split("access_token=")[1].split("&")[0];
+            }
 
-            if (!token) {
-                showLoginError("Пожалуйста, заполните поле ввода токена.");
+            if (!tokenInput) {
+                errorDiv.innerText = "Пожалуйста, введите токен.";
+                errorDiv.style.display = "block";
                 return;
             }
 
-            errorDiv.style.display = "none";
             loginBtn.disabled = true;
-            loginBtn.innerText = "ПОДКЛЮЧЕНИЕ...";
-
             try {
-                botToken = token;
-
+                botToken = tokenInput;
                 const usersData = await vkCall("users.get", { fields: "photo_100" });
                 if (usersData && usersData.length > 0) {
                     vkUser = usersData[0];
-                    safeStorage.set("saved_vk_token", token);
+                    safeStorage.set("saved_vk_token", tokenInput);
 
                     document.getElementById('bot-name-display').innerText = `${vkUser.first_name} ${vkUser.last_name}`;
                     if (vkUser.photo_100) {
@@ -1266,26 +1352,16 @@
                         document.getElementById('bot-avatar-img').innerText = "";
                     }
 
-                    document.getElementById('login-screen').style.opacity = 0;
-                    setTimeout(() => document.getElementById('login-screen').style.display = 'none', 300);
-
+                    document.getElementById('login-screen').style.display = 'none';
                     await fetchDialogs();
                     startLongPolling();
-                } else {
-                    showLoginError("Не удалось получить информацию о пользователе.");
                 }
             } catch (e) {
-                showLoginError(`Ошибка авторизации: ${e.message}`);
+                errorDiv.innerText = "Ошибка входа: " + e.message;
+                errorDiv.style.display = "block";
             } finally {
                 loginBtn.disabled = false;
-                loginBtn.innerText = "ВОЙТИ";
             }
-        }
-
-        function showLoginError(msg) {
-            const errorDiv = document.getElementById('login-error');
-            errorDiv.innerText = msg;
-            errorDiv.style.display = "block";
         }
 
         async function fetchDialogs() {
@@ -1294,28 +1370,19 @@
                 const profiles = {};
                 if (data.profiles) {
                     data.profiles.forEach(p => {
-                        profiles[p.id] = {
-                            name: `${p.first_name} ${p.last_name}`,
-                            photo: p.photo_100,
-                            type: 'private'
-                        };
+                        profiles[p.id] = { name: `${p.first_name} ${p.last_name}`, photo: p.photo_100, type: 'private', online: p.online === 1 };
                     });
                 }
                 if (data.groups) {
                     data.groups.forEach(g => {
-                        profiles[-g.id] = {
-                            name: g.name,
-                            photo: g.photo_100,
-                            type: 'group'
-                        };
+                        profiles[-g.id] = { name: g.name, photo: g.photo_100, type: 'group', online: false };
                     });
                 }
 
                 for (const item of data.items) {
                     const peerId = item.conversation.peer.id;
                     const lastMsgObj = item.last_message;
-                    const lastTime = lastMsgObj.date * 1000;
-                    const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private' };
+                    const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private', online: false };
 
                     if (!chats[peerId]) {
                         chats[peerId] = {
@@ -1323,15 +1390,11 @@
                             name: peerInfo.name,
                             photo: peerInfo.photo,
                             type: peerInfo.type,
-                            messages: [],
-                            lastTime: lastTime,
-                            sharedKey: "",
-                            useCrypt: true
+                            online: peerInfo.online,
+                            messages: []
                         };
                     } else {
-                        chats[peerId].name = peerInfo.name;
-                        chats[peerId].photo = peerInfo.photo;
-                        chats[peerId].lastTime = Math.max(chats[peerId].lastTime, lastTime);
+                        chats[peerId].online = peerInfo.online;
                     }
 
                     const isDup = chats[peerId].messages.some(m => m.id === lastMsgObj.id);
@@ -1340,7 +1403,7 @@
                             id: lastMsgObj.id,
                             text: lastMsgObj.text,
                             rawText: lastMsgObj.text,
-                            time: lastTime,
+                            time: lastMsgObj.date * 1000,
                             out: lastMsgObj.from_id === vkUser.id,
                             attachments: lastMsgObj.attachments || []
                         });
@@ -1354,70 +1417,25 @@
         async function startLongPolling() {
             if (isPolling) return;
             isPolling = true;
-            
             try {
                 const serverData = await vkCall("messages.getLongPollServer", { lp_version: 3 });
                 let ts = serverData.ts;
-                const server = serverData.server;
-                const key = serverData.key;
-
                 while (isPolling) {
                     try {
-                        const response = await fetch(`https://${server}?act=a_check&key=${key}&ts=${ts}&wait=25&mode=2&version=3`);
-                        if (!response.ok) throw new Error();
+                        const response = await fetch(`https://${serverData.server}?act=a_check&key=${serverData.key}&ts=${ts}&wait=25&mode=2&version=3`);
                         const update = await response.json();
-                        if (update.failed === 1) {
-                            ts = update.ts;
-                        } else if (update.failed === 2 || update.failed === 3) {
-                            isPolling = false;
-                            setTimeout(startLongPolling, 2000);
-                            break;
-                        } else if (update.ts) {
-                            ts = update.ts;
-                            if (update.updates) {
-                                let triggered = false;
-                                for (const up of update.updates) {
-                                    if (up[0] === 4) {
-                                        const msgId = up[1];
-                                        const peerId = up[3];
-                                        const timeMs = up[4] * 1000;
-                                        let rawText = up[5];
-                                        const flags = up[2];
-                                        const out = (flags & 2) !== 0;
-
-                                        if (!chats[peerId]) {
-                                            chats[peerId] = {
-                                                id: peerId,
-                                                name: `ID ${peerId}`,
-                                                photo: '',
-                                                type: 'private',
-                                                messages: [],
-                                                lastTime: timeMs,
-                                                sharedKey: "",
-                                                useCrypt: true
-                                            };
-                                        }
-
-                                        const isDup = chats[peerId].messages.some(m => m.id === msgId);
-                                        if (!isDup) {
-                                            chats[peerId].messages.push({
-                                                id: msgId,
-                                                text: rawText,
-                                                rawText: rawText,
-                                                time: timeMs,
-                                                out: out,
-                                                attachments: []
-                                            });
-                                            chats[peerId].lastTime = timeMs;
-                                            triggered = true;
-                                        }
-                                    }
+                        if (update.ts) ts = update.ts;
+                        if (update.updates) {
+                            let triggered = false;
+                            for (const up of update.updates) {
+                                if (up[0] === 4) {
+                                    triggered = true;
                                 }
-                                if (triggered) {
-                                    await fetchDialogs();
-                                    if (currentChatId) {
-                                        await loadHistoryForChat(currentChatId);
-                                    }
+                            }
+                            if (triggered) {
+                                await fetchDialogs();
+                                if (currentChatId) {
+                                    await loadHistoryForChat(currentChatId);
                                 }
                             }
                         }
@@ -1451,7 +1469,8 @@
             } catch(e) {}
         }
 
-        // Загрузка документов в ВК (с шифрованием в .meow, .mur, .mew)
+        // ---ОТПРАВКА И ЗАГРУЗКА ШИФРОВАННЫХ МЕДИА (МЕДИА СТРОГО В ДОКУМЕНТЫ) ---
+
         async function uploadFileToVk(file, isVoice = false) {
             const uploadServer = await vkCall("docs.getMessagesUploadServer", { peer_id: currentChatId, type: "doc" });
             const uploadUrl = uploadServer.upload_url;
@@ -1459,14 +1478,14 @@
             let fileDataBlob;
             let finalName = file.name;
 
-            const chat = chats[currentChatId];
-            if (chat && chat.useCrypt && chat.sharedKey) {
+            const isEncrypted = loadChatEncryptState(currentChatId);
+            if (isEncrypted) {
                 const arrayBuf = await file.arrayBuffer();
-                const encryptedBuf = await encryptBinary(arrayBuf, chat.sharedKey);
+                const encryptedBuf = await encryptBinary(arrayBuf, currentChatId);
                 fileDataBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
                 
                 if (isVoice) {
-                    finalName = "voice.ogg.mew";
+                    finalName = "voice.mew";
                 } else {
                     const ext = file.name.split('.').pop().toLowerCase();
                     if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
@@ -1484,70 +1503,11 @@
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
-            const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+            const res = await fetch("https://corsproxy.io/?" + encodeURIComponent(uploadUrl), { method: 'POST', body: formData });
             const uploadRes = await res.json();
 
             const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: finalName });
             return `doc${savedDoc.doc.owner_id}_${savedDoc.doc.id}`;
-        }
-
-        async function toggleVoiceRecord() {
-            const btn = document.getElementById('voice-btn');
-            if (!isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    mediaRecorder.ondataavailable = e => {
-                        if (e.data.size > 0) audioChunks.push(e.data);
-                    };
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
-                        await sendVoiceMessage(audioBlob);
-                        stream.getTracks().forEach(track => track.stop());
-                    };
-                    mediaRecorder.start();
-                    isRecording = true;
-                    btn.classList.add('recording');
-                    btn.innerText = '🛑';
-                } catch (err) {
-                    alert('Не удалось получить доступ к микрофону: ' + err.message);
-                }
-            } else {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                }
-                isRecording = false;
-                btn.classList.remove('recording');
-                btn.innerText = '🎙️';
-            }
-        }
-
-        async function sendVoiceMessage(blob) {
-            if (!currentChatId) return;
-            const targetId = currentChatId;
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.disabled = true;
-            try {
-                const attachStr = await uploadFileToVk(new File([blob], "voice.ogg"), true);
-                const randomId = Math.floor(Math.random() * 2000000000);
-                
-                const chat = chats[targetId];
-                const msgBody = (chat && chat.useCrypt && chat.sharedKey) ? "🔒[Зашифрованное голосовое сообщение]" : "Голосовое сообщение";
-
-                await vkCall("messages.send", {
-                    peer_id: targetId,
-                    random_id: randomId,
-                    message: msgBody,
-                    attachment: attachStr
-                });
-                await loadHistoryForChat(targetId);
-                renderMessages();
-            } catch (e) {
-                alert(`Ошибка отправки голосового: ${e.message || "Неизвестная ошибка"}`);
-            } finally {
-                sendBtn.disabled = false;
-            }
         }
 
         async function sendVkMessage() {
@@ -1567,14 +1527,14 @@
                     attachStr = await uploadFileToVk(selectedFile, false);
                 }
 
-                const chat = chats[targetId];
                 let finalMessage = text;
+                const isEncrypted = loadChatEncryptState(targetId);
 
-                if (chat && chat.useCrypt && chat.sharedKey) {
+                if (isEncrypted) {
                     if (text) {
-                        finalMessage = await encryptText(text, chat.sharedKey);
+                        finalMessage = await encryptText(text, targetId);
                     } else {
-                        finalMessage = "🔒[Файл]";
+                        finalMessage = loadChatPassword(targetId, "out") ? "[MEOW_SECURE] Файл" : "[MEOW] Файл";
                     }
                 }
 
@@ -1590,155 +1550,17 @@
                 removeFile();
                 await loadHistoryForChat(targetId);
                 renderMessages();
+                renderChats();
             } catch (e) {
-                alert(`Не удалось отправить сообщение: ${e.message || "Ошибка соединения"}`);
+                alert(`Ошибка: ${e.message}`);
             } finally {
                 sendBtn.disabled = false;
             }
         }
 
-        function handleFileChange(event) {
-            const fileInput = event.target;
-            const previewContainer = document.getElementById('file-preview');
-            const fileNameSpan = document.getElementById('file-name');
+        // --- ПОЛНОСТЬЮ СОВМЕСТИМАЯ РАСШИФРОВКА КАРТИНОК, ВИДЕО И ЗВУКА ---
 
-            if (fileInput.files.length > 0) {
-                selectedFile = fileInput.files[0];
-                fileNameSpan.innerText = selectedFile.name;
-                previewContainer.style.display = 'flex';
-                adjustTextareaHeight();
-            } else {
-                removeFile();
-            }
-        }
-
-        function removeFile() {
-            selectedFile = null;
-            document.getElementById('file-input').value = '';
-            document.getElementById('file-preview').style.display = 'none';
-            adjustTextareaHeight();
-        }
-
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            renderChats();
-        }
-
-        function renderChats() {
-            const container = document.getElementById('chats-list');
-            const searchVal = document.getElementById('search-input').value.toLowerCase();
-            container.innerHTML = "";
-
-            const sorted = Object.values(chats).sort((a,b) => b.lastTime - a.lastTime);
-
-            if (sorted.length === 0) {
-                 container.innerHTML = `<div class="empty-placeholder" style="margin-top: 50px;">Нет активных диалогов.</div>`;
-                 return;
-            }
-
-            sorted.forEach(chat => {
-                const isUser = chat.type === "private";
-
-                if (currentTab === "users" && !isUser) return;
-
-                if (searchVal) {
-                    const matchName = chat.name.toLowerCase().includes(searchVal);
-                    const matchId = String(chat.id).includes(searchVal);
-                    if (!matchName && !matchId) return;
-                }
-
-                const item = document.createElement('div');
-                item.className = `chat-row ${currentChatId === chat.id ? 'active' : ''}`;
-                item.onclick = () => openChat(chat.id);
-
-                const lastMsg = chat.messages[chat.messages.length - 1];
-                let msgText = "История переписки пуста";
-                if (lastMsg) {
-                    let prefix = lastMsg.out ? "Вы: " : "";
-                    msgText = prefix + (lastMsg.text ? lastMsg.text : "🔒[Прикрепленный файл]");
-                }
-
-                const timeStr = lastMsg ? new Date(lastMsg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
-
-                item.innerHTML = `
-                    <div class="avatar" id="av-list-${chat.id}" style="${chat.photo ? `background-image:url(${chat.photo}); font-size:0;` : `background-color: ${getPastelColor(chat.id)}`}">
-                        ${chat.name[0] ? chat.name[0].toUpperCase() : '?'}
-                    </div>
-                    <div class="chat-details">
-                        <div class="chat-meta">
-                            <div class="chat-title">${escapeHtml(chat.name)}</div>
-                            <div class="chat-time">${timeStr}</div>
-                        </div>
-                        <div class="chat-last-message">${escapeHtml(msgText.trim())}</div>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function toggleCryptForCurrentChat() {
-            const chat = chats[currentChatId];
-            if (!chat) return;
-            chat.useCrypt = !chat.useCrypt;
-            const cryptBtn = document.getElementById('toggle-crypt-btn');
-            if (chat.useCrypt) {
-                cryptBtn.classList.add('active');
-                cryptBtn.innerText = '🔒';
-            } else {
-                cryptBtn.classList.remove('active');
-                cryptBtn.innerText = '🔓';
-            }
-            saveState();
-        }
-
-        async function openChat(id) {
-            currentChatId = id;
-            const chat = chats[id];
-            
-            document.body.classList.add('chat-opened');
-            document.getElementById('chat-window-pane').classList.add('active');
-            document.getElementById('active-chat-name').innerText = chat.name;
-            document.getElementById('active-chat-status').innerText = `ID: ${chat.id}`;
-            document.getElementById('chat-input-bar').style.display = 'flex';
-
-            const cryptBtn = document.getElementById('toggle-crypt-btn');
-            if (chat.useCrypt) {
-                cryptBtn.classList.add('active');
-                cryptBtn.innerText = '🔒';
-            } else {
-                cryptBtn.classList.remove('active');
-                cryptBtn.innerText = '🔓';
-            }
-
-            updateAvatarUI(chat.id, chat.name, 'active-chat-avatar');
-
-            document.getElementById('messages-feed').innerHTML = `<div class="empty-placeholder">Загрузка переписки...</div>`;
-
-            await loadHistoryForChat(id);
-            renderMessages();
-            renderChats();
-        }
-
-        function playVoice(url, btn) {
-            let audio = btn.audioInstance;
-            if (!audio) {
-                audio = new Audio(url);
-                btn.audioInstance = audio;
-                audio.addEventListener('ended', () => { btn.innerText = '▶'; });
-            }
-            if (audio.paused) {
-                audio.play();
-                btn.innerText = '⏸';
-            } else {
-                audio.pause();
-                btn.innerText = '▶';
-            }
-        }
-
-        // Автоматическая расшифровка .meow, .mur, .mew файлов и рендер
-        async function processAndDecryptAttachment(attachment, container, bubbleDiv, decryptKey) {
+        async function processAndDecryptAttachment(attachment, bubbleDiv, peerId) {
             if (attachment.type === 'doc') {
                 const doc = attachment.doc;
                 const title = doc.title.toLowerCase();
@@ -1753,7 +1575,10 @@
                             const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(doc.url);
                             const res = await fetch(proxyUrl);
                             const encBuf = await res.arrayBuffer();
-                            const decBuf = await decryptBinary(encBuf, decryptKey);
+                            
+                            const isDouble = !!loadChatPassword(peerId, "in");
+                            const decBuf = await decryptBinary(encBuf, peerId, isDouble, true);
+                            
                             if (decBuf) {
                                 let mime = "application/octet-stream";
                                 if (title.endsWith('.meow')) mime = 'image/png';
@@ -1769,106 +1594,96 @@
 
                     if (decryptedUrl) {
                         if (title.endsWith('.meow')) {
-                            // Расшифрованная фото (.meow)
                             const img = document.createElement('img');
                             img.src = decryptedUrl;
                             img.className = 'bubble-media';
-                            img.onclick = (e) => { e.stopPropagation(); openMediaViewer(decryptedUrl, 'photo'); };
+                            img.onclick = () => window.open(decryptedUrl, '_blank');
                             bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
                         } else if (title.endsWith('.mur')) {
-                            // Расшифрованное видео (.mur)
                             const video = document.createElement('video');
                             video.src = decryptedUrl;
                             video.className = 'bubble-media';
                             video.controls = true;
-                            video.onclick = (e) => { e.stopPropagation(); openMediaViewer(decryptedUrl, 'video'); };
                             bubbleDiv.insertBefore(video, bubbleDiv.lastChild);
                         } else if (title.endsWith('.mew')) {
-                            // Расшифрованное голосовое (.mew)
                             const playerDiv = document.createElement('div');
                             playerDiv.className = 'voice-player';
                             const playBtn = document.createElement('button');
                             playBtn.className = 'voice-play-btn';
                             playBtn.innerText = '▶';
-                            playBtn.onclick = () => playVoice(decryptedUrl, playBtn);
+                            
+                            let audio = null;
+                            playBtn.onclick = () => {
+                                if(!audio) audio = new Audio(decryptedUrl);
+                                if(audio.paused) { audio.play(); playBtn.innerText = '⏸'; }
+                                else { audio.pause(); playBtn.innerText = '▶'; }
+                            };
+
                             const metaDiv = document.createElement('div');
                             metaDiv.className = 'voice-meta';
-                            const titleSpan = document.createElement('span');
-                            titleSpan.className = 'voice-title';
-                            titleSpan.innerText = 'Голосовое сообщение';
-                            const descSpan = document.createElement('span');
-                            descSpan.className = 'voice-duration';
-                            descSpan.innerText = 'Расшифровано (.mew)';
-                            metaDiv.appendChild(titleSpan);
-                            metaDiv.appendChild(descSpan);
+                            metaDiv.innerHTML = `<span class="voice-title">Голосовое сообщение</span><span class="voice-duration">Расшифровано (.mew)</span>`;
                             playerDiv.appendChild(playBtn);
                             playerDiv.appendChild(metaDiv);
                             bubbleDiv.insertBefore(playerDiv, bubbleDiv.lastChild);
                         } else {
-                            // Обычный файл (.enc)
                             const realName = doc.title.slice(0, -4);
                             const docLink = document.createElement('a');
                             docLink.href = decryptedUrl;
                             docLink.download = realName;
                             docLink.className = 'document-link';
-                            docLink.innerHTML = `
-                                <div class="document-icon">📄</div>
-                                <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                                    <span>${escapeHtml(realName)}</span>
-                                    <span style="font-size:11px; color:var(--text-muted);">Зашифрованный файл (.enc)</span>
-                                </div>
-                            `;
+                            docLink.innerHTML = `<div class="document-icon">📄</div><div><span>${escapeHtml(realName)}</span></div>`;
                             bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                         }
-                    } else {
-                        const docLink = document.createElement('div');
-                        docLink.className = 'document-link';
-                        docLink.innerHTML = `
-                            <div class="document-icon">🔒</div>
-                            <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                                <span>${escapeHtml(doc.title)}</span>
-                                <span style="font-size:11px; color:var(--error);">Ошибка расшифровки (Проверьте ключ)</span>
-                            </div>
-                        `;
-                        bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                     }
-                } else {
-                    const docLink = document.createElement('a');
-                    docLink.href = doc.url;
-                    docLink.target = '_blank';
-                    docLink.className = 'document-link';
-                    docLink.innerHTML = `
-                        <div class="document-icon">📄</div>
-                        <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                            <span>${escapeHtml(doc.title)}</span>
-                            <span style="font-size:11px; color:var(--text-muted);">Файл без шифрования</span>
-                        </div>
-                    `;
-                    bubbleDiv.insertBefore(docLink, bubbleDiv.lastChild);
                 }
-            } else if (attachment.type === 'photo') {
-                const sizes = attachment.photo.sizes;
-                const bestSize = sizes[sizes.length - 1].url;
-                const img = document.createElement('img');
-                img.src = bestSize;
-                img.className = 'bubble-media';
-                img.onclick = () => openMediaViewer(bestSize, 'photo');
-                bubbleDiv.insertBefore(img, bubbleDiv.lastChild);
-            } else if (attachment.type === 'video') {
-                const video = attachment.video;
-                const videoText = document.createElement('div');
-                videoText.className = 'document-link';
-                videoText.innerHTML = `
-                    <div class="document-icon">📹</div>
-                    <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                        <span>Видеозапись: ${escapeHtml(video.title)}</span>
-                        <span style="font-size:11px; color:var(--text-muted);">Нажмите, чтобы открыть в ВК</span>
-                    </div>
-                `;
-                videoText.onclick = () => window.open(`https://vk.com/video${video.owner_id}_${video.id}`, '_blank');
-                bubbleDiv.insertBefore(videoText, bubbleDiv.lastChild);
             }
         }
+
+        // --- ГОЛОСОВОЙ ЗАПИСЫВАТЕЛЬ ---
+
+        async function toggleVoiceRecord() {
+            const btn = document.getElementById('voice-btn');
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
+                        const attachStr = await uploadFileToVk(new File([audioBlob], "voice.ogg"), true);
+                        const randomId = Math.floor(Math.random() * 2000000000);
+                        const chat = chats[currentChatId];
+                        
+                        let msgBody = "Голосовое сообщение";
+                        if (loadChatEncryptState(currentChatId)) {
+                            msgBody = loadChatPassword(currentChatId, "out") ? "[MEOW_SECURE] Голосовое" : "[MEOW] Голосовое";
+                        }
+
+                        await vkCall("messages.send", {
+                            peer_id: currentChatId,
+                            random_id: randomId,
+                            message: msgBody,
+                            attachment: attachStr
+                        });
+                        await loadHistoryForChat(currentChatId);
+                        renderMessages();
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.classList.add('recording');
+                    btn.innerText = '🛑';
+                } catch (err) { alert("Микрофон недоступен: " + err.message); }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.classList.remove('recording');
+                btn.innerText = '🎙️';
+            }
+        }
+
+        // --- РЕНДЕРИНГ ИНТЕРФЕЙСА ---
 
         async function renderMessages() {
             const container = document.getElementById('messages-feed');
@@ -1876,44 +1691,28 @@
             container.innerHTML = "";
 
             if (!chat || !chat.messages || chat.messages.length === 0) {
-                container.innerHTML = `<div class="empty-placeholder">Переписка пуста. Напишите первое сообщение!</div>`;
+                container.innerHTML = `<div class="empty-placeholder">Сообщений нет. Начните защищенную переписку!</div>`;
                 return;
             }
 
-            let lastDateStr = "";
-
             for (const msg of chat.messages) {
-                const msgDateObj = new Date(msg.time);
-                const msgDateStr = msgDateObj.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
-                
-                if (msgDateStr !== lastDateStr) {
-                    const divider = document.createElement('div');
-                    divider.className = 'date-divider';
-                    divider.innerText = msgDateStr;
-                    container.appendChild(divider);
-                    lastDateStr = msgDateStr;
-                }
-
                 const div = document.createElement('div');
                 div.className = `bubble ${msg.out ? 'out' : 'in'}`;
-                const timeStr = msgDateObj.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-
+                
                 const timeSpan = document.createElement('div');
                 timeSpan.className = 'bubble-time';
-                timeSpan.innerText = timeStr;
+                timeSpan.innerText = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 div.appendChild(timeSpan);
-
-                const decryptKey = chat.sharedKey;
 
                 if (msg.attachments && msg.attachments.length > 0) {
                     for (const attach of msg.attachments) {
-                        await processAndDecryptAttachment(attach, container, div, decryptKey);
+                        await processAndDecryptAttachment(attach, div, chat.id);
                     }
                 }
 
                 let displayText = msg.rawText;
-                if (msg.rawText && msg.rawText.startsWith("🔒")) {
-                    displayText = await decryptText(msg.rawText, decryptKey);
+                if (msg.rawText && (msg.rawText.startsWith("[MEOW") || msg.rawText.startsWith(MEOW_KEY_REQ_TAG) || msg.rawText.startsWith(MEOW_KEY_RES_TAG))) {
+                    displayText = await decryptText(msg.rawText, chat.id);
                 }
 
                 if (displayText) {
@@ -1925,105 +1724,122 @@
 
                 container.appendChild(div);
             }
-
             container.scrollTop = container.scrollHeight;
         }
 
-        function adjustTextareaHeight() {
-            const textarea = document.getElementById('message-text');
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.max(44, Math.min(textarea.scrollHeight, 120)) + 'px';
+        function renderChats() {
+            const container = document.getElementById('chats-list');
+            const searchVal = document.getElementById('search-input').value.toLowerCase();
+            container.innerHTML = "";
+
+            const sorted = Object.values(chats);
+
+            sorted.forEach(chat => {
+                if (currentTab === "groups" && chat.type !== 'group') return;
+                if (currentTab === "all" && chat.type === 'group') return;
+
+                if (searchVal && !chat.name.toLowerCase().includes(searchVal)) return;
+
+                const item = document.createElement('div');
+                item.className = `chat-row ${currentChatId === chat.id ? 'active' : ''}`;
+                item.onclick = () => openChat(chat.id);
+
+                const lastMsg = chat.messages[chat.messages.length - 1];
+                let msgText = lastMsg ? (lastMsg.text || "🔒 Файл") : "История пуста";
+
+                item.innerHTML = `
+                    <div class="avatar" style="${chat.photo ? `background-image:url(${chat.photo})` : ''}">
+                        ${chat.photo ? '' : chat.name[0].toUpperCase()}
+                        ${chat.online ? '<div class="online-dot"></div>' : ''}
+                    </div>
+                    <div class="chat-details">
+                        <div class="chat-meta">
+                            <div class="chat-title">${escapeHtml(chat.name)}</div>
+                        </div>
+                        <div class="chat-last-message">${escapeHtml(msgText)}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
         }
-        document.getElementById('message-text').addEventListener('input', adjustTextareaHeight);
 
-        function updateAvatarUI(id, fallbackName = null, forceElementId = null) {
-            const targetElement = forceElementId ? document.getElementById(forceElementId) : null;
-            if (!targetElement) return;
-
+        async function openChat(id) {
+            currentChatId = id;
             const chat = chats[id];
-            if (chat && chat.photo) {
-                targetElement.style.backgroundImage = `url(${chat.photo})`;
-                targetElement.innerText = "";
-                targetElement.style.fontSize = "0";
-            } else {
-                const nameToDisplay = fallbackName || (chat ? chat.name : '?');
-                targetElement.style.backgroundImage = "none";
-                targetElement.style.backgroundColor = getPastelColor(id);
-                targetElement.innerText = nameToDisplay[0] ? nameToDisplay[0].toUpperCase() : '?';
-                targetElement.style.fontSize = "16px";
-            }
+            
+            document.body.classList.add('chat-opened');
+            document.getElementById('active-chat-name').innerText = chat.name;
+            document.getElementById('active-chat-status').innerText = `ID: ${chat.id} ${chat.online ? '(в сети)' : ''}`;
+            document.getElementById('chat-input-bar').style.display = 'flex';
+
+            const cryptBtn = document.getElementById('toggle-crypt-btn');
+            const isEnc = loadChatEncryptState(id);
+            if (isEnc) cryptBtn.classList.add('active');
+            else cryptBtn.classList.remove('active');
+
+            await sendOwnPublicKeyIfNeeded(id);
+            await loadHistoryForChat(id);
+            renderMessages();
+            renderChats();
+        }
+
+        function toggleCryptForCurrentChat() {
+            const isEnc = !loadChatEncryptState(currentChatId);
+            saveChatEncryptState(currentChatId, isEnc);
+            const cryptBtn = document.getElementById('toggle-crypt-btn');
+            if (isEnc) cryptBtn.classList.add('active');
+            else cryptBtn.classList.remove('active');
         }
 
         function openProfileModal(chatId) {
-            if (!chatId || !chats[chatId]) return;
-            const chat = chats[chatId];
-            
-            document.getElementById('profile-modal-name').innerText = chat.name;
-            document.getElementById('profile-modal-id').innerText = chat.id;
-            
-            document.getElementById('chat-shared-key-field').value = chat.sharedKey || "";
-
-            updateAvatarUI(chat.id, chat.name, 'profile-modal-avatar');
-
+            if (!chatId) return;
+            document.getElementById('chat-pass-out').value = loadChatPassword(chatId, "out");
+            document.getElementById('chat-pass-in').value = loadChatPassword(chatId, "in");
             document.getElementById('profile-modal').classList.add('active');
         }
 
-        function updateChatSharedKey() {
-            if (!currentChatId || !chats[currentChatId]) return;
-            chats[currentChatId].sharedKey = document.getElementById('chat-shared-key-field').value;
-            saveState();
-        }
-
-        function togglePasswordVisibility(fieldId) {
-            const field = document.getElementById(fieldId);
-            if (field.type === "password") {
-                field.type = "text";
-            } else {
-                field.type = "password";
-            }
+        function updateChatPasswords() {
+            const outVal = document.getElementById('chat-pass-out').value.trim();
+            const inVal = document.getElementById('chat-pass-in').value.trim();
+            saveChatPassword(currentChatId, "out", outVal);
+            saveChatPassword(currentChatId, "in", inVal);
         }
 
         function closeProfileModal() {
             document.getElementById('profile-modal').classList.remove('active');
             if (currentChatId) {
-                renderMessages();
-                renderChats();
+                loadHistoryForChat(currentChatId).then(() => {
+                    renderMessages();
+                    renderChats();
+                });
             }
         }
 
-        function openMediaViewer(url, type) {
-            const viewerModal = document.getElementById('media-viewer-modal');
-            const imgEl = document.getElementById('media-viewer-img');
-            const videoEl = document.getElementById('media-viewer-video');
-            
-            imgEl.style.display = 'none';
-            videoEl.style.display = 'none';
-            videoEl.pause();
-
-            if (type === 'photo') {
-                imgEl.src = url;
-                imgEl.style.display = 'block';
-            } else if (type === 'video') {
-                videoEl.src = url;
-                videoEl.style.display = 'block';
-                videoEl.play();
-            }
-            viewerModal.classList.add('active');
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tab === 'all') document.getElementById('tab-all').classList.add('active');
+            else document.getElementById('tab-groups').classList.add('active');
+            renderChats();
         }
 
-        function closeMediaViewer() {
-            const viewerModal = document.getElementById('media-viewer-modal');
-            const videoEl = document.getElementById('media-viewer-video');
-            if (videoEl.style.display === 'block') {
-                videoEl.pause();
-                videoEl.currentTime = 0;
+        function handleFileChange(event) {
+            if (event.target.files.length > 0) {
+                selectedFile = event.target.files[0];
+                document.getElementById('file-name').innerText = selectedFile.name;
+                document.getElementById('file-preview').style.display = 'flex';
             }
-            viewerModal.classList.remove('active');
         }
 
-        function getPastelColor(id) {
-            const colors = ['#e57373', '#f06292', '#ba68c8', '#9575cd', '#7986cb', '#64b5f6', '#4fc3f7', '#4dd0e1', '#4db6ac', '#81c784'];
-            return colors[Math.abs(id) % colors.length];
+        function removeFile() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').style.display = 'none';
+        }
+
+        function togglePasswordVisibility(fieldId) {
+            const f = document.getElementById(fieldId);
+            f.type = f.type === 'password' ? 'text' : 'password';
         }
 
         function escapeHtml(text) {
@@ -2038,12 +1854,10 @@
                 e.preventDefault();
                 sendVkMessage();
             }
-            adjustTextareaHeight();
         }
 
         function backToSidebar() {
             document.body.classList.remove('chat-opened');
-            document.getElementById('chat-window-pane').classList.remove('active');
             currentChatId = null;
         }
     </script>
