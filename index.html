@@ -320,6 +320,7 @@
             cursor: pointer;
             margin-right: 15px;
             width: 36px; height: 36px;
+            display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
@@ -366,7 +367,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            animation: bubbleIntro 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            animation: bubbleIntro 0.15s cubic-bezier(0.1, 0.9, 0.2, 1);
         }
 
         @keyframes bubbleIntro {
@@ -446,7 +447,7 @@
             display: flex;
             align-items: flex-end;
             padding: 4px 10px;
-            min-width: 0; /* Важно для мобилок: позволяет блоку сжиматься */
+            min-width: 0; /* Разрешает блоку корректно сжиматься на смартфонах */
         }
 
         .input-side-btn {
@@ -475,7 +476,7 @@
             max-height: 120px;
             min-height: 40px;
             line-height: 1.4;
-            min-width: 0; /* Не позволяет вылезать за рамки */
+            min-width: 0;
         }
 
         .action-round-btn {
@@ -490,8 +491,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            flex-shrink: 0; /* Кнопку никогда не плющит */
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0; /* Запрещает сжимать кнопку отправки */
         }
 
         .action-round-btn.voice-active {
@@ -511,7 +512,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(25f, 128, 237, 0.1);
+            background: rgba(47, 128, 237, 0.1);
             padding: 8px 12px;
             border-radius: 12px;
             margin-bottom: 8px;
@@ -564,7 +565,7 @@
         <div class="login-card">
             <div class="login-logo">🐾</div>
             <h1>VK Meow Crypt Web</h1>
-            <p>Стабильное сквозное шифрование Сайт-Сайт</p>
+            <p>Ультрабыстрое сквозное шифрование Сайт-Сайт в реальном времени</p>
             
             <div class="instruction-box">
                 <b>Инструкция получения токена:</b>
@@ -611,7 +612,7 @@
                 <div class="avatar" id="active-chat-avatar">?</div>
                 <div class="chat-details" style="flex:1;">
                     <div class="chat-title" id="active-chat-name">Выберите чат</div>
-                    <div class="chat-last-message" id="active-chat-status">Безопасное соединение готово</div>
+                    <div class="chat-last-message" id="active-chat-status">Защищенный обмен готов</div>
                 </div>
                 <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openCryptSettingsModal(currentChatId)">Связь</button>
             </div>
@@ -830,7 +831,7 @@
                        .replace(/&#39;/g, "'");
         }
 
-        // --- ДЕШИФРОВАНИЕ И ШИФРОВАНИЕ СТРОК (САЙТ-САЙТ) ---
+        // --- ДЕШИФРОВАНИЕ И ШИФРОВАНИЕ СТРОК ---
 
         async function encryptText(text, peerId) {
             if (!text) return "";
@@ -915,7 +916,7 @@
             return result;
         }
 
-        // --- БИНАРНОЕ ДЕШИФРОВАНИЕ (ФОТО, ВИДЕО, ГОЛОС) ---
+        // --- БИНАРНОЕ ШИФРОВАНИЕ И РАСШИФРОВКА ---
 
         async function encryptBinary(arrayBuffer, peerId) {
             const isEncrypted = loadChatEncryptState(peerId);
@@ -1135,11 +1136,39 @@
                             for (const up of update.updates) {
                                 if (up[0] === 4) { // Код 4: Новое сообщение
                                     const peerId = up[3];
+                                    const msgId = up[1];
+                                    const flags = up[2];
+                                    const timestamp = up[4];
+                                    const rawText = up[5];
+                                    const isOut = (flags & 2) !== 0;
+
                                     updatedAny = true;
-                                    
-                                    // Если сообщение в текущем открытом чате — тихо загружаем историю
+
+                                    if (!chats[peerId]) {
+                                        chats[peerId] = { id: peerId, name: `ID ${peerId}`, photo: '', type: 'private', online: false, messages: [] };
+                                    }
+
+                                    // Быстрая вставка сообщения без лишних API-запросов
+                                    const alreadyExists = chats[peerId].messages.some(m => m.id === msgId);
+                                    if (!alreadyExists) {
+                                        // Если это сообщение, отправленное нами же, и в списке есть "временное" (Optimistic) сообщение, заменяем его
+                                        const optIndex = chats[peerId].messages.findIndex(m => m.isOptimistic && m.rawText === rawText);
+                                        if (optIndex !== -1) {
+                                            chats[peerId].messages[optIndex].id = msgId;
+                                            chats[peerId].messages[optIndex].isOptimistic = false;
+                                        } else {
+                                            chats[peerId].messages.push({
+                                                id: msgId,
+                                                text: rawText,
+                                                rawText: rawText,
+                                                time: timestamp * 1000,
+                                                out: isOut,
+                                                attachments: []
+                                            });
+                                        }
+                                    }
+
                                     if (peerId === currentChatId) {
-                                        await loadHistoryForChat(currentChatId);
                                         await renderMessages();
                                     }
                                 }
@@ -1149,12 +1178,12 @@
                             }
                         }
                     } catch (e) {
-                        await new Promise(r => setTimeout(r, 4000));
+                        await new Promise(r => setTimeout(r, 2000));
                     }
                 }
             } catch (e) {
                 isPolling = false;
-                setTimeout(startLongPolling, 5000);
+                setTimeout(startLongPolling, 3000);
             }
         }
 
@@ -1178,7 +1207,7 @@
             } catch(e) {}
         }
 
-        // --- ШИФРОВАНИЕ И ОТПРАВКА ---
+        // --- ПРЯМАЯ ЗАГРУЗКА И ОТПРАВКА БЕЗ БИОС-ПРОКСИ (ФОТО, ВИДЕО) ---
 
         function loadChatEncryptState(peerId) {
             const val = safeStorage.get("chat_enc_state_" + peerId);
@@ -1221,12 +1250,8 @@
             const formData = new FormData();
             formData.append('file', fileDataBlob, finalName);
 
-            let res;
-            try {
-                res = await fetch("https://corsproxy.io/?" + encodeURIComponent(uploadUrl), { method: 'POST', body: formData });
-            } catch(err) {
-                res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(uploadUrl), { method: 'POST', body: formData });
-            }
+            // МГНОВЕННЫЙ DIRECT-ЗАПРОС БЕЗ ПРОКСИ (VK CDN поддерживает CORS по умолчанию!)
+            const res = await fetch(uploadUrl, { method: 'POST', body: formData });
             const uploadRes = await res.json();
 
             const savedDoc = await vkCall("docs.save", { file: uploadRes.file, title: finalName });
@@ -1243,38 +1268,57 @@
             textarea.style.height = "auto";
             handleTypingEffect();
 
+            // 1. Шифруем
+            let finalMessage = text;
+            const isEncrypted = loadChatEncryptState(targetId);
+            if (isEncrypted && text) {
+                finalMessage = await encryptText(text, targetId);
+            } else if (isEncrypted && !text) {
+                finalMessage = MEOW_TAG + " Файл";
+            }
+
+            // 2. Оптимистичный UI: моментально добавляем в чат до ухода запроса
+            const tempId = 'opt-' + Math.random();
+            chats[targetId].messages.push({
+                id: tempId,
+                text: finalMessage,
+                rawText: finalMessage,
+                time: Date.now(),
+                out: true,
+                isOptimistic: true,
+                attachments: selectedFile ? [{ type: 'doc', doc: { id: 'temp', title: selectedFile.name, url: '' } }] : []
+            });
+            await renderMessages();
+
             try {
                 let attachStr = "";
                 if (selectedFile) {
                     attachStr = await uploadFileToVk(selectedFile, false);
                 }
 
-                let finalMessage = text;
-                const isEncrypted = loadChatEncryptState(targetId);
-
-                if (isEncrypted) {
-                    if (text) {
-                        finalMessage = await encryptText(text, targetId);
-                    } else {
-                        finalMessage = MEOW_TAG + " Файл";
-                    }
-                }
-
                 const randomId = Math.floor(Math.random() * 2000000000);
-                
-                await vkCall("messages.send", {
+                const vkResponse = await vkCall("messages.send", {
                     peer_id: targetId,
                     random_id: randomId,
                     message: finalMessage,
                     attachment: attachStr
                 });
 
+                // Заменяем временный ID на настоящий
+                const optMsg = chats[targetId].messages.find(m => m.id === tempId);
+                if (optMsg) {
+                    optMsg.id = vkResponse;
+                    optMsg.isOptimistic = false;
+                }
+
                 removeFile();
-                await loadHistoryForChat(targetId);
                 await renderMessages();
                 await fetchDialogs();
             } catch (e) {
                 alert(`Сбой отправки: ${e.message}`);
+                // В случае провала убираем фантомное сообщение
+                chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
+                await renderMessages();
             }
         }
 
@@ -1302,7 +1346,6 @@
 
                     if (!decryptedUrl) {
                         try {
-                            // Скачиваем через карусель прокси без блокировки CORS
                             const encBuf = await fetchBinaryData(doc.url);
                             const decBuf = await decryptBinary(encBuf, peerId);
                             
@@ -1318,7 +1361,7 @@
                             }
                         } catch (e) {
                             console.error("Media decrypt error:", e);
-                            attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось скачать/расшифровать</span>`;
+                            attachContainer.innerHTML = `<span style="font-size:12px;color:var(--error);">⚠️ Не удалось расшифровать</span>`;
                             return;
                         }
                     }
