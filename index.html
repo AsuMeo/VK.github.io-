@@ -571,7 +571,7 @@
                 <ol>
                     <li>Нажмите на кнопку ниже:
                         <br>
-                        <a href="https://oauth.vk.com/authorize?client_id=2274003&scope=messages,photos,video,docs,status,friends,wall,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
+                        <a href="https://oauth.vk.com/authorize?client_id=2274003&amp;scope=messages,photos,video,docs,status,friends,wall,offline&amp;redirect_uri=https://oauth.vk.com/blank.html&amp;display=page&amp;response_type=token" target="_blank" class="token-link-btn">ПОЛУЧИТЬ ТОКЕН VK</a>
                     </li>
                     <li>Авторизуйтесь, скопируйте ссылку из адресной строки и вставьте её ниже.</li>
                 </ol>
@@ -754,14 +754,38 @@
             }
         }
 
+        // Оптимизированный поиск ключей в истории без лишнего спама
+        function scanMessageForKeys(msgText, isOut, peerId) {
+            const s = unescapeHtml(msgText || "");
+            if (s.startsWith(MEOW_KEY_REQ_TAG)) {
+                const pub = s.substring(MEOW_KEY_REQ_TAG.length);
+                if (isOut) {
+                    safeStorage.set("own_pub_shared_with_" + peerId, "true");
+                } else {
+                    safeStorage.set("peer_pub_" + peerId, pub);
+                }
+            } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
+                const pub = s.substring(MEOW_KEY_RES_TAG.length);
+                if (isOut) {
+                    safeStorage.set("own_pub_shared_with_" + peerId, "true");
+                } else {
+                    safeStorage.set("peer_pub_" + peerId, pub);
+                }
+            }
+        }
+
         async function sendOwnPublicKeyIfNeeded(peerId, force = false) {
             const peerPub = safeStorage.get("peer_pub_" + peerId);
-            if (peerPub && !force) return; 
+            const ownShared = safeStorage.get("own_pub_shared_with_" + peerId);
+            if (peerPub && ownShared && !force) return; 
 
             await ensureECKeyPair();
             const ownPub = safeStorage.get("ec_pub");
             if (ownPub) {
-                await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
+                if (!ownShared || force) {
+                    await sendMeowRaw(MEOW_KEY_REQ_TAG + ownPub, peerId);
+                    safeStorage.set("own_pub_shared_with_" + peerId, "true");
+                }
             }
         }
 
@@ -863,11 +887,6 @@
                 if (s.startsWith(MEOW_KEY_REQ_TAG)) {
                     const pub = s.substring(MEOW_KEY_REQ_TAG.length);
                     safeStorage.set("peer_pub_" + peerId, pub);
-                    await ensureECKeyPair();
-                    const ownPub = safeStorage.get("ec_pub");
-                    if (ownPub) {
-                        await sendMeowRaw(MEOW_KEY_RES_TAG + ownPub, peerId);
-                    }
                     result = "🐾 [Системное: E2EE защищен (Запрос ключа)]";
                 } else if (s.startsWith(MEOW_KEY_RES_TAG)) {
                     const pub = s.substring(MEOW_KEY_RES_TAG.length);
@@ -1071,8 +1090,11 @@
                     });
                 }
 
+                const currentIncomingPeerIds = new Set();
+
                 for (const item of data.items) {
                     const peerId = item.conversation.peer.id;
+                    currentIncomingPeerIds.add(peerId);
                     const lastMsgObj = item.last_message;
                     const peerInfo = profiles[peerId] || { name: `ID ${peerId}`, photo: '', type: 'private', online: false };
 
@@ -1096,9 +1118,31 @@
                         chats[peerId].last_message_display = "История пуста";
                     }
                 }
+
+                // Полный реал-тайм: удаляем диалоги на сайте, если они удалены в VK
+                for (const localPeerId in chats) {
+                    if (!currentIncomingPeerIds.has(Number(localPeerId))) {
+                        delete chats[localPeerId];
+                        if (currentChatId === Number(localPeerId)) {
+                            backToSidebar();
+                        }
+                    }
+                }
+
                 renderChats();
                 saveState();
             } catch (e) {}
+        }
+
+        function updateMessageIdInDomAndCache(oldId, newId) {
+            if (renderedMessageIds.has(oldId)) {
+                renderedMessageIds.delete(oldId);
+                renderedMessageIds.add(newId);
+                const el = document.querySelector(`[data-msg-id="${oldId}"]`);
+                if (el) {
+                    el.dataset.msgId = newId;
+                }
+            }
         }
 
         let isPollingActive = false;
@@ -1112,31 +1156,66 @@
                         if (res && res.items) {
                             const chat = chats[currentChatId];
                             if (chat) {
-                                const existingIds = new Set(chat.messages.map(m => m.id));
-                                let addedNew = false;
-                                const items = [...res.items].reverse();
-                                
-                                for (const item of items) {
-                                    if (!existingIds.has(item.id)) {
+                                const incomingMessages = [...res.items].reverse();
+                                const incomingIds = new Set(incomingMessages.map(m => m.id));
+
+                                // Полный реал-тайм: удаляем сообщения на сайте, если они удалены в VK
+                                if (incomingMessages.length > 0) {
+                                    const minIncomingId = incomingMessages[0].id;
+                                    chat.messages = chat.messages.filter(localMsg => {
+                                        if (localMsg.isOptimistic) return true;
+                                        if (localMsg.id >= minIncomingId) {
+                                            if (!incomingIds.has(localMsg.id)) {
+                                                renderedMessageIds.delete(localMsg.id);
+                                                const el = document.querySelector(`[data-msg-id="${localMsg.id}"]`);
+                                                if (el) el.remove();
+                                                return false;
+                                            }
+                                        }
+                                        return true;
+                                    });
+                                }
+
+                                let addedOrUpdated = false;
+
+                                for (const item of incomingMessages) {
+                                    const isOut = item.from_id === vkUser.id;
+                                    scanMessageForKeys(item.text, isOut, currentChatId);
+
+                                    const localMsg = chat.messages.find(m => m.id === item.id);
+                                    if (localMsg) {
+                                        // Если изменился текст или вложения (например, сообщение отредактировано)
+                                        if (localMsg.text !== item.text || (item.attachments && item.attachments.length !== (localMsg.attachments ? localMsg.attachments.length : 0))) {
+                                            localMsg.text = item.text;
+                                            localMsg.rawText = item.text;
+                                            localMsg.attachments = item.attachments || [];
+                                            renderedMessageIds.delete(item.id);
+                                            const el = document.querySelector(`[data-msg-id="${item.id}"]`);
+                                            if (el) el.remove();
+                                            addedOrUpdated = true;
+                                        }
+                                    } else {
                                         const optIndex = chat.messages.findIndex(m => m.isOptimistic && m.rawText === item.text);
                                         if (optIndex !== -1) {
+                                            const oldId = chat.messages[optIndex].id;
                                             chat.messages[optIndex].id = item.id;
                                             chat.messages[optIndex].isOptimistic = false;
                                             chat.messages[optIndex].attachments = item.attachments || [];
+                                            updateMessageIdInDomAndCache(oldId, item.id);
                                         } else {
                                             chat.messages.push({
                                                 id: item.id,
                                                 text: item.text,
                                                 rawText: item.text,
                                                 time: item.date * 1000,
-                                                out: item.from_id === vkUser.id,
+                                                out: isOut,
                                                 attachments: item.attachments || []
                                             });
-                                            addedNew = true;
+                                            addedOrUpdated = true;
                                         }
                                     }
                                 }
-                                if (addedNew) {
+                                if (addedOrUpdated) {
                                     chat.messages.sort((a, b) => a.time - b.time);
                                     await renderMessages();
                                 }
@@ -1161,12 +1240,14 @@
                 if (res && res.items) {
                     chats[peerId].messages = [];
                     res.items.reverse().forEach(item => {
+                        const isOut = item.from_id === vkUser.id;
+                        scanMessageForKeys(item.text, isOut, peerId);
                         chats[peerId].messages.push({
                             id: item.id,
                             text: item.text,
                             rawText: item.text,
                             time: item.date * 1000,
-                            out: item.from_id === vkUser.id,
+                            out: isOut,
                             attachments: item.attachments || []
                         });
                     });
@@ -1269,8 +1350,10 @@
 
                 const optMsg = chats[targetId].messages.find(m => m.id === tempId);
                 if (optMsg) {
+                    const oldId = optMsg.id;
                     optMsg.id = vkResponse;
                     optMsg.isOptimistic = false;
+                    updateMessageIdInDomAndCache(oldId, vkResponse);
                 }
 
                 removeFile();
@@ -1278,6 +1361,9 @@
                 await fetchDialogs();
             } catch (e) {
                 alert(`Сбой отправки: ${e.message}`);
+                renderedMessageIds.delete(tempId);
+                const el = document.querySelector(`[data-msg-id="${tempId}"]`);
+                if (el) el.remove();
                 chats[targetId].messages = chats[targetId].messages.filter(m => m.id !== tempId);
                 await renderMessages();
             }
@@ -1453,6 +1539,7 @@
                 if (isSystemMessage(displayText)) {
                     const sysDiv = document.createElement('div');
                     sysDiv.className = 'system-badge';
+                    sysDiv.dataset.msgId = msg.id;
                     sysDiv.innerText = displayText;
                     container.appendChild(sysDiv);
                 } else {
@@ -1614,8 +1701,8 @@
             if (isEnc) cryptBtn.classList.add('active');
             else cryptBtn.classList.remove('active');
 
-            await sendOwnPublicKeyIfNeeded(id); 
             await loadHistoryForChat(id); 
+            await sendOwnPublicKeyIfNeeded(id); 
             await renderMessages();
             renderChats();
             handleTypingEffect();
