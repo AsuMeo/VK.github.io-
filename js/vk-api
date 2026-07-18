@@ -1,0 +1,407 @@
+/**
+ * VK Meow Crypt - VK API Module
+ * Handles all VK API calls, data fetching, and response processing
+ */
+
+const VKAPI = (function() {
+    'use strict';
+
+    let botToken = '';
+    let currentUser = null;
+    let isInitialized = false;
+
+    // API version
+    const API_VERSION = '5.199';
+
+    // Rate limiting
+    let lastCallTime = 0;
+    const MIN_CALL_INTERVAL = 340; // ms between calls (3 req/sec max for VK)
+    const pendingCalls = [];
+    let isProcessingQueue = false;
+
+    // ===== Token Management =====
+    function setToken(token) {
+        botToken = token;
+        isInitialized = true;
+    }
+
+    function getToken() {
+        return botToken;
+    }
+
+    function clearToken() {
+        botToken = '';
+        isInitialized = false;
+        currentUser = null;
+    }
+
+    // ===== Safe Storage =====
+    const storage = {
+        get(key) {
+            try { return localStorage.getItem(key); } catch(e) { return null; }
+        },
+        set(key, val) {
+            try { localStorage.setItem(key, val); } catch(e) {}
+        },
+        remove(key) {
+            try { localStorage.removeItem(key); } catch(e) {}
+        }
+    };
+
+    // ===== Rate Limited API Call =====
+    async function call(method, params = {}) {
+        if (!isInitialized) {
+            throw new Error('VK API not initialized');
+        }
+
+        return new Promise((resolve, reject) => {
+            const executeCall = async () => {
+                const now = Date.now();
+                const timeSinceLast = now - lastCallTime;
+
+                if (timeSinceLast < MIN_CALL_INTERVAL) {
+                    await new Promise(r => setTimeout(r, MIN_CALL_INTERVAL - timeSinceLast));
+                }
+
+                lastCallTime = Date.now();
+
+                try {
+                    const result = await makeJsonpCall(method, params);
+                    resolve(result);
+                } catch (e) {
+                    reject(e);
+                } finally {
+                    processQueue();
+                }
+            };
+
+            pendingCalls.push(executeCall);
+            if (!isProcessingQueue) {
+                processQueue();
+            }
+        });
+    }
+
+    async function processQueue() {
+        if (isProcessingQueue || pendingCalls.length === 0) return;
+        isProcessingQueue = true;
+
+        const call = pendingCalls.shift();
+        await call();
+
+        isProcessingQueue = false;
+        if (pendingCalls.length > 0) {
+            setTimeout(processQueue, MIN_CALL_INTERVAL);
+        }
+    }
+
+    // ===== JSONP Call =====
+    function makeJsonpCall(method, params) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'vk_cb_' + Math.round(Math.random() * 10000000);
+
+            params.access_token = botToken;
+            params.v = API_VERSION;
+            params.callback = callbackName;
+
+            const query = Object.keys(params)
+                .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+                .join('&');
+
+            const script = document.createElement('script');
+            script.src = `https://api.vk.com/method/${method}?${query}`;
+
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new Error('VK API timeout'));
+            }, 30000);
+
+            window[callbackName] = (response) => {
+                clearTimeout(timeout);
+                cleanup();
+
+                if (response.error) {
+                    reject(new Error(response.error.error_msg || 'VK API Error'));
+                } else {
+                    resolve(response.response);
+                }
+            };
+
+            script.onerror = () => {
+                clearTimeout(timeout);
+                cleanup();
+                reject(new Error(`Failed to load VK API method: ${method}`));
+            };
+
+            function cleanup() {
+                delete window[callbackName];
+                if (script.parentNode) {
+                    script.parentNode.removeChild(script);
+                }
+            }
+
+            document.body.appendChild(script);
+        });
+    }
+
+    // ===== User Info =====
+    async function getCurrentUser() {
+        if (currentUser) return currentUser;
+
+        const users = await call('users.get', { fields: 'photo_100,photo_200,online' });
+        if (users && users.length > 0) {
+            currentUser = users[0];
+            return currentUser;
+        }
+        throw new Error('Failed to get user info');
+    }
+
+    function getUser() {
+        return currentUser;
+    }
+
+    // ===== Dialogs =====
+    async function getDialogs(count = 100) {
+        const data = await call('messages.getConversations', {
+            count: count,
+            extended: 1,
+            filter: 'all'
+        });
+
+        const profiles = {};
+
+        if (data.profiles) {
+            data.profiles.forEach(p => {
+                profiles[p.id] = {
+                    id: p.id,
+                    name: `${p.first_name} ${p.last_name}`,
+                    photo: p.photo_100,
+                    type: 'private',
+                    online: p.online === 1
+                };
+            });
+        }
+
+        if (data.groups) {
+            data.groups.forEach(g => {
+                profiles[-g.id] = {
+                    id: -g.id,
+                    name: g.name,
+                    photo: g.photo_100,
+                    type: 'group',
+                    online: false
+                };
+            });
+        }
+
+        const dialogs = [];
+        for (const item of data.items || []) {
+            const peerId = item.conversation.peer.id;
+            const info = profiles[peerId] || {
+                id: peerId,
+                name: `ID ${peerId}`,
+                photo: '',
+                type: 'private',
+                online: false
+            };
+
+            dialogs.push({
+                id: peerId,
+                name: info.name,
+                photo: info.photo,
+                type: info.type,
+                online: info.online,
+                lastMessage: item.last_message || null,
+                unreadCount: item.conversation.unread_count || 0
+            });
+        }
+
+        return dialogs;
+    }
+
+    // ===== Message History =====
+    async function getHistory(peerId, offset = 0, count = 200) {
+        const data = await call('messages.getHistory', {
+            peer_id: peerId,
+            count: count,
+            offset: offset,
+            extended: 1
+        });
+
+        const messages = [];
+        const profiles = {};
+
+        if (data.profiles) {
+            data.profiles.forEach(p => {
+                profiles[p.id] = `${p.first_name} ${p.last_name}`;
+            });
+        }
+
+        for (const item of data.items || []) {
+            messages.push({
+                id: item.id,
+                text: item.text || '',
+                rawText: item.text || '',
+                time: item.date * 1000,
+                out: item.from_id === (currentUser ? currentUser.id : 0),
+                fromId: item.from_id,
+                fromName: profiles[item.from_id] || '',
+                attachments: item.attachments || [],
+                fwdMessages: item.fwd_messages || [],
+                replyTo: item.reply_to || null
+            });
+        }
+
+        return {
+            messages: messages.reverse(), // Oldest first
+            count: data.count || 0
+        };
+    }
+
+    // ===== Send Message =====
+    async function sendMessage(peerId, text, attachment = '') {
+        const randomId = Math.floor(Math.random() * 2000000000);
+
+        const params = {
+            peer_id: peerId,
+            random_id: randomId,
+            message: text
+        };
+
+        if (attachment) {
+            params.attachment = attachment;
+        }
+
+        return await call('messages.send', params);
+    }
+
+    // ===== Upload File =====
+    async function uploadDocument(peerId, fileBlob, fileName) {
+        // Get upload server
+        const uploadServer = await call('docs.getMessagesUploadServer', {
+            peer_id: peerId,
+            type: 'doc'
+        });
+
+        const formData = new FormData();
+        formData.append('file', fileBlob, fileName);
+
+        const uploadRes = await fetch(uploadServer.upload_url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!uploadRes.ok) {
+            throw new Error('Upload failed: ' + uploadRes.status);
+        }
+
+        const uploadData = await uploadRes.json();
+
+        if (!uploadData.file) {
+            throw new Error('Upload failed: no file in response');
+        }
+
+        // Save document
+        const savedDoc = await call('docs.save', {
+            file: uploadData.file,
+            title: fileName
+        });
+
+        if (!savedDoc.doc) {
+            throw new Error('Failed to save document');
+        }
+
+        return `doc${savedDoc.doc.owner_id}_${savedDoc.doc.id}`;
+    }
+
+    // ===== Upload Photo =====
+    async function uploadPhoto(peerId, fileBlob) {
+        const uploadServer = await call('photos.getMessagesUploadServer', {
+            peer_id: peerId
+        });
+
+        const formData = new FormData();
+        formData.append('photo', fileBlob);
+
+        const uploadRes = await fetch(uploadServer.upload_url, {
+            method: 'POST',
+            body: formData
+        });
+
+        const uploadData = await uploadRes.json();
+
+        const savedPhoto = await call('photos.saveMessagesPhoto', {
+            photo: uploadData.photo,
+            server: uploadData.server,
+            hash: uploadData.hash
+        });
+
+        if (!savedPhoto || !savedPhoto.length) {
+            throw new Error('Failed to save photo');
+        }
+
+        const photo = savedPhoto[0];
+        return `photo${photo.owner_id}_${photo.id}`;
+    }
+
+    // ===== Newsfeed =====
+    async function getNewsfeed(count = 20) {
+        return await call('newsfeed.get', {
+            count: count,
+            filters: 'post'
+        });
+    }
+
+    // ===== Long Poll =====
+    async function getLongPollServer() {
+        return await call('messages.getLongPollServer', {
+            lp_version: 3
+        });
+    }
+
+    // ===== Mark As Read =====
+    async function markAsRead(peerId) {
+        try {
+            await call('messages.markAsRead', { peer_id: peerId });
+        } catch (e) {
+            console.warn('Failed to mark as read:', e);
+        }
+    }
+
+    // ===== Parse Token =====
+    function parseToken(input) {
+        let token = input.trim();
+
+        // Extract from URL
+        if (token.includes('access_token=')) {
+            const match = token.match(/access_token=([^&]+)/);
+            if (match) token = match[1];
+        }
+
+        // Validate token format
+        if (!token || token.length < 10) {
+            return null;
+        }
+
+        return token;
+    }
+
+    // ===== Public API =====
+    return {
+        setToken,
+        getToken,
+        clearToken,
+        call,
+        getCurrentUser,
+        getUser,
+        getDialogs,
+        getHistory,
+        sendMessage,
+        uploadDocument,
+        uploadPhoto,
+        getNewsfeed,
+        getLongPollServer,
+        markAsRead,
+        parseToken
+    };
+})();
