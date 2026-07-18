@@ -1,168 +1,150 @@
 /**
- * VK Meow Crypt - Main Application Module
- * UI, event handling, chat management, and user interactions
+ * VK Meow Crypt - Main Application
  */
 
 const App = (function() {
     'use strict';
 
-    // ===== State =====
     const state = {
-        chats: {},
-        currentChatId: null,
-        currentTab: 'all',
-        selectedFile: null,
-        isRecording: false,
-        mediaRecorder: null,
-        audioChunks: [],
-        renderedMessageIds: new Set(),
-        isFetchingHistory: false,
-        lastPollTime: 0,
-        pollInterval: null,
-        user: null
+        chats: {}, currentChatId: null, currentTab: 'all',
+        selectedFile: null, isRecording: false, mediaRecorder: null,
+        audioChunks: [], renderedMessageIds: new Set(),
+        isFetchingHistory: false, pollInterval: null, user: null
     };
 
-    // ===== Safe Storage =====
     const storage = {
-        get(key) {
-            try { return localStorage.getItem(key); } catch(e) { return null; }
-        },
-        set(key, val) {
-            try { localStorage.setItem(key, val); } catch(e) {}
-        },
-        remove(key) {
-            try { localStorage.removeItem(key); } catch(e) {}
-        }
+        get(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch(e) {} },
+        remove(k) { try { localStorage.removeItem(k); } catch(e) {} }
     };
 
-    // ===== DOM Cache =====
-    const $ = (id) => document.getElementById(id);
+    function $(id) { return document.getElementById(id); }
 
-    // ===== Initialization =====
+    // ===== Toast =====
+    function showToast(msg, type) {
+        type = type || 'success';
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️';
+        toast.innerHTML = '<span>' + icon + '</span><span>' + escapeHtml(msg) + '</span>';
+        container.appendChild(toast);
+        setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3000);
+    }
+
+    // ===== Init =====
     function init() {
-        // Check for saved token
+        console.log('[App] Initializing...');
+
         const savedToken = storage.get('saved_vk_token');
         if (savedToken) {
             $('token-field').value = savedToken;
+            console.log('[App] Found saved token');
         }
 
-        // Load saved chats
         const savedChats = storage.get('saved_vk_chats');
         if (savedChats) {
-            try {
-                state.chats = JSON.parse(savedChats);
-            } catch(e) {
-                state.chats = {};
-            }
+            try { state.chats = JSON.parse(savedChats); } catch(e) { state.chats = {}; }
         }
 
-        // Setup emoji picker
         setupEmojiPicker();
-
-        // Setup toast container
-        setupToastContainer();
+        console.log('[App] Initialized successfully');
     }
 
     function setupEmojiPicker() {
         const grid = document.querySelector('.emoji-grid');
         if (!grid) return;
-
         const emojis = grid.textContent.trim().split('');
         grid.innerHTML = '';
-        emojis.forEach(emoji => {
+        emojis.forEach(function(emoji) {
             const span = document.createElement('span');
             span.textContent = emoji;
-            span.onclick = () => insertEmoji(emoji);
+            span.onclick = function() { insertEmoji(emoji); };
             grid.appendChild(span);
         });
     }
 
-    function setupToastContainer() {
-        if (!document.querySelector('.toast-container')) {
-            const container = document.createElement('div');
-            container.className = 'toast-container';
-            document.body.appendChild(container);
-        }
-    }
-
-    // ===== Toast Notifications =====
-    function showToast(message, type = 'success') {
-        const container = document.querySelector('.toast-container');
-        if (!container) return;
-
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.innerHTML = `
-            <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️'}</span>
-            <span>${escapeHtml(message)}</span>
-        `;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 3000);
-    }
-
-    // ===== Login =====
-    async function tryLogin(tokenOverride = null) {
+    // ===== LOGIN =====
+    async function tryLogin(tokenOverride) {
+        console.log('[App] Login attempt...');
         const inputField = $('token-field');
         const loginBtn = $('login-btn');
         const errorDiv = $('login-error');
 
-        let tokenInput = tokenOverride || inputField.value.trim();
+        let tokenInput = tokenOverride || (inputField ? inputField.value.trim() : '');
+        console.log('[App] Token input length:', tokenInput.length);
 
-        // Parse token from URL or direct input
         const parsedToken = VKAPI.parseToken(tokenInput);
+        console.log('[App] Parsed token:', parsedToken ? 'valid (' + parsedToken.length + ' chars)' : 'null');
 
         if (!parsedToken) {
-            errorDiv.innerText = 'Введите корректный токен или ссылку';
-            errorDiv.style.display = 'block';
+            if (errorDiv) {
+                errorDiv.innerText = 'Вставьте ссылку или токен из адресной строки';
+                errorDiv.style.display = 'block';
+            }
+            showToast('Введите корректный токен', 'error');
             return;
         }
 
-        loginBtn.disabled = true;
-        loginBtn.innerHTML = '<span class="loading-spinner"></span> Вход...';
-        errorDiv.style.display = 'none';
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading-spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px;"></span> Вход...';
+        }
+        if (errorDiv) errorDiv.style.display = 'none';
 
         try {
             VKAPI.setToken(parsedToken);
+            console.log('[App] Token set, getting user...');
+
             const user = await VKAPI.getCurrentUser();
+            console.log('[App] User received:', user.first_name, user.last_name);
 
             state.user = user;
             storage.set('saved_vk_token', parsedToken);
 
             // Update UI
-            $('user-name').textContent = `${user.first_name} ${user.last_name}`;
+            const userNameEl = $('user-name');
+            if (userNameEl) userNameEl.textContent = user.first_name + ' ' + user.last_name;
+
             const avatar = $('user-avatar');
-            if (user.photo_100) {
-                avatar.style.backgroundImage = `url(${user.photo_100})`;
-                avatar.innerText = '';
-            } else {
-                avatar.innerText = user.first_name[0].toUpperCase();
+            if (avatar) {
+                if (user.photo_100) {
+                    avatar.style.backgroundImage = 'url(' + user.photo_100 + ')';
+                    avatar.innerText = '';
+                } else {
+                    avatar.innerText = user.first_name[0].toUpperCase();
+                }
             }
 
             // Show app
-            $('login-screen').classList.add('hidden');
-            $('app-wrapper').style.display = 'flex';
+            const loginScreen = $('login-screen');
+            if (loginScreen) loginScreen.classList.add('hidden');
+            const appWrapper = $('app-wrapper');
+            if (appWrapper) appWrapper.style.display = 'flex';
 
-            // Load dialogs
+            console.log('[App] Loading dialogs...');
             await loadDialogs();
-
-            // Start polling
             startPolling();
+            showToast('Добро пожаловать, ' + user.first_name + '!');
 
-            showToast('Успешный вход!');
         } catch (e) {
-            errorDiv.innerText = 'Ошибка входа: ' + e.message;
-            errorDiv.style.display = 'block';
+            console.error('[App] Login error:', e);
+            if (errorDiv) {
+                errorDiv.innerText = 'Ошибка: ' + (e.message || 'Неизвестная ошибка');
+                errorDiv.style.display = 'block';
+            }
+            showToast('Ошибка входа: ' + e.message, 'error');
             VKAPI.clearToken();
-            console.error('Login error:', e);
         } finally {
-            loginBtn.disabled = false;
-            loginBtn.innerText = 'Войти';
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerText = 'Войти';
+            }
         }
     }
 
@@ -170,45 +152,33 @@ const App = (function() {
         VKAPI.clearToken();
         storage.remove('saved_vk_token');
         storage.remove('saved_vk_chats');
-        state.chats = {};
-        state.currentChatId = null;
-        state.user = null;
-
-        if (state.pollInterval) {
-            clearInterval(state.pollInterval);
-            state.pollInterval = null;
-        }
-
-        $('login-screen').classList.remove('hidden');
-        $('app-wrapper').style.display = 'none';
-        $('token-field').value = '';
-
-        showToast('Вы вышли из аккаунта', 'warning');
+        state.chats = {}; state.currentChatId = null; state.user = null;
+        if (state.pollInterval) { clearInterval(state.pollInterval); state.pollInterval = null; }
+        const loginScreen = $('login-screen');
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        const appWrapper = $('app-wrapper');
+        if (appWrapper) appWrapper.style.display = 'none';
+        if ($('token-field')) $('token-field').value = '';
+        showToast('Вы вышли', 'warning');
     }
 
-    // ===== Dialogs =====
+    // ===== DIALOGS =====
     async function loadDialogs() {
         try {
+            console.log('[App] Fetching dialogs...');
             const dialogs = await VKAPI.getDialogs(100);
+            console.log('[App] Received', dialogs.length, 'dialogs');
 
             for (const dialog of dialogs) {
                 const peerId = dialog.id;
-
                 if (!state.chats[peerId]) {
                     state.chats[peerId] = {
-                        id: peerId,
-                        name: dialog.name,
-                        photo: dialog.photo,
-                        type: dialog.type,
-                        online: dialog.online,
-                        messages: [],
-                        historyOffset: 0,
-                        hasMoreHistory: true,
-                        unreadCount: dialog.unreadCount || 0,
+                        id: peerId, name: dialog.name, photo: dialog.photo,
+                        type: dialog.type, online: dialog.online, messages: [],
+                        historyOffset: 0, hasMoreHistory: true, unreadCount: dialog.unreadCount || 0,
                         lastMessageTime: 0
                     };
                 } else {
-                    // Update existing
                     state.chats[peerId].name = dialog.name;
                     state.chats[peerId].photo = dialog.photo;
                     state.chats[peerId].type = dialog.type;
@@ -216,12 +186,9 @@ const App = (function() {
                     state.chats[peerId].unreadCount = dialog.unreadCount || 0;
                 }
 
-                // Decrypt last message
                 if (dialog.lastMessage) {
                     const decrypted = await Crypto.decryptText(dialog.lastMessage.text || '', peerId);
-                    state.chats[peerId].lastMessageText = isSystemMessage(decrypted) 
-                        ? '🔐 Зашифрованное сообщение' 
-                        : decrypted;
+                    state.chats[peerId].lastMessageText = isSystemMessage(decrypted) ? '🔐 Зашифровано' : decrypted;
                     state.chats[peerId].lastMessageTime = dialog.lastMessage.date * 1000;
                 }
             }
@@ -229,21 +196,20 @@ const App = (function() {
             saveChats();
             renderChats();
         } catch (e) {
-            console.error('Failed to load dialogs:', e);
+            console.error('[App] Failed to load dialogs:', e);
             showToast('Ошибка загрузки диалогов', 'error');
         }
     }
 
-    // ===== Chat History =====
-    async function loadChatHistory(peerId, offset = 0, count = 100) {
+    // ===== HISTORY =====
+    async function loadChatHistory(peerId, offset, count) {
         if (state.isFetchingHistory) return;
         if (!state.chats[peerId]) return;
-        if (offset > 0 && !state.chats[peerId].hasMoreHistory) return;
+        if (offset && !state.chats[peerId].hasMoreHistory) return;
 
         state.isFetchingHistory = true;
-
         try {
-            const data = await VKAPI.getHistory(peerId, offset, count);
+            const data = await VKAPI.getHistory(peerId, offset, count || 50);
             const chat = state.chats[peerId];
 
             if (data.messages.length === 0) {
@@ -251,187 +217,138 @@ const App = (function() {
                 return;
             }
 
-            const existingIds = new Set(chat.messages.map(m => m.id));
-            const newMessages = data.messages.filter(m => !existingIds.has(m.id));
+            const existingIds = new Set(chat.messages.map(function(m) { return m.id; }));
+            const newMessages = data.messages.filter(function(m) { return !existingIds.has(m.id); });
 
             if (newMessages.length > 0) {
-                chat.messages.unshift(...newMessages);
-                chat.messages.sort((a, b) => a.time - b.time);
+                chat.messages.unshift.apply(chat.messages, newMessages);
+                chat.messages.sort(function(a, b) { return a.time - b.time; });
                 chat.historyOffset = chat.messages.length;
-
-                if (data.messages.length < count) {
-                    chat.hasMoreHistory = false;
-                }
-
+                if (data.messages.length < (count || 50)) chat.hasMoreHistory = false;
                 saveChats();
             } else {
                 chat.hasMoreHistory = false;
             }
         } catch (e) {
-            console.error('Failed to load history:', e);
+            console.error('[App] History load error:', e);
         } finally {
             state.isFetchingHistory = false;
         }
     }
 
-    // ===== Polling =====
+    // ===== POLLING =====
     function startPolling() {
         if (state.pollInterval) return;
-
-        state.pollInterval = setInterval(async () => {
+        state.pollInterval = setInterval(async function() {
             if (!VKAPI.getToken()) return;
-
             try {
-                // Poll current chat for new messages
-                if (state.currentChatId) {
-                    await pollCurrentChat();
-                }
-
-                // Update dialogs periodically
-                if (Date.now() - state.lastPollTime > 5000) {
-                    await loadDialogs();
-                    state.lastPollTime = Date.now();
-                }
-            } catch (e) {
-                console.error('Polling error:', e);
-            }
-        }, 2000);
+                if (state.currentChatId) await pollCurrentChat();
+                await loadDialogs();
+            } catch (e) { console.error('[App] Poll error:', e); }
+        }, 3000);
     }
 
     async function pollCurrentChat() {
         const chat = state.chats[state.currentChatId];
         if (!chat) return;
-
         try {
             const data = await VKAPI.getHistory(state.currentChatId, 0, 20);
-            const existingIds = new Set(chat.messages.map(m => m.id));
-            const newMessages = data.messages.filter(m => !existingIds.has(m.id));
+            const existingIds = new Set(chat.messages.map(function(m) { return m.id; }));
+            const newMessages = data.messages.filter(function(m) { return !existingIds.has(m.id); });
 
             if (newMessages.length > 0) {
-                chat.messages.push(...newMessages);
-                chat.messages.sort((a, b) => a.time - b.time);
+                chat.messages.push.apply(chat.messages, newMessages);
+                chat.messages.sort(function(a, b) { return a.time - b.time; });
 
-                // Handle key exchange messages
                 for (const msg of newMessages) {
                     if (!msg.out) {
                         const response = await Crypto.handleKeyExchange(msg.rawText, state.currentChatId);
-                        if (response) {
-                            await VKAPI.sendMessage(state.currentChatId, response);
-                        }
+                        if (response) await VKAPI.sendMessage(state.currentChatId, response);
                     }
                 }
-
                 await renderMessages();
-
-                // Mark as read
                 await VKAPI.markAsRead(state.currentChatId);
             }
-        } catch (e) {
-            console.error('Chat poll error:', e);
-        }
+        } catch (e) { console.error('[App] Chat poll error:', e); }
     }
 
-    // ===== Open Chat =====
+    // ===== OPEN CHAT =====
     async function openChat(id) {
         if (state.currentChatId === id) return;
-
         state.currentChatId = id;
         const chat = state.chats[id];
         if (!chat) return;
 
-        // Update UI
         document.body.classList.add('chat-opened');
-        $('active-chat-name').textContent = chat.name;
+
+        const nameEl = $('active-chat-name');
+        if (nameEl) nameEl.textContent = chat.name;
 
         const statusEl = $('active-chat-status');
         const isEncrypted = loadChatEncryptState(id);
         const isE2E = Crypto.isE2EEstablished(id);
 
-        if (isEncrypted && isE2E) {
-            statusEl.innerHTML = '<span class="text-success">🔐 E2EE защищен</span>';
-            statusEl.className = 'chat-status encrypted';
-        } else if (isEncrypted && !isE2E) {
-            statusEl.innerHTML = '<span class="text-warning">⏳ Ожидание E2EE...</span>';
-            statusEl.className = 'chat-status not-encrypted';
-        } else {
-            statusEl.innerHTML = '<span class="text-muted">🔓 Без шифрования</span>';
-            statusEl.className = 'chat-status not-encrypted';
+        if (statusEl) {
+            if (isEncrypted && isE2E) {
+                statusEl.innerHTML = '<span style="color:var(--success)">🔐 E2EE защищен</span>';
+                statusEl.className = 'chat-status encrypted';
+            } else if (isEncrypted && !isE2E) {
+                statusEl.innerHTML = '<span style="color:var(--warning)">⏳ Ожидание E2EE...</span>';
+                statusEl.className = 'chat-status not-encrypted';
+            } else {
+                statusEl.innerHTML = '<span style="color:var(--text-muted)">🔓 Без шифрования</span>';
+                statusEl.className = 'chat-status not-encrypted';
+            }
         }
 
-        $('chat-input-bar').style.display = 'flex';
+        const inputBar = $('chat-input-bar');
+        if (inputBar) inputBar.style.display = 'flex';
 
-        // Update avatar
         const headerAvatar = $('active-chat-avatar');
-        if (chat.photo) {
-            headerAvatar.style.backgroundImage = `url(${chat.photo})`;
-            headerAvatar.innerText = '';
-        } else {
-            headerAvatar.style.backgroundImage = '';
-            headerAvatar.innerText = chat.name[0].toUpperCase();
+        if (headerAvatar) {
+            if (chat.photo) {
+                headerAvatar.style.backgroundImage = 'url(' + chat.photo + ')';
+                headerAvatar.innerText = '';
+            } else {
+                headerAvatar.style.backgroundImage = '';
+                headerAvatar.innerText = chat.name[0].toUpperCase();
+            }
         }
 
-        // Update crypt button
         updateCryptButton();
 
-        // Reset and load history
-        chat.messages = [];
-        chat.historyOffset = 0;
-        chat.hasMoreHistory = true;
+        chat.messages = []; chat.historyOffset = 0; chat.hasMoreHistory = true;
         state.renderedMessageIds.clear();
 
-        // Clear feed
-        $('messages-feed').innerHTML = '';
-        $('messages-feed').dataset.chatId = String(id);
+        const feed = $('messages-feed');
+        if (feed) { feed.innerHTML = ''; feed.dataset.chatId = String(id); }
 
-        // Load initial history
-        await loadChatHistory(id, 0, 100);
+        await loadChatHistory(id, 0, 50);
         await renderMessages();
 
-        // Setup scroll handler for infinite loading
-        $('messages-feed').onscroll = handleChatScroll;
+        if (feed) feed.onscroll = handleChatScroll;
 
-        // Send key request if encryption is enabled and not established
-        if (isEncrypted && !isE2E) {
-            await requestKeyExchange(id);
-        }
-
-        // Update sidebar
+        if (isEncrypted && !isE2E) await requestKeyExchange(id);
+        if (chat.unreadCount > 0) { chat.unreadCount = 0; VKAPI.markAsRead(id).catch(function(){}); }
         renderChats();
-
-        // Mark as read
-        if (chat.unreadCount > 0) {
-            chat.unreadCount = 0;
-            VKAPI.markAsRead(id).catch(() => {});
-            renderChats();
-        }
     }
 
     async function requestKeyExchange(peerId) {
         try {
             const keyMsg = await Crypto.sendPublicKey(peerId);
-            if (keyMsg) {
-                await VKAPI.sendMessage(peerId, keyMsg);
-            }
-        } catch (e) {
-            console.error('Key exchange request failed:', e);
-        }
+            if (keyMsg) await VKAPI.sendMessage(peerId, keyMsg);
+        } catch (e) { console.error('[App] Key exchange request failed:', e); }
     }
 
-    // ===== Render Messages =====
+    // ===== RENDER MESSAGES =====
     async function renderMessages() {
         const container = $('messages-feed');
         const chat = state.chats[state.currentChatId];
-        if (!chat) return;
+        if (!container || !chat) return;
 
         const messages = chat.messages || [];
         if (messages.length === 0) {
-            container.innerHTML = `
-                <div class="empty-placeholder">
-                    <div class="empty-icon">🔒</div>
-                    <div>Нет сообщений</div>
-                    <div class="empty-sub">Начните защищенную сессию</div>
-                </div>
-            `;
+            container.innerHTML = '<div class="empty-placeholder"><div class="empty-icon">🔒</div><div>Нет сообщений</div><div class="empty-sub">Начните защищенную сессию</div></div>';
             state.renderedMessageIds.clear();
             return;
         }
@@ -463,40 +380,31 @@ const App = (function() {
                 fragment.appendChild(sysDiv);
             } else {
                 const bubble = document.createElement('div');
-                bubble.className = `bubble ${msg.out ? 'out' : 'in'}`;
+                bubble.className = 'bubble ' + (msg.out ? 'out' : 'in');
                 bubble.dataset.msgId = msg.id;
 
-                // Text content
                 const textDiv = document.createElement('div');
                 textDiv.className = 'bubble-text';
                 textDiv.innerHTML = formatMessageText(displayText);
                 bubble.appendChild(textDiv);
 
-                // Attachments
                 if (msg.attachments && msg.attachments.length > 0) {
                     for (const attach of msg.attachments) {
                         await renderAttachment(attach, bubble, chat.id);
                     }
                 }
 
-                // Time
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'bubble-time';
-                timeDiv.innerHTML = `
-                    ${formatTime(msg.time)}
-                    ${msg.out ? '<span class="bubble-status">✓</span>' : ''}
-                `;
+                timeDiv.innerHTML = formatTime(msg.time) + (msg.out ? ' <span class="bubble-status">✓</span>' : '');
                 bubble.appendChild(timeDiv);
 
                 fragment.appendChild(bubble);
             }
-
             state.renderedMessageIds.add(msg.id);
         }
 
         container.appendChild(fragment);
-
-        // Scroll to bottom
         container.scrollTop = container.scrollHeight;
     }
 
@@ -504,62 +412,49 @@ const App = (function() {
         if (attachment.type === 'photo') {
             const photo = attachment.photo;
             const sizes = photo.sizes || [];
-            const bestSize = sizes.reduce((best, curr) => 
-                (curr.width > best.width) ? curr : best, sizes[0] || {});
-
+            let bestSize = sizes[0] || {};
+            for (let i = 1; i < sizes.length; i++) {
+                if (sizes[i].width > bestSize.width) bestSize = sizes[i];
+            }
             if (bestSize.url) {
                 const img = document.createElement('img');
-                img.src = bestSize.url;
-                img.className = 'bubble-media';
-                img.alt = 'Photo';
-                img.onclick = () => openImageViewer(bestSize.url);
+                img.src = bestSize.url; img.className = 'bubble-media'; img.alt = 'Photo';
+                img.onclick = function() { openImageViewer(bestSize.url); };
                 container.insertBefore(img, container.lastChild);
             }
         } else if (attachment.type === 'video') {
             const video = attachment.video;
             const sizes = video.image || [];
-            const thumb = sizes.reduce((best, curr) => 
-                (curr.width > best.width) ? curr : best, sizes[0] || {});
-
+            let thumb = sizes[0] || {};
+            for (let i = 1; i < sizes.length; i++) {
+                if (sizes[i].width > thumb.width) thumb = sizes[i];
+            }
             const card = document.createElement('div');
             card.className = 'document-link';
             card.style.cursor = 'pointer';
-            card.onclick = () => window.open(`https://vk.com/video${video.owner_id}_${video.id}`, '_blank');
-            card.innerHTML = `
-                <div class="document-icon">🎥</div>
-                <div>
-                    <span style="font-weight:700;display:block;">${escapeHtml(video.title || 'Видео')}</span>
-                    <span style="font-size:11px;color:var(--text-muted);">Открыть в VK</span>
-                </div>
-            `;
-
+            card.onclick = function() { window.open('https://vk.com/video' + video.owner_id + '_' + video.id, '_blank'); };
+            card.innerHTML = '<div class="document-icon">🎥</div><div><span style="font-weight:700;display:block;">' + escapeHtml(video.title || 'Видео') + '</span><span style="font-size:11px;color:var(--text-muted);">Открыть в VK</span></div>';
             if (thumb.url) {
                 const img = document.createElement('img');
-                img.src = thumb.url;
-                img.className = 'bubble-media';
+                img.src = thumb.url; img.className = 'bubble-media';
                 container.insertBefore(img, container.lastChild);
             }
             container.insertBefore(card, container.lastChild);
-
         } else if (attachment.type === 'doc') {
             await renderDocument(attachment.doc, container, peerId);
         } else if (attachment.type === 'audio') {
             const audio = attachment.audio;
             const audioEl = document.createElement('audio');
-            audioEl.src = audio.url;
-            audioEl.className = 'bubble-audio';
-            audioEl.controls = true;
+            audioEl.src = audio.url; audioEl.className = 'bubble-audio'; audioEl.controls = true;
             container.insertBefore(audioEl, container.lastChild);
         }
     }
 
     async function renderDocument(doc, container, peerId) {
         const title = (doc.title || '').toLowerCase();
-        const isEncrypted = title.endsWith('.meow') || title.endsWith('.mur') || 
-                            title.endsWith('.mew') || title.endsWith('.enc');
-
-        const docId = `doc-${doc.id}`;
-        if (container.querySelector(`[data-doc-id="${docId}"]`)) return;
+        const isEncrypted = title.endsWith('.meow') || title.endsWith('.mur') || title.endsWith('.mew') || title.endsWith('.enc');
+        const docId = 'doc-' + doc.id;
+        if (container.querySelector('[data-doc-id="' + docId + '"]')) return;
 
         const wrapper = document.createElement('div');
         wrapper.dataset.docId = docId;
@@ -568,7 +463,6 @@ const App = (function() {
 
         if (isEncrypted) {
             wrapper.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">🔒 Расшифровка...</span>';
-
             const cacheKey = 'dec_file_' + doc.id;
             let decryptedUrl = sessionStorage.getItem(cacheKey);
 
@@ -576,7 +470,6 @@ const App = (function() {
                 try {
                     const encBuf = await Crypto.fetchBinary(doc.url);
                     const decBuf = await Crypto.decryptBinary(encBuf, peerId);
-
                     if (decBuf) {
                         const mime = Crypto.getMimeTypeFromEncrypted(doc.title);
                         const blob = new Blob([decBuf], { type: mime });
@@ -584,7 +477,7 @@ const App = (function() {
                         sessionStorage.setItem(cacheKey, decryptedUrl);
                     }
                 } catch (e) {
-                    console.error('File decryption failed:', e);
+                    console.error('[App] File decryption failed:', e);
                     wrapper.innerHTML = '<span style="font-size:12px;color:var(--error);">❌ Ошибка расшифровки</span>';
                     return;
                 }
@@ -592,182 +485,124 @@ const App = (function() {
 
             if (decryptedUrl) {
                 wrapper.innerHTML = '';
-
                 if (title.endsWith('.meow')) {
                     const img = document.createElement('img');
-                    img.src = decryptedUrl;
-                    img.className = 'bubble-media';
-                    img.onclick = () => openImageViewer(decryptedUrl);
+                    img.src = decryptedUrl; img.className = 'bubble-media';
+                    img.onclick = function() { openImageViewer(decryptedUrl); };
                     wrapper.appendChild(img);
                 } else if (title.endsWith('.mur')) {
                     const video = document.createElement('video');
-                    video.src = decryptedUrl;
-                    video.className = 'bubble-video';
-                    video.controls = true;
+                    video.src = decryptedUrl; video.className = 'bubble-video'; video.controls = true;
                     wrapper.appendChild(video);
                 } else if (title.endsWith('.mew')) {
-                    const player = createVoicePlayer(decryptedUrl);
-                    wrapper.appendChild(player);
+                    wrapper.appendChild(createVoicePlayer(decryptedUrl));
                 } else {
                     const realName = Crypto.getOriginalName(doc.title);
                     const link = document.createElement('a');
-                    link.href = decryptedUrl;
-                    link.download = realName;
-                    link.className = 'document-link';
-                    link.innerHTML = `
-                        <div class="document-icon">📄</div>
-                        <div><span>${escapeHtml(realName)}</span></div>
-                    `;
+                    link.href = decryptedUrl; link.download = realName; link.className = 'document-link';
+                    link.innerHTML = '<div class="document-icon">📄</div><div><span>' + escapeHtml(realName) + '</span></div>';
                     wrapper.appendChild(link);
                 }
             } else {
                 wrapper.innerHTML = '<span style="font-size:12px;color:var(--error);">⚠️ Нет ключа</span>';
             }
         } else {
-            // Unencrypted document
-            if (title.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
-                wrapper.innerHTML = `<img src="${doc.url}" class="bubble-media" onclick="App.openImageViewer('${doc.url}')">`;
-            } else if (title.match(/\.(mp4|avi|mov|mkv|webm)$/)) {
-                wrapper.innerHTML = `<video src="${doc.url}" class="bubble-video" controls></video>`;
+            if (/\.(png|jpg|jpeg|gif|webp)$/.test(title)) {
+                wrapper.innerHTML = '<img src="' + doc.url + '" class="bubble-media" onclick="App.openImageViewer('' + doc.url + '')">';
+            } else if (/\.(mp4|avi|mov|mkv|webm)$/.test(title)) {
+                wrapper.innerHTML = '<video src="' + doc.url + '" class="bubble-video" controls></video>';
             } else {
-                wrapper.innerHTML = `
-                    <a href="${doc.url}" target="_blank" class="document-link">
-                        <div class="document-icon">📄</div>
-                        <div><span>${escapeHtml(doc.title)}</span></div>
-                    </a>`;
+                wrapper.innerHTML = '<a href="' + doc.url + '" target="_blank" class="document-link"><div class="document-icon">📄</div><div><span>' + escapeHtml(doc.title) + '</span></div></a>';
             }
         }
     }
 
     function createVoicePlayer(url) {
-        const div = document.createElement('div');
-        div.className = 'voice-player';
-
+        const div = document.createElement('div'); div.className = 'voice-player';
         const playBtn = document.createElement('button');
-        playBtn.className = 'voice-play-btn';
-        playBtn.innerText = '▶';
-
+        playBtn.className = 'voice-play-btn'; playBtn.innerText = '▶';
         let audio = null;
-        playBtn.onclick = () => {
+        playBtn.onclick = function() {
             if (!audio) audio = new Audio(url);
-            if (audio.paused) {
-                audio.play();
-                playBtn.innerText = '⏸';
-            } else {
-                audio.pause();
-                playBtn.innerText = '▶';
-            }
+            if (audio.paused) { audio.play(); playBtn.innerText = '⏸'; }
+            else { audio.pause(); playBtn.innerText = '▶'; }
         };
-
-        const meta = document.createElement('div');
-        meta.className = 'voice-meta';
+        const meta = document.createElement('div'); meta.className = 'voice-meta';
         meta.innerHTML = '<span class="voice-title">Голосовое</span><span class="voice-duration">.mew</span>';
-
-        div.appendChild(playBtn);
-        div.appendChild(meta);
+        div.appendChild(playBtn); div.appendChild(meta);
         return div;
     }
 
-    // ===== Send Message =====
+    // ===== SEND MESSAGE =====
     async function sendVkMessage() {
         const textarea = $('message-text');
-        const text = textarea.value.trim();
+        const text = textarea ? textarea.value.trim() : '';
         const peerId = state.currentChatId;
-
         if ((!text && !state.selectedFile) || !peerId) return;
 
         const chat = state.chats[peerId];
         const isEncrypted = loadChatEncryptState(peerId);
 
-        // Clear input
-        textarea.value = '';
-        textarea.style.height = 'auto';
-        handleTypingEffect();
+        if (textarea) { textarea.value = ''; textarea.style.height = 'auto'; handleTypingEffect(); }
 
         let finalMessage = text;
         let attachment = '';
 
         try {
-            // Check E2EE if encryption is enabled
             if (isEncrypted) {
                 const e2eKey = await Crypto.deriveSharedKey(peerId);
                 if (!e2eKey) {
-                    // Auto-request key exchange
                     await requestKeyExchange(peerId);
                     showToast('Отправлен запрос E2EE ключа. Подождите...', 'warning');
-
-                    // Restore text
-                    textarea.value = text;
+                    if (textarea) textarea.value = text;
                     return;
                 }
             }
 
-            // Encrypt text
             if (text) {
-                if (isEncrypted) {
-                    finalMessage = await Crypto.encryptText(text, peerId);
-                }
+                if (isEncrypted) finalMessage = await Crypto.encryptText(text, peerId);
             } else if (state.selectedFile) {
-                // File-only message
-                if (isEncrypted) {
-                    finalMessage = await Crypto.encryptText('[MEOW_FILE]', peerId);
-                } else {
-                    finalMessage = '';
-                }
+                if (isEncrypted) finalMessage = await Crypto.encryptText('[MEOW_FILE]', peerId);
+                else finalMessage = '';
             }
 
-            // Handle file upload
             if (state.selectedFile) {
                 attachment = await uploadFile(peerId, state.selectedFile, isEncrypted);
                 removeFile();
             }
 
-            // Send to VK
             await VKAPI.sendMessage(peerId, finalMessage, attachment);
 
-            // Add to local messages immediately
             const newMsg = {
-                id: 'temp-' + Date.now(),
-                text: text || '[Файл]',
-                rawText: finalMessage,
-                time: Date.now(),
-                out: true,
-                fromId: state.user.id,
-                attachments: attachment ? [{ type: 'doc', doc: { title: state.selectedFile?.name || 'file' } }] : []
+                id: 'temp-' + Date.now(), text: text || '[Файл]', rawText: finalMessage,
+                time: Date.now(), out: true, fromId: state.user ? state.user.id : 0,
+                attachments: attachment ? [{ type: 'doc', doc: { title: state.selectedFile ? state.selectedFile.name : 'file' } }] : []
             };
-
             chat.messages.push(newMsg);
             await renderMessages();
-
-            // Refresh dialogs
             await loadDialogs();
 
         } catch (e) {
             showToast('Ошибка отправки: ' + e.message, 'error');
-            console.error('Send error:', e);
-
-            // Restore text on error
-            if (text) textarea.value = text;
+            console.error('[App] Send error:', e);
+            if (textarea && text) textarea.value = text;
         }
     }
 
     async function uploadFile(peerId, file, isEncrypted) {
         let fileBlob = file;
         let finalName = file.name;
-
         if (isEncrypted) {
             const arrayBuf = await file.arrayBuffer();
             const encryptedBuf = await Crypto.encryptBinary(arrayBuf, peerId);
             fileBlob = new Blob([encryptedBuf], { type: 'application/octet-stream' });
-
             const ext = Crypto.getEncryptedExtension(file.name, file.type);
             finalName = file.name + ext;
         }
-
         return await VKAPI.uploadDocument(peerId, fileBlob, finalName);
     }
 
-    // ===== Voice Recording =====
+    // ===== VOICE =====
     async function toggleVoiceRecord() {
         const btn = $('action-btn');
         const peerId = state.currentChatId;
@@ -777,521 +612,329 @@ const App = (function() {
             try {
                 if (isEncrypted && !Crypto.isE2EEstablished(peerId)) {
                     await requestKeyExchange(peerId);
-                    showToast('Сначала установите E2EE соединение', 'warning');
+                    showToast('Сначала установите E2EE', 'warning');
                     return;
                 }
-
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 state.mediaRecorder = new MediaRecorder(stream);
                 state.audioChunks = [];
-
-                state.mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) state.audioChunks.push(e.data);
-                };
-
-                state.mediaRecorder.onstop = async () => {
+                state.mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) state.audioChunks.push(e.data); };
+                state.mediaRecorder.onstop = async function() {
                     const audioBlob = new Blob(state.audioChunks, { type: 'audio/ogg' });
-
                     try {
                         let msgBody = 'Голосовое сообщение';
                         let attachment = '';
-
-                        if (isEncrypted) {
-                            msgBody = await Crypto.encryptText('[MEOW_VOICE]', peerId);
-                        }
-
+                        if (isEncrypted) msgBody = await Crypto.encryptText('[MEOW_VOICE]', peerId);
                         attachment = await uploadFile(peerId, new File([audioBlob], 'voice.ogg'), isEncrypted);
                         await VKAPI.sendMessage(peerId, msgBody, attachment);
                         await loadDialogs();
-                    } catch (e) {
-                        showToast('Ошибка отправки голосового', 'error');
-                    }
-
-                    stream.getTracks().forEach(t => t.stop());
+                    } catch (e) { showToast('Ошибка отправки голосового', 'error'); }
+                    stream.getTracks().forEach(function(t) { t.stop(); });
                 };
-
                 state.mediaRecorder.start();
                 state.isRecording = true;
-                btn.classList.add('voice-active');
-                btn.innerText = '⏹';
-
-            } catch (err) {
-                showToast('Микрофон недоступен', 'error');
-            }
+                if (btn) { btn.classList.add('voice-active'); btn.innerText = '⏹'; }
+            } catch (err) { showToast('Микрофон недоступен', 'error'); }
         } else {
             state.mediaRecorder.stop();
             state.isRecording = false;
-            btn.classList.remove('voice-active');
-            handleTypingEffect();
+            if (btn) { btn.classList.remove('voice-active'); handleTypingEffect(); }
         }
     }
 
-    // ===== Chat List Rendering =====
+    // ===== RENDER CHATS =====
     function renderChats() {
         const container = $('chats-list');
-        const searchVal = ($('search-input').value || '').toLowerCase();
-
+        if (!container) return;
+        const searchVal = ($('search-input') ? $('search-input').value : '').toLowerCase();
         container.innerHTML = '';
 
-        const sorted = Object.values(state.chats).sort((a, b) => {
+        const sorted = Object.values(state.chats).sort(function(a, b) {
             return (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
         });
 
         for (const chat of sorted) {
             const isGroup = chat.type === 'group';
-
             if (state.currentTab === 'groups' && !isGroup) continue;
             if (state.currentTab === 'all' && isGroup) continue;
             if (state.currentTab === 'newsfeed') continue;
-
             if (searchVal && !chat.name.toLowerCase().includes(searchVal)) continue;
 
             const row = document.createElement('div');
-            row.className = `chat-row ${state.currentChatId === chat.id ? 'active' : ''}`;
-            row.onclick = () => openChat(chat.id);
+            row.className = 'chat-row ' + (state.currentChatId === chat.id ? 'active' : '');
+            row.onclick = (function(id) { return function() { openChat(id); }; })(chat.id);
 
             const isEnc = loadChatEncryptState(chat.id);
             const encIndicator = isEnc ? '<span class="encrypted-indicator">🔒</span>' : '';
-
             const timeStr = chat.lastMessageTime ? formatTimeShort(chat.lastMessageTime) : '';
 
-            row.innerHTML = `
-                <div class="avatar" style="${chat.photo ? `background-image:url(${chat.photo})` : ''}" 
-                     onclick="event.stopPropagation(); App.openProfile(${chat.id}, ${isGroup});">
-                    ${chat.photo ? '' : chat.name[0].toUpperCase()}
-                    ${(chat.online && !isGroup) ? '<div class="online-dot"></div>' : ''}
-                </div>
-                <div class="chat-details">
-                    <div class="chat-meta">
-                        <div class="chat-title">${escapeHtml(chat.name)}</div>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            ${chat.unreadCount > 0 ? `<span class="unread-badge">${chat.unreadCount}</span>` : ''}
-                            <span class="chat-time">${timeStr}</span>
-                        </div>
-                    </div>
-                    <div class="chat-last-message">
-                        ${encIndicator}
-                        ${escapeHtml(chat.lastMessageText || 'Нет сообщений')}
-                    </div>
-                </div>
-            `;
-
+            row.innerHTML = '<div class="avatar" style="' + (chat.photo ? 'background-image:url(' + chat.photo + ')' : '') + '" onclick="event.stopPropagation(); App.openProfile(' + chat.id + ',' + isGroup + ');">' + (chat.photo ? '' : chat.name[0].toUpperCase()) + ((chat.online && !isGroup) ? '<div class="online-dot"></div>' : '') + '</div><div class="chat-details"><div class="chat-meta"><div class="chat-title">' + escapeHtml(chat.name) + '</div><div style="display:flex;align-items:center;gap:6px;">' + (chat.unreadCount > 0 ? '<span class="unread-badge">' + chat.unreadCount + '</span>' : '') + '<span class="chat-time">' + timeStr + '</span></div></div><div class="chat-last-message">' + encIndicator + escapeHtml(chat.lastMessageText || 'Нет сообщений') + '</div></div>';
             container.appendChild(row);
         }
     }
 
-    // ===== Tab Switching =====
+    // ===== TABS =====
     async function switchTab(tab) {
         state.currentTab = tab;
-
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
+        const activeBtn = document.querySelector('[data-tab="' + tab + '"]');
+        if (activeBtn) activeBtn.classList.add('active');
 
         const chatsContainer = $('chats-list');
         const newsfeedContainer = $('newsfeed-content');
 
         if (tab === 'newsfeed') {
-            chatsContainer.style.display = 'none';
-            newsfeedContainer.style.display = 'flex';
-            await loadNewsfeed();
+            if (chatsContainer) chatsContainer.style.display = 'none';
+            if (newsfeedContainer) { newsfeedContainer.style.display = 'flex'; await loadNewsfeed(); }
         } else {
-            chatsContainer.style.display = 'flex';
-            newsfeedContainer.style.display = 'none';
+            if (chatsContainer) chatsContainer.style.display = 'flex';
+            if (newsfeedContainer) newsfeedContainer.style.display = 'none';
             renderChats();
         }
     }
 
     async function loadNewsfeed() {
         const container = $('newsfeed-content');
-        container.innerHTML = '<div class="empty-placeholder"><div class="loading-spinner"></div><div>Загрузка новостей...</div></div>';
-
+        if (!container) return;
+        container.innerHTML = '<div class="empty-placeholder"><div class="loading-spinner"></div><div>Загрузка...</div></div>';
         try {
             const data = await VKAPI.getNewsfeed(20);
             container.innerHTML = '';
-
             if (!data.items || data.items.length === 0) {
                 container.innerHTML = '<div class="empty-placeholder">Нет новостей</div>';
                 return;
             }
 
             const profiles = {};
-            if (data.profiles) {
-                data.profiles.forEach(p => {
-                    profiles[p.id] = { name: `${p.first_name} ${p.last_name}`, photo: p.photo_100 };
-                });
-            }
-            if (data.groups) {
-                data.groups.forEach(g => {
-                    profiles[-g.id] = { name: g.name, photo: g.photo_100 };
-                });
-            }
+            if (data.profiles) data.profiles.forEach(function(p) { profiles[p.id] = { name: p.first_name + ' ' + p.last_name, photo: p.photo_100 }; });
+            if (data.groups) data.groups.forEach(function(g) { profiles[-g.id] = { name: g.name, photo: g.photo_100 }; });
 
             for (const item of data.items) {
                 if (item.type !== 'post' || !item.text) continue;
-
                 const source = profiles[item.source_id] || { name: 'Неизвестно', photo: '' };
                 const post = document.createElement('div');
                 post.className = 'newsfeed-item';
 
                 let attachmentsHtml = '';
                 if (item.attachments) {
-                    const photos = item.attachments
-                        .filter(a => a.type === 'photo')
-                        .map(a => {
+                    const photos = [];
+                    for (const a of item.attachments) {
+                        if (a.type === 'photo') {
                             const sizes = a.photo.sizes || [];
-                            const best = sizes.reduce((b, c) => c.width > b.width ? c : b, sizes[0] || {});
-                            return best.url;
-                        }).filter(Boolean);
-
+                            let best = sizes[0] || {};
+                            for (let i = 1; i < sizes.length; i++) { if (sizes[i].width > best.width) best = sizes[i]; }
+                            if (best.url) photos.push(best.url);
+                        }
+                    }
                     if (photos.length > 0) {
-                        attachmentsHtml = `<div class="newsfeed-attachments">${photos.map(url => 
-                            `<img src="${url}" onclick="App.openImageViewer('${url}')">`
-                        ).join('')}</div>`;
+                        attachmentsHtml = '<div class="newsfeed-attachments">' + photos.map(function(url) { return '<img src="' + url + '" onclick="App.openImageViewer('' + url + '')">'; }).join('') + '</div>';
                     }
                 }
 
-                post.innerHTML = `
-                    <div class="newsfeed-header">
-                        <div class="avatar" style="${source.photo ? `background-image:url(${source.photo})` : ''}
-                             onclick="event.stopPropagation(); App.openProfile(${item.source_id}, ${item.source_id < 0});">
-                            ${source.photo ? '' : source.name[0].toUpperCase()}
-                        </div>
-                        <div>
-                            <div class="newsfeed-author">${escapeHtml(source.name)}</div>
-                            <div class="newsfeed-time">${formatDate(item.date * 1000)}</div>
-                        </div>
-                    </div>
-                    <div class="newsfeed-text">${escapeHtml(item.text)}</div>
-                    ${attachmentsHtml}
-                    <div class="newsfeed-stats">
-                        <span>❤️ ${item.likes?.count || 0}</span>
-                        <span>💬 ${item.comments?.count || 0}</span>
-                        <span>↗️ ${item.reposts?.count || 0}</span>
-                    </div>
-                `;
-
+                post.innerHTML = '<div class="newsfeed-header"><div class="avatar" style="' + (source.photo ? 'background-image:url(' + source.photo + ')' : '') + '" onclick="event.stopPropagation(); App.openProfile(' + item.source_id + ',' + (item.source_id < 0) + ');">' + (source.photo ? '' : source.name[0].toUpperCase()) + '</div><div><div class="newsfeed-author">' + escapeHtml(source.name) + '</div><div class="newsfeed-time">' + formatDate(item.date * 1000) + '</div></div></div><div class="newsfeed-text">' + escapeHtml(item.text) + '</div>' + attachmentsHtml + '<div class="newsfeed-stats"><span>❤️ ' + (item.likes ? item.likes.count : 0) + '</span><span>💬 ' + (item.comments ? item.comments.count : 0) + '</span><span>↗️ ' + (item.reposts ? item.reposts.count : 0) + '</span></div>';
                 container.appendChild(post);
             }
         } catch (e) {
-            container.innerHTML = `<div class="empty-placeholder" style="color:var(--error);">Ошибка: ${escapeHtml(e.message)}</div>`;
+            container.innerHTML = '<div class="empty-placeholder" style="color:var(--error);">Ошибка: ' + escapeHtml(e.message) + '</div>';
         }
     }
 
-    // ===== Encryption Toggle =====
+    // ===== ENCRYPTION =====
     function loadChatEncryptState(peerId) {
         const val = storage.get('chat_enc_state_' + peerId);
         return val === null ? true : val === 'true';
     }
-
-    function saveChatEncryptState(peerId, enabled) {
-        storage.set('chat_enc_state_' + peerId, enabled ? 'true' : 'false');
-    }
+    function saveChatEncryptState(peerId, enabled) { storage.set('chat_enc_state_' + peerId, enabled ? 'true' : 'false'); }
 
     function toggleCryptForCurrentChat() {
         if (!state.currentChatId) return;
-
         const isEnc = !loadChatEncryptState(state.currentChatId);
         saveChatEncryptState(state.currentChatId, isEnc);
         updateCryptButton();
-
         const chat = state.chats[state.currentChatId];
-        showToast(`Шифрование ${isEnc ? 'включено' : 'отключено'} для ${chat.name}`, isEnc ? 'success' : 'warning');
+        showToast('Шифрование ' + (isEnc ? 'включено' : 'отключено') + ' для ' + (chat ? chat.name : 'чата'), isEnc ? 'success' : 'warning');
 
-        // Update status
         const statusEl = $('active-chat-status');
-        if (isEnc) {
-            statusEl.innerHTML = '<span class="text-success">🔐 E2EE активен</span>';
-            statusEl.className = 'chat-status encrypted';
-            requestKeyExchange(state.currentChatId);
-        } else {
-            statusEl.innerHTML = '<span class="text-muted">🔓 Без шифрования</span>';
-            statusEl.className = 'chat-status not-encrypted';
+        if (statusEl) {
+            if (isEnc) {
+                statusEl.innerHTML = '<span style="color:var(--success)">🔐 E2EE активен</span>';
+                statusEl.className = 'chat-status encrypted';
+                requestKeyExchange(state.currentChatId);
+            } else {
+                statusEl.innerHTML = '<span style="color:var(--text-muted)">🔓 Без шифрования</span>';
+                statusEl.className = 'chat-status not-encrypted';
+            }
         }
-
         renderChats();
     }
 
     function updateCryptButton() {
         const btn = $('crypt-status-btn');
         if (!btn) return;
-
         const isEnc = state.currentChatId ? loadChatEncryptState(state.currentChatId) : true;
         btn.innerHTML = isEnc ? '🔒' : '🔓';
         btn.className = isEnc ? 'icon-btn active' : 'icon-btn inactive';
         btn.title = isEnc ? 'Шифрование включено' : 'Шифрование отключено';
     }
 
-    // ===== Modal Handlers =====
+    // ===== MODALS =====
     function openCryptSettings() {
         if (!state.currentChatId) return;
-
         const modal = $('crypt-settings-modal');
         const indicator = $('e2e-status-indicator');
         const text = $('e2e-status-text');
         const isE2E = Crypto.isE2EEstablished(state.currentChatId);
-
-        if (isE2E) {
-            indicator.textContent = '🔐';
-            text.textContent = 'E2EE соединение установлено';
-            text.style.color = 'var(--success)';
-        } else {
-            indicator.textContent = '⏳';
-            text.textContent = 'E2EE не установлено';
-            text.style.color = 'var(--warning)';
-        }
-
-        modal.classList.add('active');
+        if (indicator) indicator.textContent = isE2E ? '🔐' : '⏳';
+        if (text) { text.textContent = isE2E ? 'E2EE соединение установлено' : 'E2EE не установлено'; text.style.color = isE2E ? 'var(--success)' : 'var(--warning)'; }
+        if (modal) modal.classList.add('active');
     }
-
-    function closeCryptSettings() {
-        $('crypt-settings-modal').classList.remove('active');
-    }
-
+    function closeCryptSettings() { const m = $('crypt-settings-modal'); if (m) m.classList.remove('active'); }
     async function forceE2EKeyExchange() {
         if (!state.currentChatId) return;
-
-        try {
-            await requestKeyExchange(state.currentChatId);
-            showToast('E2EE запрос отправлен', 'success');
-        } catch (e) {
-            showToast('Ошибка отправки запроса', 'error');
-        }
-
+        try { await requestKeyExchange(state.currentChatId); showToast('E2EE запрос отправлен', 'success'); }
+        catch (e) { showToast('Ошибка отправки запроса', 'error'); }
         closeCryptSettings();
     }
 
-    // ===== Image Viewer =====
-    function openImageViewer(url) {
-        const modal = $('image-viewer-modal');
-        $('viewer-image').src = url;
-        modal.classList.add('active');
-    }
+    // ===== IMAGE VIEWER =====
+    function openImageViewer(url) { const m = $('image-viewer-modal'); const img = $('viewer-image'); if (img) img.src = url; if (m) m.classList.add('active'); }
+    function closeImageViewer() { const m = $('image-viewer-modal'); if (m) m.classList.remove('active'); }
 
-    function closeImageViewer() {
-        $('image-viewer-modal').classList.remove('active');
-    }
-
-    // ===== Profile =====
+    // ===== PROFILE =====
     function openProfile(id, isGroup) {
-        let url;
-        if (isGroup) {
-            url = `https://vk.com/club${Math.abs(id)}`;
-        } else {
-            url = `https://vk.com/id${id}`;
-        }
+        let url = isGroup ? 'https://vk.com/club' + Math.abs(id) : 'https://vk.com/id' + id;
         window.open(url, '_blank');
     }
 
-    // ===== File Handling =====
-    function triggerFileInput() {
-        $('file-input').click();
-    }
-
+    // ===== FILE HANDLING =====
+    function triggerFileInput() { const el = $('file-input'); if (el) el.click(); }
     function handleFileChange(event) {
-        if (event.target.files.length > 0) {
+        if (event.target.files && event.target.files.length > 0) {
             state.selectedFile = event.target.files[0];
-            $('file-name').textContent = state.selectedFile.name;
-            $('file-preview').style.display = 'flex';
+            const nameEl = $('file-name');
+            if (nameEl) nameEl.textContent = state.selectedFile.name;
+            const preview = $('file-preview');
+            if (preview) preview.style.display = 'flex';
             handleTypingEffect();
         }
     }
-
     function removeFile() {
         state.selectedFile = null;
-        $('file-input').value = '';
-        $('file-preview').style.display = 'none';
+        const input = $('file-input');
+        if (input) input.value = '';
+        const preview = $('file-preview');
+        if (preview) preview.style.display = 'none';
         handleTypingEffect();
     }
 
-    // ===== Input Handling =====
+    // ===== INPUT =====
     function handleTypingEffect() {
         const textarea = $('message-text');
         const btn = $('action-btn');
-
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-
-        if (textarea.value.trim().length > 0 || state.selectedFile) {
-            btn.innerText = '🐾';
-            btn.title = 'Отправить';
-            btn.classList.remove('voice-active');
+        if (textarea) { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'; }
+        if (!btn) return;
+        if ((textarea && textarea.value.trim().length > 0) || state.selectedFile) {
+            btn.innerText = '🐾'; btn.title = 'Отправить'; btn.classList.remove('voice-active');
         } else {
-            btn.innerText = '🎙️';
-            btn.title = 'Голосовое сообщение';
+            btn.innerText = '🎙️'; btn.title = 'Голосовое';
         }
     }
-
     async function handleActionButtonClick() {
         const textarea = $('message-text');
-        if (textarea.value.trim().length > 0 || state.selectedFile) {
-            await sendVkMessage();
-        } else {
-            await toggleVoiceRecord();
-        }
+        if ((textarea && textarea.value.trim().length > 0) || state.selectedFile) await sendVkMessage();
+        else await toggleVoiceRecord();
     }
-
-    function handleInputKey(event) {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            sendVkMessage();
-        }
-    }
-
-    function toggleEmojiPicker() {
-        const picker = $('emoji-picker');
-        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
-    }
-
+    function handleInputKey(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendVkMessage(); } }
+    function toggleEmojiPicker() { const picker = $('emoji-picker'); if (picker) picker.style.display = picker.style.display === 'none' ? 'block' : 'none'; }
     function insertEmoji(emoji) {
         const textarea = $('message-text');
+        if (!textarea) return;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const text = textarea.value;
-
         textarea.value = text.substring(0, start) + emoji + text.substring(end);
         textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
         textarea.focus();
         handleTypingEffect();
     }
 
-    // ===== Scroll Handler =====
+    // ===== SCROLL =====
     async function handleChatScroll() {
         const container = $('messages-feed');
         const chat = state.chats[state.currentChatId];
-
-        if (container.scrollTop === 0 && chat && chat.hasMoreHistory && !state.isFetchingHistory) {
+        if (!container || !chat) return;
+        if (container.scrollTop === 0 && chat.hasMoreHistory && !state.isFetchingHistory) {
             const oldHeight = container.scrollHeight;
-
             await loadChatHistory(state.currentChatId, chat.historyOffset, 50);
-
-            // Adjust scroll to prevent jumping
             const newHeight = container.scrollHeight;
             container.scrollTop = newHeight - oldHeight;
         }
     }
 
-    // ===== Back Navigation =====
+    // ===== BACK =====
     function backToSidebar() {
         document.body.classList.remove('chat-opened');
         state.currentChatId = null;
-        $('messages-feed').onscroll = null;
+        const feed = $('messages-feed');
+        if (feed) feed.onscroll = null;
         renderChats();
     }
 
-    // ===== Utilities =====
+    // ===== UTILITIES =====
     function isSystemMessage(text) {
-        return text && (text.includes('🔐 [E2EE:') || text.includes('[Ожидание E2EE') || 
-                        text.includes('❌ [Ошибка расшифровки]') || text.includes('[Устаревшее шифрование]'));
+        return text && (text.includes('🔐 [E2EE:') || text.includes('[Ожидание E2EE') || text.includes('❌ [Ошибка расшифровки]') || text.includes('[Устаревшее шифрование]'));
     }
-
     function formatMessageText(text) {
         if (!text) return '';
-
-        // Escape HTML
         let html = escapeHtml(text);
-
-        // URLs
-        html = html.replace(
-            /(https?:\/\/[^\s]+)/g, 
-            '<a href="$1" target="_blank" style="color:var(--accent-hover);text-decoration:underline;">$1</a>'
-        );
-
-        // Newlines
-        html = html.replace(/\n/g, '<br>');
-
+        html = html.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:var(--accent-hover);text-decoration:underline;">$1</a>');
+        html = html.replace(/
+/g, '<br>');
         return html;
     }
-
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-
-    function formatTime(timestamp) {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    function formatTime(ts) {
+        const d = new Date(ts);
+        return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
-
-    function formatTimeShort(timestamp) {
-        const date = new Date(timestamp);
+    function formatTimeShort(ts) {
+        const d = new Date(ts);
         const now = new Date();
-        const isToday = date.toDateString() === now.toDateString();
-
-        if (isToday) {
-            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
     }
-
-    function formatDate(timestamp) {
-        const date = new Date(timestamp);
+    function formatDate(ts) {
+        const d = new Date(ts);
         const now = new Date();
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        if (date.toDateString() === now.toDateString()) {
-            return 'Сегодня';
-        } else if (date.toDateString() === yesterday.toDateString()) {
-            return 'Вчера';
-        }
-
-        return date.toLocaleDateString('ru-RU', { 
-            day: 'numeric', 
-            month: 'long',
-            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-        });
+        const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+        if (d.toDateString() === now.toDateString()) return 'Сегодня';
+        if (d.toDateString() === yesterday.toDateString()) return 'Вчера';
+        return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
     }
-
     function saveChats() {
         try {
             const toSave = {};
-            for (const [id, chat] of Object.entries(state.chats)) {
-                toSave[id] = {
-                    id: chat.id,
-                    name: chat.name,
-                    photo: chat.photo,
-                    type: chat.type,
-                    online: chat.online,
-                    lastMessageText: chat.lastMessageText,
-                    lastMessageTime: chat.lastMessageTime,
-                    unreadCount: chat.unreadCount
-                };
+            for (const id in state.chats) {
+                const c = state.chats[id];
+                toSave[id] = { id: c.id, name: c.name, photo: c.photo, type: c.type, online: c.online, lastMessageText: c.lastMessageText, lastMessageTime: c.lastMessageTime, unreadCount: c.unreadCount };
             }
             storage.set('saved_vk_chats', JSON.stringify(toSave));
-        } catch (e) {
-            console.error('Failed to save chats:', e);
-        }
+        } catch (e) { console.error('[App] Save chats error:', e); }
     }
 
-    // ===== Public API =====
+    // ===== PUBLIC API =====
     return {
-        init,
-        tryLogin,
-        logout,
-        renderChats,
-        openChat,
-        switchTab,
-        toggleCryptForCurrentChat,
-        openCryptSettings,
-        closeCryptSettings,
-        forceE2EKeyExchange,
-        triggerFileInput,
-        handleFileChange,
-        removeFile,
-        handleTypingEffect,
-        handleActionButtonClick,
-        handleInputKey,
-        toggleEmojiPicker,
-        backToSidebar,
-        openImageViewer,
-        closeImageViewer,
-        openProfile,
-        renderMessages
+        init, tryLogin, logout, renderChats, openChat, switchTab,
+        toggleCryptForCurrentChat, openCryptSettings, closeCryptSettings, forceE2EKeyExchange,
+        triggerFileInput, handleFileChange, removeFile, handleTypingEffect,
+        handleActionButtonClick, handleInputKey, toggleEmojiPicker, backToSidebar,
+        openImageViewer, closeImageViewer, openProfile, renderMessages
     };
 })();
 
-// Initialize on load
 window.addEventListener('DOMContentLoaded', App.init);
