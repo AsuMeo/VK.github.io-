@@ -1,6 +1,5 @@
 /**
  * VK Meow Crypt - VK API Module
- * Handles all VK API calls, data fetching, and response processing
  */
 
 const VKAPI = (function() {
@@ -9,64 +8,44 @@ const VKAPI = (function() {
     let botToken = '';
     let currentUser = null;
     let isInitialized = false;
+    const API_VERSION = '5.131';  // Back to working version
 
-    // API version
-    const API_VERSION = '5.199';
-
-    // Rate limiting
-    let lastCallTime = 0;
-    const MIN_CALL_INTERVAL = 340; // ms between calls (3 req/sec max for VK)
-    const pendingCalls = [];
-    let isProcessingQueue = false;
-
-    // ===== Token Management =====
     function setToken(token) {
         botToken = token;
         isInitialized = true;
+        console.log('[VKAPI] Token set, length:', token.length);
     }
 
-    function getToken() {
-        return botToken;
-    }
+    function getToken() { return botToken; }
+    function clearToken() { botToken = ''; isInitialized = false; currentUser = null; }
+    function getUser() { return currentUser; }
 
-    function clearToken() {
-        botToken = '';
-        isInitialized = false;
-        currentUser = null;
-    }
-
-    // ===== Safe Storage =====
+    // Safe storage
     const storage = {
-        get(key) {
-            try { return localStorage.getItem(key); } catch(e) { return null; }
-        },
-        set(key, val) {
-            try { localStorage.setItem(key, val); } catch(e) {}
-        },
-        remove(key) {
-            try { localStorage.removeItem(key); } catch(e) {}
-        }
+        get(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch(e) {} },
+        remove(k) { try { localStorage.removeItem(k); } catch(e) {} }
     };
 
-    // ===== Rate Limited API Call =====
-    async function call(method, params = {}) {
-        if (!isInitialized) {
-            throw new Error('VK API not initialized');
-        }
+    // Rate limiting
+    let lastCall = 0;
+    const MIN_INTERVAL = 340;
+    const queue = [];
+    let processing = false;
+
+    async function call(method, params) {
+        if (!isInitialized) throw new Error('VK API not initialized');
 
         return new Promise((resolve, reject) => {
-            const executeCall = async () => {
+            const doCall = async () => {
                 const now = Date.now();
-                const timeSinceLast = now - lastCallTime;
-
-                if (timeSinceLast < MIN_CALL_INTERVAL) {
-                    await new Promise(r => setTimeout(r, MIN_CALL_INTERVAL - timeSinceLast));
+                if (now - lastCall < MIN_INTERVAL) {
+                    await new Promise(r => setTimeout(r, MIN_INTERVAL - (now - lastCall)));
                 }
-
-                lastCallTime = Date.now();
+                lastCall = Date.now();
 
                 try {
-                    const result = await makeJsonpCall(method, params);
+                    const result = await jsonpCall(method, params);
                     resolve(result);
                 } catch (e) {
                     reject(e);
@@ -74,80 +53,73 @@ const VKAPI = (function() {
                     processQueue();
                 }
             };
-
-            pendingCalls.push(executeCall);
-            if (!isProcessingQueue) {
-                processQueue();
-            }
+            queue.push(doCall);
+            if (!processing) processQueue();
         });
     }
 
     async function processQueue() {
-        if (isProcessingQueue || pendingCalls.length === 0) return;
-        isProcessingQueue = true;
-
-        const call = pendingCalls.shift();
+        if (processing || queue.length === 0) return;
+        processing = true;
+        const call = queue.shift();
         await call();
-
-        isProcessingQueue = false;
-        if (pendingCalls.length > 0) {
-            setTimeout(processQueue, MIN_CALL_INTERVAL);
-        }
+        processing = false;
+        if (queue.length > 0) setTimeout(processQueue, MIN_INTERVAL);
     }
 
-    // ===== JSONP Call =====
-    function makeJsonpCall(method, params) {
+    function jsonpCall(method, params) {
         return new Promise((resolve, reject) => {
-            const callbackName = 'vk_cb_' + Math.round(Math.random() * 10000000);
-
+            const cbName = 'vk_cb_' + Math.round(Math.random() * 10000000);
             params.access_token = botToken;
             params.v = API_VERSION;
-            params.callback = callbackName;
+            params.callback = cbName;
 
-            const query = Object.keys(params)
+            const qs = Object.keys(params)
                 .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
                 .join('&');
 
             const script = document.createElement('script');
-            script.src = `https://api.vk.com/method/${method}?${query}`;
+            script.src = 'https://api.vk.com/method/' + method + '?' + qs;
+
+            console.log('[VKAPI] Calling:', method);
 
             const timeout = setTimeout(() => {
                 cleanup();
-                reject(new Error('VK API timeout'));
+                reject(new Error('VK API timeout for ' + method));
             }, 30000);
 
-            window[callbackName] = (response) => {
+            window[cbName] = function(response) {
                 clearTimeout(timeout);
                 cleanup();
+                console.log('[VKAPI] Response for', method, ':', response ? 'received' : 'empty');
 
-                if (response.error) {
+                if (response && response.error) {
+                    console.error('[VKAPI] Error:', response.error);
                     reject(new Error(response.error.error_msg || 'VK API Error'));
-                } else {
+                } else if (response && response.response) {
                     resolve(response.response);
+                } else {
+                    reject(new Error('Invalid VK API response'));
                 }
             };
 
-            script.onerror = () => {
+            script.onerror = function() {
                 clearTimeout(timeout);
                 cleanup();
-                reject(new Error(`Failed to load VK API method: ${method}`));
+                reject(new Error('Failed to load script for ' + method));
             };
 
             function cleanup() {
-                delete window[callbackName];
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
+                delete window[cbName];
+                if (script.parentNode) script.parentNode.removeChild(script);
             }
 
             document.body.appendChild(script);
         });
     }
 
-    // ===== User Info =====
     async function getCurrentUser() {
         if (currentUser) return currentUser;
-
         const users = await call('users.get', { fields: 'photo_100,photo_200,online' });
         if (users && users.length > 0) {
             currentUser = users[0];
@@ -156,252 +128,100 @@ const VKAPI = (function() {
         throw new Error('Failed to get user info');
     }
 
-    function getUser() {
-        return currentUser;
-    }
-
-    // ===== Dialogs =====
-    async function getDialogs(count = 100) {
-        const data = await call('messages.getConversations', {
-            count: count,
-            extended: 1,
-            filter: 'all'
-        });
-
+    async function getDialogs(count) {
+        const data = await call('messages.getConversations', { count: count || 100, extended: 1, filter: 'all' });
         const profiles = {};
 
         if (data.profiles) {
             data.profiles.forEach(p => {
-                profiles[p.id] = {
-                    id: p.id,
-                    name: `${p.first_name} ${p.last_name}`,
-                    photo: p.photo_100,
-                    type: 'private',
-                    online: p.online === 1
-                };
+                profiles[p.id] = { name: p.first_name + ' ' + p.last_name, photo: p.photo_100, type: 'private', online: p.online === 1 };
             });
         }
-
         if (data.groups) {
             data.groups.forEach(g => {
-                profiles[-g.id] = {
-                    id: -g.id,
-                    name: g.name,
-                    photo: g.photo_100,
-                    type: 'group',
-                    online: false
-                };
+                profiles[-g.id] = { name: g.name, photo: g.photo_100, type: 'group', online: false };
             });
         }
 
         const dialogs = [];
-        for (const item of data.items || []) {
+        for (const item of (data.items || [])) {
             const peerId = item.conversation.peer.id;
-            const info = profiles[peerId] || {
-                id: peerId,
-                name: `ID ${peerId}`,
-                photo: '',
-                type: 'private',
-                online: false
-            };
-
+            const info = profiles[peerId] || { id: peerId, name: 'ID ' + peerId, photo: '', type: 'private', online: false };
             dialogs.push({
-                id: peerId,
-                name: info.name,
-                photo: info.photo,
-                type: info.type,
-                online: info.online,
-                lastMessage: item.last_message || null,
+                id: peerId, name: info.name, photo: info.photo, type: info.type,
+                online: info.online, lastMessage: item.last_message || null,
                 unreadCount: item.conversation.unread_count || 0
             });
         }
-
         return dialogs;
     }
 
-    // ===== Message History =====
-    async function getHistory(peerId, offset = 0, count = 200) {
+    async function getHistory(peerId, offset, count) {
         const data = await call('messages.getHistory', {
-            peer_id: peerId,
-            count: count,
-            offset: offset,
-            extended: 1
+            peer_id: peerId, count: count || 100, offset: offset || 0, extended: 1
         });
 
-        const messages = [];
         const profiles = {};
-
         if (data.profiles) {
-            data.profiles.forEach(p => {
-                profiles[p.id] = `${p.first_name} ${p.last_name}`;
-            });
+            data.profiles.forEach(p => { profiles[p.id] = p.first_name + ' ' + p.last_name; });
         }
 
-        for (const item of data.items || []) {
+        const messages = [];
+        for (const item of (data.items || [])) {
             messages.push({
-                id: item.id,
-                text: item.text || '',
-                rawText: item.text || '',
-                time: item.date * 1000,
-                out: item.from_id === (currentUser ? currentUser.id : 0),
-                fromId: item.from_id,
-                fromName: profiles[item.from_id] || '',
-                attachments: item.attachments || [],
-                fwdMessages: item.fwd_messages || [],
-                replyTo: item.reply_to || null
+                id: item.id, text: item.text || '', rawText: item.text || '',
+                time: item.date * 1000, out: item.from_id === (currentUser ? currentUser.id : 0),
+                fromId: item.from_id, fromName: profiles[item.from_id] || '',
+                attachments: item.attachments || []
             });
         }
-
-        return {
-            messages: messages.reverse(), // Oldest first
-            count: data.count || 0
-        };
+        return { messages: messages.reverse(), count: data.count || 0 };
     }
 
-    // ===== Send Message =====
-    async function sendMessage(peerId, text, attachment = '') {
+    async function sendMessage(peerId, text, attachment) {
         const randomId = Math.floor(Math.random() * 2000000000);
-
-        const params = {
-            peer_id: peerId,
-            random_id: randomId,
-            message: text
-        };
-
-        if (attachment) {
-            params.attachment = attachment;
-        }
-
+        const params = { peer_id: peerId, random_id: randomId, message: text };
+        if (attachment) params.attachment = attachment;
         return await call('messages.send', params);
     }
 
-    // ===== Upload File =====
     async function uploadDocument(peerId, fileBlob, fileName) {
-        // Get upload server
-        const uploadServer = await call('docs.getMessagesUploadServer', {
-            peer_id: peerId,
-            type: 'doc'
-        });
-
+        const uploadServer = await call('docs.getMessagesUploadServer', { peer_id: peerId, type: 'doc' });
         const formData = new FormData();
         formData.append('file', fileBlob, fileName);
 
-        const uploadRes = await fetch(uploadServer.upload_url, {
-            method: 'POST',
-            body: formData
-        });
+        const res = await fetch(uploadServer.upload_url, { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Upload failed: ' + res.status);
 
-        if (!uploadRes.ok) {
-            throw new Error('Upload failed: ' + uploadRes.status);
-        }
+        const uploadData = await res.json();
+        if (!uploadData.file) throw new Error('Upload failed: no file');
 
-        const uploadData = await uploadRes.json();
-
-        if (!uploadData.file) {
-            throw new Error('Upload failed: no file in response');
-        }
-
-        // Save document
-        const savedDoc = await call('docs.save', {
-            file: uploadData.file,
-            title: fileName
-        });
-
-        if (!savedDoc.doc) {
-            throw new Error('Failed to save document');
-        }
-
-        return `doc${savedDoc.doc.owner_id}_${savedDoc.doc.id}`;
+        const savedDoc = await call('docs.save', { file: uploadData.file, title: fileName });
+        if (!savedDoc.doc) throw new Error('Failed to save document');
+        return 'doc' + savedDoc.doc.owner_id + '_' + savedDoc.doc.id;
     }
 
-    // ===== Upload Photo =====
-    async function uploadPhoto(peerId, fileBlob) {
-        const uploadServer = await call('photos.getMessagesUploadServer', {
-            peer_id: peerId
-        });
-
-        const formData = new FormData();
-        formData.append('photo', fileBlob);
-
-        const uploadRes = await fetch(uploadServer.upload_url, {
-            method: 'POST',
-            body: formData
-        });
-
-        const uploadData = await uploadRes.json();
-
-        const savedPhoto = await call('photos.saveMessagesPhoto', {
-            photo: uploadData.photo,
-            server: uploadData.server,
-            hash: uploadData.hash
-        });
-
-        if (!savedPhoto || !savedPhoto.length) {
-            throw new Error('Failed to save photo');
-        }
-
-        const photo = savedPhoto[0];
-        return `photo${photo.owner_id}_${photo.id}`;
+    async function getNewsfeed(count) {
+        return await call('newsfeed.get', { count: count || 20, filters: 'post' });
     }
 
-    // ===== Newsfeed =====
-    async function getNewsfeed(count = 20) {
-        return await call('newsfeed.get', {
-            count: count,
-            filters: 'post'
-        });
-    }
-
-    // ===== Long Poll =====
-    async function getLongPollServer() {
-        return await call('messages.getLongPollServer', {
-            lp_version: 3
-        });
-    }
-
-    // ===== Mark As Read =====
     async function markAsRead(peerId) {
-        try {
-            await call('messages.markAsRead', { peer_id: peerId });
-        } catch (e) {
-            console.warn('Failed to mark as read:', e);
-        }
+        try { await call('messages.markAsRead', { peer_id: peerId }); } catch (e) {}
     }
 
-    // ===== Parse Token =====
     function parseToken(input) {
         let token = input.trim();
-
-        // Extract from URL
         if (token.includes('access_token=')) {
             const match = token.match(/access_token=([^&]+)/);
             if (match) token = match[1];
         }
-
-        // Validate token format
-        if (!token || token.length < 10) {
-            return null;
-        }
-
+        if (!token || token.length < 10) return null;
         return token;
     }
 
-    // ===== Public API =====
     return {
-        setToken,
-        getToken,
-        clearToken,
-        call,
-        getCurrentUser,
-        getUser,
-        getDialogs,
-        getHistory,
-        sendMessage,
-        uploadDocument,
-        uploadPhoto,
-        getNewsfeed,
-        getLongPollServer,
-        markAsRead,
-        parseToken
+        setToken, getToken, clearToken, getUser, getCurrentUser,
+        getDialogs, getHistory, sendMessage, uploadDocument,
+        getNewsfeed, markAsRead, parseToken
     };
 })();
