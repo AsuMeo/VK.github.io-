@@ -15,68 +15,84 @@
   <!-- Babel Standalone to compile JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <!-- Roboto Font & Material Symbols for real Telegram aesthetics -->
+  <!-- Roboto Font -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background-color: #0b0e14;
+      background-color: #05070a;
       margin: 0;
       padding: 0;
       overflow: hidden;
       color: #f5f5f5;
     }
     
-    /* Strict Mobile Viewport Optimization (No PC Version, 100% Mobile Phone layout on desktop/mobile) */
     .mobile-container {
       width: 100%;
       max-width: 480px;
       height: 100vh;
       margin: 0 auto;
-      background-color: #17212b;
+      background-color: #0b0e14;
       position: relative;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 0 32px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
+      border-left: 1px solid #1a2230;
+      border-right: 1px solid #1a2230;
     }
 
-    /* TG 2026 Ultimate Dark Chat Wallpaper Pattern */
     .tg-chat-wallpaper {
-      background-color: #0e1621;
+      background-color: #080c10;
       background-image: 
-        radial-gradient(rgba(82, 136, 193, 0.04) 1.5px, transparent 0),
-        linear-gradient(135deg, #0e1621 0%, #080c14 100%);
-      background-size: 24px 24px, 100% 100%;
+        radial-gradient(rgba(82, 136, 193, 0.03) 1.5px, transparent 0),
+        linear-gradient(180deg, #080c10 0%, #040608 100%);
+      background-size: 32px 32px, 100% 100%;
     }
 
-    /* Hide standard scrollbars yet allow smooth inertial scrolling on mobile */
     .scrollable-area {
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      flex: 1;
-      min-height: 0;
+      scrollbar-width: none; /* Firefox */
+    }
+    .scrollable-area::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
     }
 
-    /* Message Bubbles Tail effect */
     .bubble-out {
-      background-color: #2b5278;
-      border-radius: 14px 14px 0px 14px;
+      background: linear-gradient(135deg, #1e3550 0%, #172a40 100%);
+      border-radius: 16px 16px 4px 16px;
+      border: 1px solid rgba(82, 136, 193, 0.15);
     }
     .bubble-in {
-      background-color: #182533;
-      border-radius: 14px 14px 14px 0px;
+      background: linear-gradient(135deg, #161f2c 0%, #111822 100%);
+      border-radius: 16px 16px 16px 4px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
-    /* Pulse lock effect for security indicators */
-    @keyframes lock-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
+    @keyframes slide-right {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
     }
-    .security-pulse {
-      animation: lock-pulse 3s infinite;
+    .animate-slide-right {
+      animation: slide-right 0.24s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    }
+
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .animate-slide-up {
+      animation: slide-up 0.22s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    }
+
+    @keyframes pulse-secure {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.04); opacity: 0.85; }
+    }
+    .secure-indicator-pulse {
+      animation: pulse-secure 2.5s infinite ease-in-out;
     }
   </style>
 </head>
@@ -89,13 +105,13 @@
     const { useState, useEffect, useRef } = React;
 
     // Cryptographical Prefixes
-    const PREFIX_KEY_EXCHANGE = "🔑[VKTG_KEY_V2]:";
-    const PREFIX_E2EE_TEXT = "🔒[VKTG_E2EE_PFS]:";
-    const PREFIX_E2EE_FILE = "🔒[VKTG_FILE_E2EE_PFS]:";
+    const PREFIX_KEY_EXCHANGE = "🔑[VKTG_KEY_V3]:";
+    const PREFIX_E2EE_TEXT = "🔒[VKTG_E2EE_V3]:";
+    const PREFIX_E2EE_FILE = "🔒[VKTG_FILE_E2EE_V3]:";
 
     // ================= INDEXEDDB SECURITY STORAGE =================
-    const dbName = "vktg_secure_vault";
-    const storeName = "crypto_keys";
+    const dbName = "vktg_secure_vault_v3";
+    const storeName = "crypto_keys_v3";
 
     function openSecureDB() {
       return new Promise((resolve, reject) => {
@@ -144,40 +160,59 @@
       });
     }
 
-    // ================= HELPER CRYPTOGRAPHICAL FUNCTIONS =================
+    // ================= CUSTOM VECTOR SVG ICONS =================
+    const Icons = {
+      Menu: () => (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+      ),
+      Search: () => (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      ),
+      Lock: ({ className = "w-4 h-4" }) => (
+        <svg className={className} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+      ),
+      LockOpen: ({ className = "w-4 h-4" }) => (
+        <svg className={className} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+      ),
+      Send: () => (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      ),
+      Attach: () => (
+        <svg className="w-5 h-5 text-gray-400 hover:text-white transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+      ),
+      Sync: () => (
+        <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17" /></svg>
+      ),
+      Back: () => (
+        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+      ),
+      Settings: () => (
+        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      ),
+      Key: () => (
+        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-2.293 2.293a1 1 0 01-1.414 0l-1.414-1.414a1 1 0 010-1.414zM11 11a4 4 0 11-7.293-2.293 1 1 0 011.414 1.414L6.5 11.5M11 11h9a2 2 0 002-2V7a2 2 0 00-2-2h-3l-2.5 2.5L13 5" /></svg>
+      ),
+      Logout: () => (
+        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+      ),
+      Close: () => (
+        <svg className="w-5 h-5 text-gray-400 hover:text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+      ),
+      Warning: () => (
+        <svg className="w-6 h-6 text-rose-500 secure-indicator-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      ),
+      Edit: () => (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+      )
+    };
 
-    // Fix 7: PKCS#7 Padding implementation to protect against metadata size analysis
-    function padData(text, blockSize = 512) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(text);
-      const paddingLength = blockSize - (data.length % blockSize);
-      const padded = new Uint8Array(data.length + paddingLength);
-      padded.set(data);
-      padded.fill(paddingLength, data.length);
-      return padded;
-    }
+    // ================= HIGH-PERFORMANCE CRYPTO UTILS =================
 
-    function unpadData(paddedData) {
-      const paddingLength = paddedData[paddedData.length - 1];
-      if (paddingLength < 1 || paddingLength > paddedData.length) {
-        throw new Error("Неверная длина выравнивания (Padding Error).");
-      }
-      for (let i = paddedData.length - paddingLength; i < paddedData.length; i++) {
-        if (paddedData[i] !== paddingLength) {
-          throw new Error("Неверная структура выравнивания (Padding Error).");
-        }
-      }
-      const realData = paddedData.subarray(0, paddedData.length - paddingLength);
-      return new TextDecoder().decode(realData);
-    }
-
-    // Fix 5: Cryptographically strong 60-digit safety number comparison (SHA-256)
+    // Fix 5: Async SHA-256 for Safety Numbers
     async function calcSafetyNumber(myPubKeyJWKB64, peerPubKeyJWKB64) {
       try {
         const myKeyStr = atob(myPubKeyJWKB64);
         const peerKeyStr = atob(peerPubKeyJWKB64);
-        
-        // Deterministic sorting to ensure both users compute identical hashes
         const sorted = [myKeyStr, peerKeyStr].sort();
         const combined = sorted[0] + sorted[1];
         
@@ -195,12 +230,12 @@
         const groups = digits.match(/.{1,5}/g);
         return groups ? groups.join(' ') : digits;
       } catch (e) {
-        console.error("Ошибка при генерации Safety Number: ", e);
-        return "Ошибка генерации";
+        console.error("Safety number calculation failed: ", e);
+        return "ERROR GENERATING FINGERPRINT";
       }
     }
 
-    // ================= CORE APP COMPONENT =================
+    // ================= MAIN CORE APP COMPONENT =================
     function App() {
       const [token, setToken] = useState(localStorage.getItem('vk_token') || '');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -208,13 +243,13 @@
       const [tokenInput, setTokenInput] = useState('');
       const [authError, setAuthError] = useState('');
 
-      // Master password states (Fix 1.3: Prevent theft of private key via memory/localStorage)
+      // Master password & Lock (Fix 8: 600,000 PBKDF2 iterations)
       const [masterPassword, setMasterPassword] = useState('');
       const [isVaultLocked, setIsVaultLocked] = useState(true);
       const [passwordInput, setPasswordInput] = useState('');
       const [vaultError, setVaultError] = useState('');
 
-      // Navigation states
+      // Dynamic navigation & UI States
       const [activeScreen, setActiveScreen] = useState('chats'); // 'chats' | 'chat_room'
       const [activeTab, setActiveTab] = useState('all'); // 'all' | 'secret'
       const [drawerOpen, setDrawerOpen] = useState(false);
@@ -224,20 +259,21 @@
       const [safetyNumber, setSafetyNumber] = useState('');
       const [attachmentSheet, setAttachmentSheet] = useState(false);
 
-      // Data states
-      const [searchQuery, setSearchQuery] = useState('');
+      // MITM / TOFU Warnings
+      const [tofuViolation, setTofuViolation] = useState(false);
+
+      // Core secure storage state
       const [conversations, setConversations] = useState([]);
       const [messages, setMessages] = useState([]);
       const [activePartner, setActivePartner] = useState(null);
-      const [peerKeys, setPeerKeys] = useState(JSON.parse(localStorage.getItem('vktg_peer_keys') || '{}'));
+      const [peerKeys, setPeerKeys] = useState({});
       const [localContacts, setLocalContacts] = useState(JSON.parse(localStorage.getItem('vktg_contacts') || '{}'));
 
       const [targetUserId, setTargetUserId] = useState('');
       const [customName, setCustomName] = useState('');
       const [customAvatar, setCustomAvatar] = useState('');
 
-      // Crypto instances
-      const [identityKeyPair, setIdentityKeyPair] = useState(null); // Local ECDH identity key pair
+      const [identityKeyPair, setIdentityKeyPair] = useState(null);
       const [myPublicJWK, setMyPublicJWK] = useState('');
 
       const [messageInput, setMessageInput] = useState('');
@@ -252,7 +288,7 @@
         }
       }, [token]);
 
-      // Polling for new chats/messages
+      // Polling for E2EE context
       useEffect(() => {
         if (!isLoggedIn || isVaultLocked) return;
 
@@ -267,14 +303,14 @@
         return () => clearInterval(interval);
       }, [isLoggedIn, isVaultLocked, activePartner]);
 
-      // Auto scroll inside chat room
+      // Auto scroll inside chat
       useEffect(() => {
         if (messagesEndRef.current) {
           messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
       }, [messages]);
 
-      // Fix 5: Asynchronous computation of Safety Numbers on opening modal
+      // Safety number modal effect
       useEffect(() => {
         if (safetyNumberModal && activePartner && peerKeys[activePartner.id]) {
           calcSafetyNumber(myPublicJWK, peerKeys[activePartner.id]).then(setSafetyNumber);
@@ -283,7 +319,33 @@
         }
       }, [safetyNumberModal, activePartner, myPublicJWK, peerKeys]);
 
-      // JSONP VK Requester
+      // TOFU (Trust On First Use) Check
+      const checkTOFU = async (partnerId, receivedPubKeyB64) => {
+        const storedTrustedKey = await getSecureKey(`trusted_key_${partnerId}`);
+        if (!storedTrustedKey) {
+          await saveSecureKey(`trusted_key_${partnerId}`, receivedPubKeyB64);
+          setTofuViolation(false);
+          return true;
+        }
+        if (storedTrustedKey !== receivedPubKeyB64) {
+          setTofuViolation(true);
+          return false;
+        }
+        setTofuViolation(false);
+        return true;
+      };
+
+      const handleOverrideTOFU = async () => {
+        if (!activePartner) return;
+        const currentPubKey = peerKeys[activePartner.id];
+        if (currentPubKey) {
+          await saveSecureKey(`trusted_key_${activePartner.id}`, currentPubKey);
+          setTofuViolation(false);
+          alert("Новый ключ успешно авторизован! Канал снова в безопасности.");
+        }
+      };
+
+      // JSONP VK API Requester
       const vkRequest = (method, params = {}) => {
         return new Promise((resolve, reject) => {
           const callbackName = 'vk_callback_' + Math.round(1000000 * Math.random());
@@ -318,10 +380,9 @@
         });
       };
 
-      // ================= CRYPTO ENGINE (ECDH P-256 + HKDF + AES-GCM + PFS) =================
-      
-      // Derive PBKDF2 Key from Master Password to Encrypt/Decrypt Private Key
-      // Fix 8: Raised iterations count to 600000 to defend against GPU brute force attacks (NIST/OWASP benchmark)
+      // ================= CRYPTOGRAPHIC FIXED ENGINE =================
+
+      // Fix 8: Raised iterations count to 600000 to defend against GPU brute force (OWASP compliance)
       async function deriveMasterKey(password, salt) {
         const encoder = new TextEncoder();
         const baseKey = await window.crypto.subtle.importKey(
@@ -345,7 +406,6 @@
         );
       }
 
-      // Initialize or unlock Crypto Vault
       async function handleUnlockVault() {
         if (!passwordInput.trim()) {
           setVaultError("Пароль не может быть пустым!");
@@ -357,8 +417,26 @@
           const storedEncryptedPriv = await getSecureKey("encrypted_private_key");
           const storedPub = await getSecureKey("public_key_jwk");
 
+          // Sync trusted peer keys from IndexedDB cache
+          const db = await openSecureDB();
+          const tx = db.transaction(storeName, "readonly");
+          const store = tx.objectStore(storeName);
+          const cachedKeys = {};
+          
+          store.openCursor().onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              if (cursor.key.startsWith("trusted_key_")) {
+                const pId = cursor.key.replace("trusted_key_", "");
+                cachedKeys[pId] = cursor.value;
+              }
+              cursor.continue();
+            } else {
+              setPeerKeys(cachedKeys);
+            }
+          };
+
           if (!storedEncryptedPriv || !storedSalt) {
-            // Setup new vault
             const salt = window.crypto.getRandomValues(new Uint8Array(16));
             const newKeys = await window.crypto.subtle.generateKey(
               { name: "ECDH", namedCurve: "P-256" },
@@ -385,7 +463,6 @@
             setIdentityKeyPair(newKeys);
             setMyPublicJWK(btoa(JSON.stringify(pubJwk)));
           } else {
-            // Unlock existing vault
             const mKey = await deriveMasterKey(passwordInput, storedSalt);
             try {
               const decryptedPrivBytes = await window.crypto.subtle.decrypt(
@@ -414,8 +491,8 @@
         }
       }
 
-      // Base helper to encrypt arbitrary binary data with ephemeral ECDH key (PFS)
-      async function encryptDataPFS(recipientPubJWKB64, arrayBufferOrBytes) {
+      // Fix 1 & 2 & 3: W3C compliant deriveBits -> importKey -> HKDF with salt & dynamic info binding
+      async function encryptDataPFS(recipientPubJWKB64, arrayBufferOrBytes, sequenceNum) {
         const partnerJwk = JSON.parse(atob(recipientPubJWKB64));
         const partnerPublicKeyObj = await window.crypto.subtle.importKey(
           "jwk",
@@ -425,40 +502,53 @@
           []
         );
 
-        // Generate Ephemeral Key Pair for absolute PFS
+        // Generate Ephemeral Key Pair
         const ephemeralKeyPair = await window.crypto.subtle.generateKey(
           { name: "ECDH", namedCurve: "P-256" },
           true,
           ["deriveKey", "deriveBits"]
         );
 
-        // Derive Shared secret from Ephemeral Private Key + Partner's Public Identity Key
-        const derivedKey = await window.crypto.subtle.deriveKey(
+        // Fix 1: Derive RAW shared bits (deriveBits) instead of direct HMAC mapping
+        const sharedBits = await window.crypto.subtle.deriveBits(
           { name: "ECDH", public: partnerPublicKeyObj },
           ephemeralKeyPair.privateKey,
-          { name: "HMAC", hash: "SHA-256", length: 256 },
-          true,
+          256
+        );
+
+        // Import Shared Bits as raw master HKDF key material
+        const hkdfKey = await window.crypto.subtle.importKey(
+          "raw",
+          sharedBits,
+          { name: "HKDF" },
+          false,
           ["deriveKey"]
         );
 
-        // Derive actual AES-GCM Key using HKDF
-        const aesGcmKey = await window.crypto.subtle.deriveKey(
+        // Fix 2: Cryptographically secure 32-byte dynamic random Salt
+        const salt = window.crypto.getRandomValues(new Uint8Array(32));
+
+        // Fix 3: Cryptographically separate context info binding
+        const infoStr = `VKTG-v3|msg|${myProfile.id}|${activePartner.id}|${sequenceNum}`;
+        const info = new TextEncoder().encode(infoStr);
+
+        const aesKey = await window.crypto.subtle.deriveKey(
           {
             name: "HKDF",
             hash: "SHA-256",
-            salt: new Uint8Array(0),
-            info: new TextEncoder().encode("VKTG_AES_GCM_PFS_BINDING")
+            salt: salt,
+            info: info
           },
-          derivedKey,
+          hkdfKey,
           { name: "AES-GCM", length: 256 },
-          true,
+          false,
           ["encrypt", "decrypt"]
         );
 
         const iv = window.crypto.getRandomValues(new Uint8Array(12));
         const ciphertext = await window.crypto.subtle.encrypt(
           { name: "AES-GCM", iv: iv },
-          aesGcmKey,
+          aesKey,
           arrayBufferOrBytes
         );
 
@@ -467,39 +557,43 @@
         return {
           ephemeralPubJWKB64: btoa(JSON.stringify(ephemeralPubJWK)),
           ivB64: btoa(String.fromCharCode(...iv)),
+          saltB64: btoa(String.fromCharCode(...salt)),
           ciphertextBuffer: ciphertext
         };
       }
 
-      // Perform Ephemeral Perfect Forward Secrecy encryption for text
-      async function encryptPFS(recipientPubJWKB64, messageText, associatedMetadata = {}) {
-        // Fix 10: Strict monotonic sequence sequence number to completely defeat replay attacks
-        const lastSent = parseInt(localStorage.getItem('vktg_seq_sent_' + activePartner.id) || '0');
-        const seq = lastSent + 1;
-        localStorage.setItem('vktg_seq_sent_' + activePartner.id, seq.toString());
+      // Perform Ephemeral PFS encryption for Text messages
+      async function encryptPFS(recipientPubJWKB64, messageText) {
+        // Fix 9: Sequence loaded from highly secure IndexedDB
+        const savedSeq = await getSecureKey(`seq_sent_${activePartner.id}`);
+        const sequence = (savedSeq ? parseInt(savedSeq) : 0) + 1;
+        await saveSecureKey(`seq_sent_${activePartner.id}`, sequence);
 
+        // Fix 4 & 7: Add dynamically varying padding parameter inside message text payload
+        const randomPadBytes = window.crypto.getRandomValues(new Uint8Array(Math.floor(Math.random() * 128) + 16));
         const payloadData = {
           text: messageText,
           timestamp: Date.now(),
           sender_id: myProfile.id,
           recipient_id: activePartner.id,
-          sequence: seq,
-          ...associatedMetadata
+          sequence: sequence,
+          _pad: btoa(String.fromCharCode(...randomPadBytes))
         };
 
-        // Fix 7: Apply 512-byte padding block to obfuscate metadata packet size
-        const paddedBytes = padData(JSON.stringify(payloadData), 512);
-        const encrypted = await encryptDataPFS(recipientPubJWKB64, paddedBytes);
+        const payloadBytes = new TextEncoder().encode(JSON.stringify(payloadData));
+        const encrypted = await encryptDataPFS(recipientPubJWKB64, payloadBytes, sequence);
 
         return {
+          sequence,
           ephemeralPubJWKB64: encrypted.ephemeralPubJWKB64,
           ivB64: encrypted.ivB64,
+          saltB64: encrypted.saltB64,
           ciphertextB64: btoa(String.fromCharCode(...new Uint8Array(encrypted.ciphertextBuffer)))
         };
       }
 
-      // PFS Decryption logic
-      async function decryptPFS(ephemeralPubJWKB64, ivB64, ciphertextB64, item) {
+      // Decrypt incoming E2EE text messages with strict dynamic binding
+      async function decryptPFS(sequence, saltB64, ephemeralPubJWKB64, ivB64, ciphertextB64, item) {
         if (!identityKeyPair) return null;
         try {
           const partnerEphemeralJwk = JSON.parse(atob(ephemeralPubJWKB64));
@@ -511,25 +605,38 @@
             []
           );
 
-          // Compute shared secret using our Long-term Private Identity key + Partner's Ephemeral Public Key
-          const derivedKey = await window.crypto.subtle.deriveKey(
+          // Fix 1: deriveBits
+          const sharedBits = await window.crypto.subtle.deriveBits(
             { name: "ECDH", public: partnerEphemeralPublicKeyObj },
             identityKeyPair.privateKey,
-            { name: "HMAC", hash: "SHA-256", length: 256 },
-            true,
+            256
+          );
+
+          const hkdfKey = await window.crypto.subtle.importKey(
+            "raw",
+            sharedBits,
+            { name: "HKDF" },
+            false,
             ["deriveKey"]
           );
 
-          const aesGcmKey = await window.crypto.subtle.deriveKey(
+          const salt = new Uint8Array(atob(saltB64).split("").map(c => c.charCodeAt(0)));
+          const partnerId = item.from_id;
+
+          // Fix 3: Recompute context specific info using verified sequence
+          const infoStr = `VKTG-v3|msg|${partnerId}|${myProfile.id}|${sequence}`;
+          const info = new TextEncoder().encode(infoStr);
+
+          const aesKey = await window.crypto.subtle.deriveKey(
             {
               name: "HKDF",
               hash: "SHA-256",
-              salt: new Uint8Array(0),
-              info: new TextEncoder().encode("VKTG_AES_GCM_PFS_BINDING")
+              salt: salt,
+              info: info
             },
-            derivedKey,
+            hkdfKey,
             { name: "AES-GCM", length: 256 },
-            true,
+            false,
             ["encrypt", "decrypt"]
           );
 
@@ -538,36 +645,34 @@
 
           const decryptedBytes = await window.crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv },
-            aesGcmKey,
+            aesKey,
             ciphertext
           );
 
-          // Fix 7: Unpad data after successful decryption
-          const decryptedText = unpadData(new Uint8Array(decryptedBytes));
-          const payload = JSON.parse(decryptedText);
+          const payload = JSON.parse(new TextDecoder().decode(decryptedBytes));
           
-          // Anti-replay and integrity verification
           if (payload.recipient_id !== myProfile.id) {
-            return { error: "Нарушение адресации! Сообщение перехвачено или отправлено повторно." };
+            return { error: "Нарушение адресации! Сообщение заблокировано." };
           }
 
-          // Fix 10: Enforce strict monotonic sequence verification to completely eliminate replay attacks
-          const partnerId = item.from_id;
-          const lastVerifiedVkId = parseInt(localStorage.getItem(`vktg_last_verified_vk_id_${partnerId}`) || '0');
-          const lastVerifiedSeq = parseInt(localStorage.getItem(`vktg_last_verified_seq_${partnerId}`) || '0');
+          // Fix 9: Load received sequence from secure IndexedDB cache to prevent bypass
+          const lastVerifiedVkIdKey = `vktg_last_verified_vk_id_${partnerId}`;
+          const lastVerifiedSeqKey = `vktg_last_verified_seq_${partnerId}`;
+
+          const lastVerifiedVkId = parseInt(await getSecureKey(lastVerifiedVkIdKey) || '0');
+          const lastVerifiedSeq = parseInt(await getSecureKey(lastVerifiedSeqKey) || '0');
 
           if (item.id > lastVerifiedVkId) {
             if (payload.sequence <= lastVerifiedSeq) {
-              return { error: "Обнаружена атака повторного воспроизведения (Replay Attack)! Нарушена последовательность." };
+              return { error: "Обнаружена атака повторного воспроизведения (Replay Attack)!" };
             }
-            // Atomically update tracking values
-            localStorage.setItem(`vktg_last_verified_vk_id_${partnerId}`, item.id.toString());
-            localStorage.setItem(`vktg_last_verified_seq_${partnerId}`, payload.sequence.toString());
+            await saveSecureKey(lastVerifiedVkIdKey, item.id.toString());
+            await saveSecureKey(lastVerifiedSeqKey, payload.sequence.toString());
           }
 
           return payload;
         } catch (e) {
-          console.error("Дешифрование сообщения не удалось: ", e);
+          console.error("Decryption failed", e);
           return null;
         }
       }
@@ -609,23 +714,24 @@
             response.profiles.forEach(p => { profilesMap[p.id] = p; });
           }
 
-          const items = response.items.map(item => {
+          const items = [];
+          for (let item of response.items) {
             const peer = item.conversation.peer;
             let partner = profilesMap[peer.id] || { id: peer.id, first_name: `Пользователь ${peer.id}`, last_name: '' };
             if (localContacts[peer.id]) {
               partner = { ...partner, ...localContacts[peer.id] };
             }
-            return {
+            items.push({
               id: peer.id,
               partner,
               lastMessage: item.last_message,
               unreadCount: item.conversation.unread_count || 0
-            };
-          });
+            });
+          }
 
           setConversations(items);
         } catch (e) {
-          console.error("Диалоги не обновились: ", e);
+          console.error("Failed to load conversations: ", e);
         }
       };
 
@@ -642,19 +748,26 @@
 
             if (text.startsWith(PREFIX_KEY_EXCHANGE)) {
               const rawKey = text.replace(PREFIX_KEY_EXCHANGE, "").trim();
-              peerKeys[item.from_id] = rawKey;
-              localStorage.setItem('vktg_peer_keys', JSON.stringify(peerKeys));
-              payload = { isSystem: true, text: "🔑 Синхронизирована новая пара асимметричных ключей E2EE. Канал связи полностью защищен!" };
+              
+              // TOFU Check before saving keys
+              const isTrusted = await checkTOFU(item.from_id, rawKey);
+              if (isTrusted) {
+                peerKeys[item.from_id] = rawKey;
+                setPeerKeys({ ...peerKeys });
+              }
+
+              payload = { isSystem: true, text: "🔑 Синхронизирована новая пара асимметричных ключей E2EE." };
               
               if (!isMe && !localStorage.getItem(`replied_${item.from_id}`)) {
                 await sendKeyExchangeMessage(partnerId);
                 localStorage.setItem(`replied_${item.from_id}`, 'true');
               }
             } else if (text.startsWith(PREFIX_E2EE_TEXT)) {
+              // Format: PREFIX + seq + ":" + salt + ":" + ephemeralPub + ":" + iv + ":" + cipher
               const parts = text.replace(PREFIX_E2EE_TEXT, "").trim().split(":");
-              if (parts.length === 3) {
-                const [ephemeralPub, iv, cipher] = parts;
-                const decryptedData = await decryptPFS(ephemeralPub, iv, cipher, item);
+              if (parts.length === 5) {
+                const [sequence, salt, ephemeralPub, iv, cipher] = parts;
+                const decryptedData = await decryptPFS(sequence, salt, ephemeralPub, iv, cipher, item);
                 if (decryptedData) {
                   if (decryptedData.error) {
                     payload = { isError: true, text: `⚠️ ${decryptedData.error}` };
@@ -662,19 +775,20 @@
                     payload = { isText: true, text: decryptedData.text };
                   }
                 } else {
-                  payload = { isError: true, text: "🔒 Ошибка расшифрования. Возможно, у вас нет подходящего ключа." };
+                  payload = { isError: true, text: "🔒 Ошибка расшифрования." };
                 }
               }
             } else if (text.startsWith(PREFIX_E2EE_FILE)) {
+              // Format: PREFIX + seq + ":" + salt + ":" + ephemeralPub + ":" + iv + ":" + b64Name + ":" + mime
               const parts = text.replace(PREFIX_E2EE_FILE, "").trim().split(":");
-              if (parts.length >= 4) {
-                const [ephemeralPub, iv, b64Name, mime] = parts;
+              if (parts.length >= 6) {
+                const [sequence, salt, ephemeralPub, iv, b64Name, mime] = parts;
                 let docUrl = null;
                 if (item.attachments) {
                   const docObj = item.attachments.find(a => a.type === 'doc');
                   if (docObj && docObj.doc) docUrl = docObj.doc.url;
                 }
-                payload = { isFile: true, name: atob(b64Name), mime, docUrl, ephemeralPub, iv };
+                payload = { isFile: true, name: atob(b64Name), mime, docUrl, sequence, salt, ephemeralPub, iv };
               }
             }
 
@@ -690,7 +804,7 @@
 
           setMessages(decryptedMessages);
         } catch (e) {
-          console.error("Сообщения не обновились: ", e);
+          console.error("Messages failed to refresh: ", e);
         }
       };
 
@@ -708,18 +822,27 @@
         const msgText = messageInput.trim();
         if (!msgText && !attachedFile) return;
 
+        // Block outgoing messages during TOFU keys change warning
+        if (tofuViolation) {
+          alert("Действие заблокировано! Ключ собеседника изменился. Пожалуйста, подтвердите его легитимность для снятия блокировки.");
+          return;
+        }
+
         const partnerKeyB64 = peerKeys[activePartner.id];
         if (!partnerKeyB64) {
-          alert("Для защиты диалога необходимо обменяться публичными ключами! Нажмите кнопку обмена вверху.");
+          alert("Необходимо обменяться ключами E2EE!");
           return;
         }
 
         try {
           if (attachedFile) {
-            // Fix: Actually encrypt the raw file bytes using ECDH PFS instead of just metadata
-            const encryptedFile = await encryptDataPFS(partnerKeyB64, attachedFile.arrayBuffer);
+            const savedSeq = await getSecureKey(`seq_sent_${activePartner.id}`);
+            const sequence = (savedSeq ? parseInt(savedSeq) : 0) + 1;
+            await saveSecureKey(`seq_sent_${activePartner.id}`, sequence);
+
+            // Fully Encrypt file bytes (Fix PFS)
+            const encryptedFile = await encryptDataPFS(partnerKeyB64, attachedFile.arrayBuffer, sequence);
             
-            // Uploading raw encrypted binary directly to VK
             const server = await vkRequest('docs.getMessagesUploadServer', { type: 'doc', peer_id: activePartner.id });
             
             const encBlob = new Blob([encryptedFile.ciphertextBuffer], { type: 'application/octet-stream' });
@@ -734,7 +857,7 @@
             const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
 
             const b64Name = btoa(attachedFile.name);
-            const header = `${PREFIX_E2EE_FILE}${encryptedFile.ephemeralPubJWKB64}:${encryptedFile.ivB64}:${b64Name}:${attachedFile.type}`;
+            const header = `${PREFIX_E2EE_FILE}${sequence}:${encryptedFile.saltB64}:${encryptedFile.ephemeralPubJWKB64}:${encryptedFile.ivB64}:${b64Name}:${attachedFile.type}`;
 
             await vkRequest('messages.send', {
               peer_id: activePartner.id,
@@ -746,7 +869,7 @@
             setAttachedFile(null);
           } else {
             const encrypted = await encryptPFS(partnerKeyB64, msgText);
-            const payload = `${PREFIX_E2EE_TEXT}${encrypted.ephemeralPubJWKB64}:${encrypted.ivB64}:${encrypted.ciphertextB64}`;
+            const payload = `${PREFIX_E2EE_TEXT}${encrypted.sequence}:${encrypted.saltB64}:${encrypted.ephemeralPubJWKB64}:${encrypted.ivB64}:${encrypted.ciphertextB64}`;
 
             await vkRequest('messages.send', {
               peer_id: activePartner.id,
@@ -763,27 +886,95 @@
         }
       };
 
+      // Fix 10: Seamless file decryption using current decrypted identity key in memory
+      async function downloadAndDecryptFile(docUrl, sequence, saltB64, ephemeralPubJWKB64, ivB64, originalName, mimeType) {
+        if (!docUrl) {
+          alert("Документ недоступен.");
+          return;
+        }
+        if (!identityKeyPair) {
+          alert("Ошибка: Сейф не расшифрован!");
+          return;
+        }
+
+        try {
+          const response = await fetch(docUrl);
+          const encryptedBuffer = await response.arrayBuffer();
+
+          const partnerEphemeralJwk = JSON.parse(atob(ephemeralPubJWKB64));
+          const partnerEphemeralPublicKeyObj = await window.crypto.subtle.importKey(
+            "jwk",
+            partnerEphemeralJwk,
+            { name: "ECDH", namedCurve: "P-256" },
+            true,
+            []
+          );
+
+          // deriveBits
+          const sharedBits = await window.crypto.subtle.deriveBits(
+            { name: "ECDH", public: partnerEphemeralPublicKeyObj },
+            identityKeyPair.privateKey,
+            256
+          );
+
+          const hkdfKey = await window.crypto.subtle.importKey(
+            "raw",
+            sharedBits,
+            { name: "HKDF" },
+            false,
+            ["deriveKey"]
+          );
+
+          const salt = new Uint8Array(atob(saltB64).split("").map(c => c.charCodeAt(0)));
+          const infoStr = `VKTG-v3|msg|${activePartner.id}|${myProfile.id}|${sequence}`;
+          const info = new TextEncoder().encode(infoStr);
+
+          const aesKey = await window.crypto.subtle.deriveKey(
+            {
+              name: "HKDF",
+              hash: "SHA-256",
+              salt: salt,
+              info: info
+            },
+            hkdfKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"]
+          );
+
+          const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
+          const decryptedBytes = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            aesKey,
+            encryptedBuffer
+          );
+
+          const blob = new Blob([decryptedBytes], { type: mimeType });
+          const blobUrl = URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = originalName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } catch (err) {
+          alert("Ошибка расшифрования файла: " + err.message);
+        }
+      }
+
       const handleSelectChat = (partner) => {
         setActivePartner(partner);
         setActiveScreen('chat_room');
         setMessages([]);
         refreshMessages(partner.id);
-      };
-
-      const handleFileSelection = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          setAttachedFile({
-            name: file.name,
-            type: file.type || 'application/octet-stream',
-            arrayBuffer: evt.target.result
-          });
-          setAttachmentSheet(false);
-        };
-        reader.readAsArrayBuffer(file);
+        
+        // Trigger TOFU checks on chat selection
+        if (peerKeys[partner.id]) {
+          checkTOFU(partner.id, peerKeys[partner.id]);
+        } else {
+          setTofuViolation(false);
+        }
       };
 
       const handleSaveLocalProfile = () => {
@@ -831,20 +1022,6 @@
         }
       };
 
-      const handleLogout = () => {
-        if (confirm("Выйти из аккаунта? Все крипто-ключи будут удалены с устройства!")) {
-          localStorage.removeItem('vk_token');
-          deleteSecureKey("encrypted_private_key");
-          deleteSecureKey("public_key_jwk");
-          deleteSecureKey("vault_salt");
-          setToken('');
-          setIsLoggedIn(false);
-          setMyProfile(null);
-          setActivePartner(null);
-          setActiveScreen('chats');
-        }
-      };
-
       const parseToken = (input) => {
         input = input.trim();
         if (input.includes('access_token=')) {
@@ -870,42 +1047,44 @@
         return matchesQuery;
       });
 
-      // 1. MASTER PASSWORD WALL (Ensures absolute security of private keys in IndexedDB)
+      // ================= UI RENDER IMPLEMENTATION =================
+
+      // 1. MASTER PASSWORD WALL
       if (isLoggedIn && isVaultLocked) {
         return (
-          <div className="h-screen w-full flex items-center justify-center bg-[#0e1621] p-4 text-white">
-            <div className="w-full max-w-sm bg-[#17212b] rounded-2xl p-6 border border-gray-800 shadow-2xl flex flex-col items-center space-y-4">
-              <div className="w-14 h-14 bg-emerald-600/10 text-emerald-400 rounded-full flex items-center justify-center">
-                <span className="material-icons-round text-3xl">lock</span>
+          <div className="h-screen w-full flex items-center justify-center bg-[#070a0e] p-4 text-white">
+            <div className="w-full max-w-sm bg-[#0e141c] rounded-2xl p-6 border border-[#223145] shadow-2xl flex flex-col items-center space-y-5">
+              <div className="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center">
+                <Icons.Lock className="w-7 h-7" />
               </div>
               
               <div className="text-center">
-                <h2 className="text-lg font-bold">Сейф шифрования заблокирован</h2>
-                <p className="text-xs text-[#7f91a4] mt-1">
-                  Введите ваш пароль для расшифрования приватных ключей E2EE. Если вы запускаете приложение впервые — придумайте новый пароль (PBKDF2-600k).
+                <h2 className="text-lg font-bold">Сейф шифрования</h2>
+                <p className="text-xs text-[#738294] mt-2 leading-relaxed">
+                  Введите пароль для дешифрования приватных ключей E2EE. Если вы запускаете клиент впервые — придумайте новый пароль (PBKDF2-600k).
                 </p>
               </div>
 
               <input 
                 type="password"
-                placeholder="Мастер-Пароль Сейфа"
+                placeholder="Мастер-Пароль"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full bg-[#0e1621] text-sm text-white px-4 py-3 rounded-xl border border-gray-800 focus:outline-none focus:border-emerald-500 text-center"
+                className="w-full bg-[#05070a] text-sm text-white px-4 py-3 rounded-xl border border-[#1b2533] focus:outline-none focus:border-emerald-500 text-center tracking-wider transition"
               />
 
               {vaultError && (
-                <div className="text-xs text-red-400 text-center bg-red-950/20 py-1.5 px-3 rounded-lg w-full">
+                <div className="text-xs text-rose-400 text-center bg-rose-950/20 py-1.5 px-3 rounded-lg w-full border border-rose-900/30">
                   {vaultError}
                 </div>
               )}
 
               <button 
                 onClick={handleUnlockVault}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl text-xs font-bold tracking-wider transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40"
               >
-                <span className="material-icons-round text-sm">enhanced_encryption</span>
-                Разблокировать Сейф
+                <Icons.Lock className="w-4 h-4" />
+                РАЗБЛОКИРОВАТЬ
               </button>
             </div>
           </div>
@@ -915,50 +1094,50 @@
       // 2. MAIN OAUTH WALL
       if (!isLoggedIn) {
         return (
-          <div className="h-screen w-full flex items-center justify-center bg-[#0e1621] p-4 text-white">
-            <div className="w-full max-w-sm bg-[#17212b] rounded-2xl p-6 border border-gray-800 shadow-2xl flex flex-col items-center">
-              <div className="w-16 h-16 bg-[#2f6ca5] rounded-2xl flex items-center justify-center mb-4">
-                <span className="material-icons-round text-4xl">verified_user</span>
+          <div className="h-screen w-full flex items-center justify-center bg-[#070a0e] p-4 text-white">
+            <div className="w-full max-w-sm bg-[#0e141c] rounded-2xl p-6 border border-[#223145] shadow-2xl flex flex-col items-center">
+              <div className="w-16 h-16 bg-[#213043] rounded-2xl flex items-center justify-center mb-5 border border-[#304662] shadow-inner">
+                <Icons.Lock className="w-8 h-8 text-sky-400" />
               </div>
               
-              <h2 className="text-xl font-bold tracking-tight mb-1 text-center">Telegram 2026 E2EE</h2>
-              <p className="text-xs text-[#7f91a4] mb-6 text-center">Сквозное шифрование поверх безлимитного API VK</p>
+              <h2 className="text-xl font-bold tracking-tight mb-1 text-center">VKTG Messenger</h2>
+              <p className="text-xs text-[#738294] mb-6 text-center leading-relaxed">Безопасное сквозное шифрование поверх API ВКонтакте</p>
 
               <div className="w-full space-y-4">
                 <div>
-                  <label className="block text-xs text-[#7f91a4] font-semibold mb-1 uppercase tracking-wider">Шаг 1: Получите ВК Токен</label>
+                  <label className="block text-[10px] text-[#738294] font-semibold mb-1.5 uppercase tracking-wider">Шаг 1: Авторизуйтесь в ВК</label>
                   <a 
                     href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,audio,photos,video,docs,notes,pages,status,wall,groups,email,stats,notifications,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token"
                     target="_blank"
-                    className="w-full flex items-center justify-center gap-2 bg-[#2f6ca5] hover:bg-[#3d83c4] text-white py-2.5 rounded-xl font-medium text-xs transition duration-150"
+                    className="w-full flex items-center justify-center gap-2 bg-[#213043] hover:bg-[#2e435d] text-white py-3 rounded-xl font-bold text-xs border border-[#304662] transition duration-150"
                   >
-                    <span className="material-icons-round text-sm">vpn_key</span>
-                    Запросить Токен Авторизации
+                    <Icons.Key />
+                    ЗАПРОСИТЬ ТОКЕН
                   </a>
                 </div>
 
                 <div>
-                  <label className="block text-xs text-[#7f91a4] font-semibold mb-1 uppercase tracking-wider">Шаг 2: Вставьте токен или ссылку</label>
+                  <label className="block text-[10px] text-[#738294] font-semibold mb-1.5 uppercase tracking-wider">Шаг 2: Вставьте токен</label>
                   <textarea 
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                     rows={3}
                     placeholder="Вставьте ссылку oauth.vk.com/blank.html#access_token=... или токен напрямую"
-                    className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-xl border border-gray-800 focus:outline-none focus:border-[#2f6ca5] resize-none"
+                    className="w-full bg-[#05070a] text-xs text-white p-3.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500 resize-none transition"
                   />
                 </div>
               </div>
 
               <button 
                 onClick={() => checkVKSession(tokenInput)}
-                className="w-full mt-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition"
+                className="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl text-xs tracking-wider flex items-center justify-center gap-2 transition duration-150 shadow-lg shadow-emerald-950/40"
               >
-                <span className="material-icons-round text-lg">login</span>
-                Авторизоваться
+                <Icons.Send />
+                ПОДКЛЮЧИТЬСЯ
               </button>
 
               {authError && (
-                <div className="w-full mt-4 p-2.5 bg-red-950/40 border border-red-900/60 rounded-xl text-[10px] text-red-400 font-mono text-center">
+                <div className="w-full mt-4 p-3 bg-rose-950/20 border border-rose-900/40 rounded-xl text-[10px] text-rose-400 font-mono text-center leading-relaxed">
                   {authError}
                 </div>
               )}
@@ -969,58 +1148,61 @@
 
       // 3. SECURE CHATS MAIN BOARD
       return (
-        <div className="mobile-container relative">
+        <div className="mobile-container relative bg-[#080c10]">
           
           {/* CHATS SCREEN */}
           {activeScreen === 'chats' && (
             <div className="flex-1 flex flex-col overflow-hidden relative">
               
-              {/* Telegram Custom Header */}
-              <div className="bg-[#17212b] py-3.5 px-4 flex items-center justify-between shadow-md shrink-0">
+              {/* Custom Header */}
+              <div className="bg-[#0e141c] py-4 px-4 flex items-center justify-between border-b border-[#1b2533] shadow-md shrink-0">
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setDrawerOpen(true)} className="text-white">
-                    <span className="material-icons-round text-2xl">menu</span>
+                  <button onClick={() => setDrawerOpen(true)} className="text-gray-300 hover:text-white transition">
+                    <Icons.Menu />
                   </button>
-                  <span className="text-lg font-bold text-white tracking-wide">Telegram 2026</span>
+                  <span className="text-lg font-bold text-white tracking-wide">VKTG Premium</span>
                 </div>
-                <div className="flex items-center gap-4 text-white">
-                  <span className="material-icons-round text-2xl">search</span>
+                <div className="text-gray-400">
+                  <Icons.Search />
                 </div>
               </div>
 
               {/* Chat Tabs */}
-              <div className="bg-[#17212b] flex border-b border-[#0e1621] shrink-0 text-xs font-semibold uppercase tracking-wider text-[#7f91a4]">
+              <div className="bg-[#0e141c] flex border-b border-[#1b2533] shrink-0 text-xs font-semibold uppercase tracking-wider text-[#738294]">
                 <button 
                   onClick={() => setActiveTab('all')}
-                  className={`flex-1 py-3 text-center border-b-2 ${activeTab === 'all' ? 'text-[#5288c1] border-[#5288c1]' : 'border-transparent'}`}
+                  className={`flex-1 py-3 text-center border-b-2 transition ${activeTab === 'all' ? 'text-sky-400 border-sky-400 bg-white/5' : 'border-transparent hover:text-white'}`}
                 >
                   Все чаты
                 </button>
                 <button 
                   onClick={() => setActiveTab('secret')}
-                  className={`flex-1 py-3 text-center border-b-2 ${activeTab === 'secret' ? 'text-emerald-400 border-emerald-400' : 'border-transparent'}`}
+                  className={`flex-1 py-3 text-center border-b-2 transition flex items-center justify-center gap-1.5 ${activeTab === 'secret' ? 'text-emerald-400 border-emerald-400 bg-white/5' : 'border-transparent hover:text-white'}`}
                 >
-                  🔒 Защищенные
+                  <Icons.Lock className="w-3.5 h-3.5" />
+                  ЗАЩИЩЕННЫЕ
                 </button>
               </div>
 
               {/* Search Field */}
-              <div className="bg-[#17212b]/60 p-2 border-b border-[#0e1621]/80 shrink-0">
+              <div className="bg-[#0e141c]/60 p-2.5 border-b border-[#1b2533] shrink-0">
                 <input 
                   type="text" 
-                  placeholder="Поиск диалогов..."
+                  placeholder="Поиск собеседника..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#0e1621] text-xs text-white rounded-lg px-3 py-2 focus:outline-none"
+                  className="w-full bg-[#05070a] text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-none border border-transparent focus:border-[#213043] transition"
                 />
               </div>
 
               {/* Dialogues List */}
               <div className="flex-1 overflow-y-auto scrollable-area">
                 {filteredConversations.length === 0 ? (
-                  <div className="p-12 text-center text-[#7f91a4] text-xs space-y-2">
-                    <span className="material-icons-round text-4xl text-[#2b5278]">forum</span>
-                    <p>Нет активных диалогов.</p>
+                  <div className="p-12 text-center text-[#738294] text-xs space-y-3">
+                    <div className="w-12 h-12 bg-[#16212e] rounded-full flex items-center justify-center mx-auto text-sky-400">
+                      <Icons.Sync />
+                    </div>
+                    <p>Нет активных секретных диалогов.</p>
                   </div>
                 ) : (
                   filteredConversations.map(item => {
@@ -1033,7 +1215,7 @@
                     if (preview.startsWith(PREFIX_KEY_EXCHANGE)) {
                       preview = "🔑 Крипто-ключи согласованы";
                     } else if (preview.startsWith(PREFIX_E2EE_TEXT) || preview.startsWith(PREFIX_E2EE_FILE)) {
-                      preview = "🔒 Зашифрованное сообщение PFS";
+                      preview = "🔒 Зашифровано сквозным PFS";
                       isEnc = true;
                     }
 
@@ -1041,25 +1223,25 @@
                       <div 
                         key={item.id}
                         onClick={() => handleSelectChat(item.partner)}
-                        className="p-3.5 flex items-center gap-3 active:bg-[#203040] cursor-pointer transition duration-150 border-b border-[#0e1621]/30"
+                        className="p-3.5 flex items-center gap-3.5 active:bg-[#121a24] cursor-pointer transition duration-150 border-b border-[#1b2533]/40"
                       >
                         <div className="w-12 h-12 rounded-full relative shrink-0">
-                          <img src={avatar} className="w-full h-full rounded-full object-cover" />
-                          <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-[#17212b] rounded-full ${item.partner.online ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                          <img src={avatar} className="w-full h-full rounded-full object-cover border border-[#1b2533]" />
+                          <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-[#0b0e14] rounded-full ${item.partner.online ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-white truncate">{name}</span>
-                            <span className="text-[10px] text-[#7f91a4]">{time}</span>
+                            <span className="text-[10px] text-[#738294]">{time}</span>
                           </div>
-                          <p className={`text-xs ${isEnc ? 'text-emerald-400 font-semibold' : 'text-[#7f91a4]'} truncate mt-1`}>
+                          <p className={`text-xs ${isEnc ? 'text-emerald-400 font-semibold' : 'text-[#738294]'} truncate mt-1`}>
                             {preview}
                           </p>
                         </div>
 
                         {item.unreadCount > 0 && (
-                          <span className="bg-emerald-500 text-black font-bold text-[10px] px-1.5 py-0.5 rounded-full shrink-0">
+                          <span className="bg-emerald-500 text-black font-bold text-[10px] px-2 py-0.5 rounded-full shrink-0">
                             {item.unreadCount}
                           </span>
                         )}
@@ -1069,76 +1251,95 @@
                 )}
               </div>
 
-              {/* Float Action Button */}
+              {/* FAB */}
               <button 
                 onClick={() => setNewChatModal(true)}
-                className="absolute bottom-6 right-6 w-14 h-14 bg-[#5288c1] text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition z-30"
+                className="absolute bottom-6 right-6 w-14 h-14 bg-sky-600 hover:bg-sky-500 text-white rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition duration-150 z-30 shadow-sky-950/40 border border-sky-400/20"
               >
-                <span className="material-icons-round text-2xl">edit</span>
+                <Icons.Edit />
               </button>
             </div>
           )}
 
-          {/* CHAT ROOM SCREEN (Modern 2026 TG styling overhaul) */}
+          {/* CHAT ROOM SCREEN */}
           {activeScreen === 'chat_room' && activePartner && (
             <div className="flex-1 flex flex-col overflow-hidden relative tg-chat-wallpaper">
               
-              {/* Sleek Header with Partner Information */}
-              <div className="bg-[#17212b] py-3 px-4 flex items-center justify-between shadow-md shrink-0 z-10">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setActiveScreen('chats')} className="text-white p-1">
-                    <span className="material-icons-round text-2xl">arrow_back</span>
+              {/* Header Container */}
+              <div className="bg-[#0e141c] py-3.5 px-4 flex items-center justify-between border-b border-[#1b2533] shadow-md shrink-0 z-20">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => setActiveScreen('chats')} className="text-gray-300 hover:text-white p-1 transition">
+                    <Icons.Back />
                   </button>
                   
-                  {/* Dynamic Avatar */}
-                  <div className="w-10 h-10 rounded-full relative">
-                    <img src={activePartner.photo_100 || activePartner.photo} className="w-full h-full rounded-full object-cover" />
-                    <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-[#17212b] rounded-full ${activePartner.online ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                  <div className="w-10 h-10 rounded-full relative shrink-0">
+                    <img src={activePartner.photo_100 || activePartner.photo} className="w-full h-full rounded-full object-cover border border-[#1b2533]" />
+                    <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-[#0e141c] rounded-full ${activePartner.online ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
                   </div>
 
-                  {/* Interlocutor Name & Status */}
                   <div className="min-w-0">
                     <h4 className="font-bold text-sm text-white truncate max-w-[150px]">
                       {activePartner.first_name} {activePartner.last_name || ''}
                     </h4>
-                    <span className="text-[10px] text-[#7f91a4] block">
+                    <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
                       {activePartner.online ? 'в сети' : 'был(а) недавно'}
                     </span>
                   </div>
                 </div>
 
-                {/* E2EE Lock indicators */}
-                <div className="flex items-center gap-2">
+                {/* Secure Badge Actions */}
+                <div className="flex items-center gap-2 shrink-0">
                   <div 
                     onClick={() => setSafetyNumberModal(true)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold cursor-pointer transition security-pulse ${peerKeys[activePartner.id] ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-500'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold cursor-pointer transition duration-150 ${peerKeys[activePartner.id] ? (tofuViolation ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30') : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'}`}
                   >
-                    <span className="material-icons-round text-xs">
-                      {peerKeys[activePartner.id] ? 'lock' : 'lock_open'}
-                    </span>
-                    <span>{peerKeys[activePartner.id] ? 'E2EE' : 'Нет ключа'}</span>
+                    {peerKeys[activePartner.id] ? (tofuViolation ? <Icons.Warning className="w-3.5 h-3.5" /> : <Icons.Lock className="w-3 h-3" />) : <Icons.LockOpen className="w-3.5 h-3.5" />}
+                    <span>{peerKeys[activePartner.id] ? (tofuViolation ? 'MITM WARNING' : 'E2EE СЕЙФ') : 'НЕТ КЛЮЧА'}</span>
                   </div>
 
                   <button 
                     onClick={() => {
                       sendKeyExchangeMessage(activePartner.id);
-                      alert("Обмен публичными крипто-ключами инициирован!");
+                      alert("Обмен публичными ключами запущен!");
                     }}
-                    className="p-1.5 text-blue-400 active:text-blue-300"
-                    title="Запросить обмен ключами"
+                    className="p-1.5 hover:bg-white/5 rounded-full transition"
+                    title="Синхронизировать ключи"
                   >
-                    <span className="material-icons-round text-xl">sync</span>
+                    <Icons.Sync />
                   </button>
                 </div>
               </div>
 
-              {/* Messages container */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 flex flex-col scrollable-area">
+              {/* TOFU VIOLATION DANGER ALERT */}
+              {tofuViolation && (
+                <div className="bg-rose-950/90 border-b border-rose-800/60 p-3 flex flex-col items-center gap-2 z-10 text-center animate-slide-up">
+                  <div className="flex items-center gap-2">
+                    <Icons.Warning className="w-5 h-5 text-rose-400" />
+                    <span className="text-xs font-bold text-rose-300">КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ КЛЮЧА (Возможен перехват MITM)</span>
+                  </div>
+                  <p className="text-[10px] text-rose-200 max-w-sm">
+                    Публичный ключ шифрования собеседника изменился по сравнению с сохраненным ранее. 
+                  </p>
+                  <button 
+                    onClick={handleOverrideTOFU}
+                    className="bg-rose-700 hover:bg-rose-600 text-white font-bold text-[10px] px-4 py-1.5 rounded-lg transition"
+                  >
+                    Доверять новому ключу
+                  </button>
+                </div>
+              )}
+
+              {/* Messages viewport */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col scrollable-area">
                 {messages.length === 0 ? (
-                  <div className="m-auto text-center max-w-[260px] bg-black/45 p-4 rounded-2xl border border-white/5 space-y-2">
-                    <span className="material-icons-round text-3xl text-emerald-400">lock</span>
-                    <h5 className="text-xs font-bold text-white">Сквозное шифрование PFS</h5>
-                    <p className="text-[10px] text-[#7f91a4]">Все ваши сообщения надежно маскируются и шифруются одноразовыми сессионными ключами AES-256-GCM. Прослушивание на сервере ВК полностью исключено.</p>
+                  <div className="m-auto text-center max-w-[280px] bg-black/50 p-5 rounded-2xl border border-white/5 space-y-3 backdrop-blur-md">
+                    <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+                      <Icons.Lock className="w-5 h-5" />
+                    </div>
+                    <h5 className="text-xs font-bold text-white uppercase tracking-wider">Защищенный PFS Сейф</h5>
+                    <p className="text-[10px] text-[#738294] leading-relaxed">
+                      Все данные шифруются на базе протокола ECDH P-256 + HKDF SHA256. Взломать переписку через сервера VK невозможно.
+                    </p>
                   </div>
                 ) : (
                   messages.slice().reverse().map(msg => {
@@ -1146,7 +1347,7 @@
                     
                     if (msg.decrypted && msg.decrypted.isSystem) {
                       return (
-                        <div key={msg.id} className="mx-auto my-1.5 bg-[#182533]/90 text-[10px] text-emerald-400 border border-emerald-900/30 px-3 py-1.5 rounded-xl text-center max-w-[280px]">
+                        <div key={msg.id} className="mx-auto my-1 bg-[#101721] text-[10px] text-emerald-400 border border-emerald-950/80 px-4 py-1.5 rounded-full text-center max-w-[320px] font-medium tracking-wide">
                           {msg.decrypted.text}
                         </div>
                       );
@@ -1157,39 +1358,38 @@
                     return (
                       <div 
                         key={msg.id} 
-                        className={`max-w-[85%] p-3 shadow-md border border-white/5 ${bubbleClass} text-white space-y-1`}
+                        className={`max-w-[85%] p-3 shadow-xl ${bubbleClass} text-white space-y-1`}
                       >
                         {msg.decrypted ? (
                           msg.decrypted.isText ? (
                             <p className="text-xs leading-relaxed break-words">{msg.decrypted.text}</p>
                           ) : msg.decrypted.isFile ? (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2 bg-black/20 p-2 rounded-lg">
-                                <span className="material-icons-round text-blue-400 text-lg">insert_drive_file</span>
+                              <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+                                <Icons.Key />
                                 <div className="min-w-0">
                                   <p className="text-[11px] font-bold truncate text-white">{msg.decrypted.name}</p>
-                                  <p className="text-[9px] text-[#7f91a4] truncate">{msg.decrypted.mime}</p>
+                                  <p className="text-[9px] text-[#738294] truncate">{msg.decrypted.mime}</p>
                                 </div>
                               </div>
                               <button 
-                                onClick={() => downloadAndDecryptFile(msg.decrypted.docUrl, msg.decrypted.ephemeralPub, msg.decrypted.iv, msg.decrypted.name, msg.decrypted.mime)}
-                                className="w-full py-1.5 bg-[#5288c1] text-[10px] font-bold rounded-lg flex items-center justify-center gap-1"
+                                onClick={() => downloadAndDecryptFile(msg.decrypted.docUrl, msg.decrypted.sequence, msg.decrypted.salt, msg.decrypted.ephemeralPub, msg.decrypted.iv, msg.decrypted.name, msg.decrypted.mime)}
+                                className="w-full py-2 bg-[#5288c1] hover:bg-[#3d83c4] text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition"
                               >
-                                <span className="material-icons-round text-sm">download_for_offline</span>
-                                Скачать файл напрямую
+                                Скачать файл
                               </button>
                             </div>
                           ) : (
-                            <p className="text-xs text-red-400">{msg.decrypted.text}</p>
+                            <p className="text-xs text-rose-400 font-bold">{msg.decrypted.text}</p>
                           )
                         ) : (
                           <p className="text-xs leading-relaxed break-words">{msg.rawText}</p>
                         )}
 
-                        <div className="flex items-center justify-end gap-1 text-[9px] text-white/50">
-                          {msg.decrypted && <span className="material-icons-round text-[10px] text-emerald-400">lock</span>}
+                        <div className="flex items-center justify-end gap-1.5 text-[9px] text-white/40 pt-0.5">
+                          {msg.decrypted && <Icons.Lock className="w-3 h-3 text-emerald-400" />}
                           <span>{timeStr}</span>
-                          {msg.isMe && <span className="material-icons-round text-[10px] text-emerald-400">done_all</span>}
+                          {msg.isMe && <span className="text-emerald-400">✓✓</span>}
                         </div>
                       </div>
                     );
@@ -1199,44 +1399,44 @@
               </div>
 
               {/* Message Input Box */}
-              <div className="p-2 bg-[#17212b] border-t border-[#0e1621] shrink-0 space-y-2 z-10">
+              <div className="p-3 bg-[#0e141c] border-t border-[#1b2533] shrink-0 space-y-2.5 z-10">
                 
                 {attachedFile && (
-                  <div className="flex items-center justify-between bg-[#0e1621] p-2 rounded-xl text-xs border border-white/5">
+                  <div className="flex items-center justify-between bg-[#05070a] p-2.5 rounded-xl text-xs border border-[#1b2533]">
                     <div className="flex items-center gap-2">
-                      <span className="material-icons-round text-blue-400">attachment</span>
+                      <Icons.Attach />
                       <span className="truncate max-w-[200px] text-white text-[11px]">{attachedFile.name}</span>
                     </div>
-                    <button onClick={() => setAttachedFile(null)} className="text-red-400 p-0.5">
-                      <span className="material-icons-round text-sm">cancel</span>
+                    <button onClick={() => setAttachedFile(null)} className="text-rose-400 p-1">
+                      <Icons.Close />
                     </button>
                   </div>
                 )}
 
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 bg-[#0e1621] rounded-2xl flex items-end px-3 py-2 border border-white/5">
+                <div className="flex items-end gap-2.5">
+                  <div className="flex-1 bg-[#05070a] rounded-2xl flex items-end px-3 py-2 border border-[#1b2533]">
                     
                     <button 
                       onClick={() => setAttachmentSheet(true)}
-                      className="text-[#7f91a4] hover:text-white p-1"
+                      className="p-1 text-gray-400 hover:text-white transition"
                     >
-                      <span className="material-icons-round text-xl">attach_file</span>
+                      <Icons.Attach />
                     </button>
 
                     <textarea 
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder="Сообщение..."
+                      placeholder="Написать зашифрованное сообщение..."
                       rows={1}
-                      className="flex-1 bg-transparent border-0 outline-none text-xs text-white max-h-24 resize-none px-2 py-1 placeholder-[#7f91a4] focus:ring-0"
+                      className="flex-1 bg-transparent border-0 outline-none text-xs text-white max-h-24 resize-none px-2 py-1 placeholder-gray-500 focus:ring-0"
                     />
                   </div>
 
                   <button 
                     onClick={handleSendMessage}
-                    className="w-10 h-10 bg-[#5288c1] hover:bg-[#3d83c4] text-white rounded-full flex items-center justify-center shrink-0 active:scale-95 transition"
+                    className="w-10 h-10 bg-sky-600 hover:bg-sky-500 text-white rounded-full flex items-center justify-center shrink-0 active:scale-95 transition duration-150 border border-sky-400/20"
                   >
-                    <span className="material-icons-round text-lg">send</span>
+                    <Icons.Send />
                   </button>
                 </div>
               </div>
@@ -1245,29 +1445,29 @@
 
           {/* ================= ANDROID DRAWER MENU ================= */}
           {drawerOpen && (
-            <div className="absolute inset-0 bg-black/60 z-50 flex">
-              <div className="w-[80%] max-w-[300px] bg-[#17212b] h-full flex flex-col shadow-2xl relative animate-slide-right">
+            <div className="absolute inset-0 bg-black/75 z-50 flex">
+              <div className="w-[80%] max-w-[300px] bg-[#0e141c] h-full flex flex-col border-r border-[#1c2a3d] shadow-2xl relative animate-slide-right">
                 
-                {/* Banner */}
-                <div className="bg-[#1c2a38] p-5 space-y-3">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-600">
+                {/* Drawer Header Banner */}
+                <div className="bg-[#121b26] p-5 space-y-3.5 border-b border-[#1c2a3d]">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-sky-950 border-2 border-sky-500/25">
                     <img src={customAvatar || (myProfile && myProfile.photo_100)} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-sm truncate">
                       {customName || (myProfile && `${myProfile.first_name} ${myProfile.last_name}`)}
                     </h3>
-                    <p className="text-xs text-[#7f91a4] truncate">ID: {myProfile && myProfile.id}</p>
+                    <p className="text-xs text-emerald-400 font-semibold truncate mt-0.5">VK ID: {myProfile && myProfile.id}</p>
                   </div>
                 </div>
 
-                {/* Navigation */}
+                {/* Navigation Options */}
                 <div className="flex-1 py-4 overflow-y-auto space-y-1">
                   <div 
                     onClick={() => { setDrawerOpen(false); setSettingsOpen(true); }}
-                    className="flex items-center gap-5 px-5 py-3 text-white text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer"
+                    className="flex items-center gap-4 px-5 py-3.5 text-gray-300 text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer transition"
                   >
-                    <span className="material-icons-round text-[#7f91a4]">settings</span>
+                    <Icons.Settings />
                     Настройки профиля
                   </div>
 
@@ -1281,23 +1481,23 @@
                         dl.click();
                       }
                     }}
-                    className="flex items-center gap-5 px-5 py-3 text-white text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer"
+                    className="flex items-center gap-4 px-5 py-3.5 text-gray-300 text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer transition"
                   >
-                    <span className="material-icons-round text-[#7f91a4]">vpn_key</span>
+                    <Icons.Key />
                     Резервная копия ключей
                   </div>
 
                   <div 
                     onClick={handleLogout}
-                    className="flex items-center gap-5 px-5 py-3 text-red-400 text-xs font-semibold hover:bg-red-950/20 active:bg-red-950/30 cursor-pointer"
+                    className="flex items-center gap-4 px-5 py-3.5 text-rose-400 text-xs font-semibold hover:bg-rose-950/20 active:bg-rose-950/30 cursor-pointer transition border-t border-[#1b2533]/40"
                   >
-                    <span className="material-icons-round text-red-400">exit_to_app</span>
-                    Выход из профиля
+                    <Icons.Logout />
+                    Выйти из аккаунта
                   </div>
                 </div>
 
-                <div className="p-4 border-t border-[#0e1621] text-center text-[10px] text-[#7f91a4]">
-                  Telegram 2026 Mobile VK E2EE v2.5
+                <div className="p-4 border-t border-[#1b2533]/80 text-center text-[10px] text-gray-500 font-medium">
+                  VKTG Mobile v3.0 Ultimate PFS
                 </div>
 
               </div>
@@ -1307,147 +1507,146 @@
 
           {/* ================= PROFILE SETTINGS MODAL ================= */}
           {settingsOpen && (
-            <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#17212b] w-full max-w-sm rounded-2xl p-5 border border-white/5 space-y-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-[#0e1621] pb-2">
-                  <h3 className="font-bold text-white text-sm">Профиль и Настройки</h3>
-                  <button onClick={() => setSettingsOpen(false)} className="text-[#7f91a4]">
-                    <span className="material-icons-round text-xl">close</span>
+            <div className="absolute inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-[#0e141c] w-full max-w-sm rounded-2xl p-5 border border-[#1b2533] space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-[#1b2533] pb-2">
+                  <h3 className="font-bold text-white text-sm">Профиль</h3>
+                  <button onClick={() => setSettingsOpen(false)} className="text-gray-400 p-1">
+                    <Icons.Close />
                   </button>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Ваш Локальный Профиль</h4>
                   <div>
-                    <label className="block text-[10px] text-[#7f91a4] mb-1">Отображаемое имя в приложении</label>
+                    <label className="block text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Никнейм</label>
                     <input 
                       type="text" 
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
-                      className="w-full bg-[#0e1621] text-xs text-white p-2.5 rounded-lg border border-white/5 focus:outline-none"
+                      className="w-full bg-[#05070a] text-xs text-white p-3 rounded-xl border border-[#1b2533] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-[#7f91a4] mb-1">Ссылка на кастомную аватарку (URL)</label>
+                    <label className="block text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Кастомный аватар (URL)</label>
                     <input 
                       type="text" 
                       value={customAvatar}
                       onChange={(e) => setCustomAvatar(e.target.value)}
-                      className="w-full bg-[#0e1621] text-xs text-white p-2.5 rounded-lg border border-white/5 focus:outline-none"
+                      className="w-full bg-[#05070a] text-xs text-white p-3 rounded-xl border border-[#1b2533] focus:outline-none"
                     />
                   </div>
                   <button 
                     onClick={handleSaveLocalProfile}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg"
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition mt-2"
                   >
-                    Сохранить изменения
+                    СОХРАНИТЬ ИЗМЕНЕНИЯ
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ================= NEW CHAT ACTION MODAL ================= */}
+          {/* ================= NEW CHAT MODAL ================= */}
           {newChatModal && (
-            <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#17212b] w-full max-w-sm rounded-2xl p-5 border border-white/5 space-y-4">
-                <div className="flex items-center justify-between border-b border-[#0e1621] pb-2">
-                  <h3 className="font-bold text-white text-sm">Новый защищенный чат</h3>
-                  <button onClick={() => setNewChatModal(false)} className="text-[#7f91a4]">
-                    <span className="material-icons-round text-xl">close</span>
+            <div className="absolute inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-[#0e141c] w-full max-w-sm rounded-2xl p-5 border border-[#1b2533] space-y-4">
+                <div className="flex items-center justify-between border-b border-[#1b2533] pb-2">
+                  <h3 className="font-bold text-white text-sm">Новый чат E2EE</h3>
+                  <button onClick={() => setNewChatModal(false)} className="text-gray-400 p-1">
+                    <Icons.Close />
                   </button>
                 </div>
 
-                <p className="text-[11px] text-[#7f91a4] leading-tight">
-                  Введите цифровой ID пользователя ВКонтакте, с которым планируете начать переписку.
+                <p className="text-[11px] text-[#738294] leading-relaxed">
+                  Введите цифровой ID аккаунта ВКонтакте, чтобы открыть прямой зашифрованный чат.
                 </p>
 
                 <div>
-                  <label className="block text-[10px] text-[#7f91a4] mb-1">ID пользователя VK</label>
+                  <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-wider">ID пользователя VK</label>
                   <input 
                     type="number" 
                     value={targetUserId}
                     onChange={(e) => setTargetUserId(e.target.value)}
                     placeholder="Например: 12345678"
-                    className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-lg border border-white/5 focus:outline-none"
+                    className="w-full bg-[#05070a] text-xs text-white p-3.5 rounded-xl border border-[#1b2533] focus:outline-none"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 text-xs">
+                <div className="flex justify-end gap-2 text-xs pt-2">
                   <button 
                     onClick={() => setNewChatModal(false)}
-                    className="px-4 py-2 bg-transparent hover:bg-white/5 text-[#7f91a4] rounded-lg"
+                    className="px-4 py-2 text-gray-400 hover:bg-white/5 rounded-lg transition"
                   >
                     Отмена
                   </button>
                   <button 
                     onClick={handleStartNewChat}
-                    className="px-4 py-2 bg-[#5288c1] hover:bg-[#3d83c4] text-white font-bold rounded-lg"
+                    className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition"
                   >
-                    Начать
+                    ОТКРЫТЬ
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ================= SAFETY NUMBERS MODAL (FIX 5: Strong 60-digit comparison) ================= */}
+          {/* ================= SAFETY NUMBERS MODAL ================= */}
           {safetyNumberModal && activePartner && (
-            <div className="absolute inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#17212b] w-full max-w-sm rounded-2xl p-5 border border-emerald-950 text-center space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-[#0e1621]">
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                    <span className="material-icons-round text-sm">security</span>
-                    Числовой Код Безопасности
+            <div className="absolute inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-[#0e141c] w-full max-w-sm rounded-2xl p-5 border border-emerald-950 text-center space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-[#1b2533]">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                    <Icons.Lock className="w-3.5 h-3.5" />
+                    ВЕРИФИКАЦИЯ КАНАЛА
                   </span>
-                  <button onClick={() => setSafetyNumberModal(false)} className="text-[#7f91a4]">
-                    <span className="material-icons-round text-lg">close</span>
+                  <button onClick={() => setSafetyNumberModal(false)} className="text-gray-400 p-1">
+                    <Icons.Close />
                   </button>
                 </div>
 
-                <p className="text-[11px] text-[#7f91a4] leading-relaxed">
-                  Чтобы исключить атаку посредника (MITM), сравните эти числа с числами на экране собеседника {activePartner.first_name}. Если они идентичны — ваш канал абсолютно защищен.
+                <p className="text-[11px] text-[#738294] leading-relaxed">
+                  Для предотвращения атак перехвата сравните эти 60 чисел с числами на экране собеседника {activePartner.first_name}:
                 </p>
 
-                <div className="bg-[#0e1621] p-4 rounded-xl border border-white/5 font-mono text-xs text-emerald-400 tracking-wider break-words leading-relaxed select-all">
+                <div className="bg-[#05070a] p-4 rounded-xl border border-[#1b2533] font-mono text-xs text-emerald-400 tracking-widest break-words leading-relaxed select-all">
                   {safetyNumber}
                 </div>
 
-                <div className="text-[9px] text-gray-400 leading-tight">
-                  Протокол: ECDH (P-256) + HKDF-SHA256 + Ephemeral Session key.
+                <div className="text-[9px] text-gray-500 leading-relaxed">
+                  Протокол: ECDH (P-256) + HKDF-SHA256 Extract-and-Expand + AES-GCM 256.
                 </div>
               </div>
             </div>
           )}
 
-          {/* ================= FILE ATTACHMENT BOTTOM SHEET ================= */}
+          {/* ================= ATTACHMENT BOTTOM SHEET ================= */}
           {attachmentSheet && (
-            <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end">
+            <div className="absolute inset-0 bg-black/75 z-50 flex flex-col justify-end">
               <div onClick={() => setAttachmentSheet(false)} className="flex-1 w-full"></div>
               
-              <div className="bg-[#17212b] rounded-t-3xl p-5 space-y-4 shadow-2xl relative animate-slide-up">
-                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2"></div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider text-center">Прикрепить защищенный файл</h4>
+              <div className="bg-[#0e141c] rounded-t-3xl p-5 space-y-4 border-t border-[#1b2533] shadow-2xl relative animate-slide-up">
+                <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-1"></div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider text-center">Зашифровать файл PFS</h4>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <label className="flex flex-col items-center justify-center p-4 bg-[#0e1621] hover:bg-[#203040] rounded-xl cursor-pointer border border-white/5 space-y-1">
-                    <span className="material-icons-round text-2xl text-emerald-400">image</span>
-                    <span className="text-[10px] text-white">Галерея</span>
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <label className="flex flex-col items-center justify-center p-4 bg-[#05070a] hover:bg-[#121822] rounded-xl cursor-pointer border border-[#1b2533] space-y-1.5 transition">
+                    <span className="text-emerald-400"><Icons.Edit /></span>
+                    <span className="text-[10px] text-white font-semibold">Изображения</span>
                     <input type="file" onChange={handleFileSelection} className="hidden" accept="image/*,video/*" />
                   </label>
 
-                  <label className="flex flex-col items-center justify-center p-4 bg-[#0e1621] hover:bg-[#203040] rounded-xl cursor-pointer border border-white/5 space-y-1">
-                    <span className="material-icons-round text-2xl text-blue-400">insert_drive_file</span>
-                    <span className="text-[10px] text-white">Файл</span>
+                  <label className="flex flex-col items-center justify-center p-4 bg-[#05070a] hover:bg-[#121822] rounded-xl cursor-pointer border border-[#1b2533] space-y-1.5 transition">
+                    <span className="text-sky-400"><Icons.Key /></span>
+                    <span className="text-[10px] text-white font-semibold">Документы</span>
                     <input type="file" onChange={handleFileSelection} className="hidden" />
                   </label>
                 </div>
 
                 <button 
                   onClick={() => setAttachmentSheet(false)}
-                  className="w-full py-2.5 bg-red-900/30 text-red-400 text-xs font-bold rounded-xl"
+                  className="w-full py-3 bg-[#1b2533] hover:bg-[#28384d] text-white text-xs font-bold rounded-xl transition"
                 >
-                  Отмена
+                  ОТМЕНА
                 </button>
               </div>
             </div>
@@ -1455,97 +1654,6 @@
 
         </div>
       );
-    }
-
-    // Direct direct-download bypass decryption
-    async function downloadAndDecryptFile(docUrl, ephemeralPubJWKB64, ivB64, originalName, mimeType) {
-      if (!docUrl) {
-        alert("Документ недоступен. Проверьте права доступа.");
-        return;
-      }
-
-      try {
-        const response = await fetch(docUrl);
-        const encryptedBuffer = await response.arrayBuffer();
-        
-        // Retrieve Long-term identity keys from IndexedDB
-        const storedPub = await getSecureKey("public_key_jwk");
-        const storedEncryptedPriv = await getSecureKey("encrypted_private_key");
-        const storedSalt = await getSecureKey("vault_salt");
-
-        // Request Master password once to decrypt key (or use prompt if memory is clean)
-        const password = prompt("Введите ваш Мастер-пароль для расшифрования этого файла:");
-        if (!password) return;
-
-        // Derive pbkdf2 key (Fix 8: Raised iterations count to 600000)
-        const encoder = new TextEncoder();
-        const baseKey = await window.crypto.subtle.importKey("raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]);
-        const mKey = await window.crypto.subtle.deriveKey(
-          { name: "PBKDF2", salt: storedSalt, iterations: 600000, hash: "SHA-256" },
-          baseKey,
-          { name: "AES-GCM", length: 256 },
-          false,
-          ["decrypt"]
-        );
-
-        const decryptedPrivBytes = await window.crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: storedEncryptedPriv.iv },
-          mKey,
-          storedEncryptedPriv.ciphertext
-        );
-        const privJwk = JSON.parse(new TextDecoder().decode(decryptedPrivBytes));
-        const privateKeyObj = await window.crypto.subtle.importKey("jwk", privJwk, { name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey", "deriveBits"]);
-
-        // Derive PFS key for decryption
-        const partnerEphemeralJwk = JSON.parse(atob(ephemeralPubJWKB64));
-        const partnerEphemeralPublicKeyObj = await window.crypto.subtle.importKey(
-          "jwk",
-          partnerEphemeralJwk,
-          { name: "ECDH", namedCurve: "P-256" },
-          true,
-          []
-        );
-
-        const derivedKey = await window.crypto.subtle.deriveKey(
-          { name: "ECDH", public: partnerEphemeralPublicKeyObj },
-          privateKeyObj,
-          { name: "HMAC", hash: "SHA-256", length: 256 },
-          true,
-          ["deriveKey"]
-        );
-
-        const aesGcmKey = await window.crypto.subtle.deriveKey(
-          {
-            name: "HKDF",
-            hash: "SHA-256",
-            salt: new Uint8Array(0),
-            info: new TextEncoder().encode("VKTG_AES_GCM_PFS_BINDING")
-          },
-          derivedKey,
-          { name: "AES-GCM", length: 256 },
-          true,
-          ["encrypt", "decrypt"]
-        );
-
-        const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
-        const decryptedBytes = await window.crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: iv },
-          aesGcmKey,
-          encryptedBuffer
-        );
-
-        const blob = new Blob([decryptedBytes], { type: mimeType });
-        const blobUrl = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = originalName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (err) {
-        alert("Ошибка дешифрования файла. Убедитесь, что вы ввели верный Мастер-пароль.");
-      }
     }
 
     function formatTimestamp(timestamp) {
