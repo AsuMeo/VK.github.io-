@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VK Secure Messenger (E2EE)</title>
+  <title>VK-TG Ultra Secure Messenger (E2EE)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1269,96 +1269,80 @@
           // 2. Шифрование массива байтов (локально)
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
 
-          // 3. Безопасная сериализация шифртекста в Base64 для передачи через VK Docs
-          const encryptedBase64Str = arrayBufferToBase64(encryptedFile.ciphertextBuffer);
+          // 3. Упаковываем шифртекст + метаданные в бинарный payload
+          const ivBytes = new Uint8Array(atob(encryptedFile.ivB64).split("").map(c => c.charCodeAt(0)));
+          const cipherBytes = new Uint8Array(encryptedFile.ciphertextBuffer);
+          const filenameBytes = new TextEncoder().encode(filename);
+          const mimeBytes = new TextEncoder().encode(mimeType);
 
-          // 4. Запрос сервера загрузки
-          const server = await vkRequest('docs.getMessagesUploadServer', { 
-              type: 'doc', 
-              peer_id: activePartner.id 
-          });
+          const payload = new Uint8Array(
+            4 + ivBytes.length + 
+            4 + cipherBytes.length + 
+            4 + filenameBytes.length +
+            4 + mimeBytes.length
+          );
 
-          // 5. CORS FIX: Upload через скрытую форму + iframe (GitHub Pages workaround)
-          const uploadUrl = server.upload_url;
+          let offset = 0;
+          new DataView(payload.buffer).setUint32(offset, ivBytes.length, true); offset += 4;
+          payload.set(ivBytes, offset); offset += ivBytes.length;
+          new DataView(payload.buffer).setUint32(offset, cipherBytes.length, true); offset += 4;
+          payload.set(cipherBytes, offset); offset += cipherBytes.length;
+          new DataView(payload.buffer).setUint32(offset, filenameBytes.length, true); offset += 4;
+          payload.set(filenameBytes, offset); offset += filenameBytes.length;
+          new DataView(payload.buffer).setUint32(offset, mimeBytes.length, true); offset += 4;
+          payload.set(mimeBytes, offset);
 
-          // Создаем скрытый iframe для получения ответа
-          const iframeName = 'vk_upload_iframe_' + Date.now();
-          const iframe = document.createElement('iframe');
-          iframe.name = iframeName;
-          iframe.style.display = 'none';
-          document.body.appendChild(iframe);
+          // 4. Встраиваем payload в PNG через стеганографию (LSB)
+          const totalPixelsNeeded = Math.ceil(payload.length / 4) + 1;
+          const imgWidth = Math.ceil(Math.sqrt(totalPixelsNeeded));
+          const imgHeight = Math.ceil(totalPixelsNeeded / imgWidth);
 
-          // Создаем форму для multipart upload
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = uploadUrl;
-          form.target = iframeName;
-          form.enctype = 'multipart/form-data';
-          form.style.display = 'none';
+          const canvas = document.createElement('canvas');
+          canvas.width = imgWidth;
+          canvas.height = imgHeight;
+          const ctx = canvas.getContext('2d');
+          const imgData = ctx.createImageData(imgWidth, imgHeight);
+          const data = imgData.data;
 
-          // Создаем Blob и File для формы
-          const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
-          const file = new File([transportBlob], 'payload.txt', { type: 'text/plain' });
+          // Записываем размер payload в первые 4 байта
+          new DataView(data.buffer).setUint32(0, payload.length, true);
 
-          // Создаем input[type=file] с данными через DataTransfer
-          const dt = new DataTransfer();
-          dt.items.add(file);
-          const fileInput = document.createElement('input');
-          fileInput.type = 'file';
-          fileInput.name = 'file';
-          fileInput.files = dt.files;
-          form.appendChild(fileInput);
-
-          document.body.appendChild(form);
-
-          // Отправляем и ждем ответа
-          const uploadResult = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error('Upload timeout'));
-            }, 30000);
-
-            iframe.onload = () => {
-              clearTimeout(timeout);
-              try {
-                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                const responseText = iframeDoc.body.innerText || iframeDoc.body.textContent;
-                resolve(responseText);
-              } catch (e) {
-                reject(new Error('Cannot read iframe response: ' + e.message));
-              }
-            };
-
-            iframe.onerror = () => {
-              clearTimeout(timeout);
-              reject(new Error('Iframe load error'));
-            };
-
-            form.submit();
-          });
-
-          // Чистим DOM
-          document.body.removeChild(form);
-          document.body.removeChild(iframe);
-
-          // Парсим ответ
-          let uploadData;
-          try {
-            uploadData = JSON.parse(uploadResult);
-          } catch (e) {
-            throw new Error('Invalid upload response: ' + uploadResult);
+          // Записываем payload
+          for (let i = 0; i < payload.length; i++) {
+            data[i + 4] = payload[i];
           }
 
-          // 6. Фиксация документа в системе ВК
-          const saved = await vkRequest('docs.save', { 
-              file: uploadData.file, 
-              title: filename || 'encrypted_media.bin' 
+          // Заполняем шумом
+          for (let i = payload.length + 4; i < data.length; i++) {
+            data[i] = Math.floor(Math.random() * 256);
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+
+          const pngBlob = await new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/png');
           });
 
-          // Получение ID аттачмента
-          const docObj = saved.doc || saved[0];
-          const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
+          // 5. Загрузка через photos API (CORS работает!)
+          const server = await vkRequest('photos.getMessagesUploadServer', { peer_id: activePartner.id });
 
-          // 7. Отправка мета-сообщения (управляющий сигнал)
+          const formData = new FormData();
+          formData.append('photo', pngBlob, 'stego.png');
+
+          const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
+          const uploadData = await uploadResp.json();
+
+          // 6. Сохраняем фото
+          const saved = await vkRequest('photos.saveMessagesPhoto', { 
+            photo: uploadData.photo,
+            server: uploadData.server,
+            hash: uploadData.hash
+          });
+
+          const photoObj = saved[0];
+          const attachStr = `photo${photoObj.owner_id}_${photoObj.id}`;
+
+          // 7. Мета-сообщение
           const b64Name = btoa(filename);
           const header = `${PREFIX_E2EE_FILE}${sequence}:${encryptedFile.ivB64}:${b64Name}:${mimeType}`;
 
@@ -1370,7 +1354,7 @@
           });
 
           await refreshMessages(activePartner.id);
-          alert("Зашифрованный файл успешно отправлен!");
+          alert("Файл спрятан в фото и отправлен!");
         } catch (e) {
           console.error(e);
           alert("Ошибка отправки: " + e.message);
