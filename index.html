@@ -211,7 +211,7 @@
         <svg className={className} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
       ),
       Send: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 09 9 0 0118 0z" /></svg>
       ),
       Attach: () => (
         <svg className="w-5 h-5 text-gray-400 hover:text-white transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
@@ -295,7 +295,6 @@
           const payloadBytes = new TextEncoder().encode(textPayload);
           const totalLength = payloadBytes.length;
           
-          // Header: 4 bytes for length prefix
           const buffer = new Uint8Array(4 + totalLength);
           buffer[0] = (totalLength >> 24) & 0xFF;
           buffer[1] = (totalLength >> 16) & 0xFF;
@@ -304,7 +303,7 @@
           buffer.set(payloadBytes, 4);
 
           const totalBits = buffer.length * 8;
-          if (totalBits > (data.length * 3) / 4) { // Each pixel can hold 3 bits (R,G,B)
+          if (totalBits > (data.length * 3) / 4) {
             reject(new Error("Картинка слишком мала для скрытия ключа!"));
             return;
           }
@@ -314,9 +313,9 @@
           let pixelIdx = 0;
 
           while (bitPtr < totalBits) {
-            const jump = Math.floor(prng() * 4) + 1; // Pseudo-random pixel jumping
+            const jump = Math.floor(prng() * 4) + 1;
             pixelIdx += jump;
-            const channel = Math.floor(prng() * 3); // Modify R, G or B (never Alpha)
+            const channel = Math.floor(prng() * 3);
             
             const dataIdx = (pixelIdx * 4) + channel;
             if (dataIdx >= data.length) {
@@ -356,7 +355,6 @@
           const prng = getPRNG(seedString);
           let pixelIdx = 0;
 
-          // Extract 4 bytes header
           const headerBuffer = new Uint8Array(4);
           let bitPtr = 0;
           while (bitPtr < 32) {
@@ -376,12 +374,11 @@
           }
 
           const payloadLength = (headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3];
-          if (payloadLength <= 0 || payloadLength > 100000) { // Max 100KB payload
+          if (payloadLength <= 0 || payloadLength > 100000) {
             reject(new Error("Ключ не найден. Проверьте правильность ID (Seed) или целостность картинки."));
             return;
           }
 
-          // Extract actual payload bytes
           const payloadBuffer = new Uint8Array(payloadLength);
           let payloadBitPtr = 0;
           const totalPayloadBits = payloadLength * 8;
@@ -438,8 +435,9 @@
       const [safetyNumber, setSafetyNumber] = useState('');
       const [attachmentSheet, setAttachmentSheet] = useState(false);
 
-      // MITM / TOFU Warnings
+      // MITM / TOFU Warnings & Dismiss State (FIXED FLICKERING)
       const [tofuViolation, setTofuViolation] = useState(false);
+      const [dismissedTofu, setDismissedTofu] = useState({}); // Stores { partnerId: keyB64 }
 
       // Core secure storage state
       const [conversations, setConversations] = useState([]);
@@ -531,6 +529,36 @@
         }
       }, [activeScreen, activePartner?.id]);
 
+      // UI FIX: Robust, flicker-free TOFU state observer
+      useEffect(() => {
+        if (!activePartner) {
+          setTofuViolation(false);
+          return;
+        }
+
+        const verifyActiveTOFU = async () => {
+          const currentKey = peerKeys[activePartner.id];
+          if (!currentKey) {
+            setTofuViolation(false);
+            return;
+          }
+
+          const storedTrustedKey = await getSecureKey(`trusted_key_${activePartner.id}`);
+          if (storedTrustedKey && storedTrustedKey !== currentKey) {
+            // Check if user has already dismissed this specific offending key
+            if (dismissedTofu[activePartner.id] === currentKey) {
+              setTofuViolation(false);
+            } else {
+              setTofuViolation(true);
+            }
+          } else {
+            setTofuViolation(false);
+          }
+        };
+
+        verifyActiveTOFU();
+      }, [activePartner?.id, peerKeys, dismissedTofu]);
+
       // RENDER QR CODE (Your Public Key)
       useEffect(() => {
         if (oobModalOpen && oobTab === 'qr' && myPublicJWK && qrGenContainerRef.current) {
@@ -585,7 +613,6 @@
             if (code) {
               const decodedKey = code.data;
               try {
-                // Check if it's a valid JWK by verifying base64/JSON structure
                 JSON.parse(atob(decodedKey));
                 handleImportPeerKeyDirect(decodedKey);
                 stopCamera();
@@ -620,7 +647,6 @@
       const handleImportPeerKeyDirect = async (scannedKeyB64) => {
         if (!activePartner) return;
         try {
-          // Double verify valid JWK
           JSON.parse(atob(scannedKeyB64));
           
           await saveSecureKey(`trusted_key_${activePartner.id}`, scannedKeyB64);
@@ -659,19 +685,16 @@
         reader.readAsDataURL(file);
       };
 
-      // TOFU (Trust On First Use) Check
+      // Pure cryptographical TOFU logic (No side-effects to UI states)
       const checkTOFU = async (partnerId, receivedPubKeyB64) => {
         const storedTrustedKey = await getSecureKey(`trusted_key_${partnerId}`);
         if (!storedTrustedKey) {
           await saveSecureKey(`trusted_key_${partnerId}`, receivedPubKeyB64);
-          setTofuViolation(false);
           return true;
         }
         if (storedTrustedKey !== receivedPubKeyB64) {
-          setTofuViolation(true);
           return false;
         }
-        setTofuViolation(false);
         return true;
       };
 
@@ -685,39 +708,16 @@
         }
       };
 
-      // JSONP VK API Requester
-      const vkRequest = (method, params = {}) => {
-        return new Promise((resolve, reject) => {
-          const callbackName = 'vk_callback_' + Math.round(1000000 * Math.random());
-          params.access_token = token || localStorage.getItem('vk_token');
-          params.v = '5.131';
-          params.callback = callbackName;
-
-          const queryString = Object.keys(params)
-            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
-            .join('&');
-
-          const script = document.createElement('script');
-          script.src = `https://api.vk.com/method/${method}?${queryString}`;
-
-          window[callbackName] = function(data) {
-            delete window[callbackName];
-            document.body.removeChild(script);
-            if (data.error) {
-              reject(data.error);
-            } else {
-              resolve(data.response);
-            }
-          };
-
-          script.onerror = function() {
-            delete window[callbackName];
-            document.body.removeChild(script);
-            reject({ error_msg: 'Сетевая ошибка API VK.' });
-          };
-
-          document.body.appendChild(script);
-        });
+      const handleDismissTOFU = () => {
+        if (!activePartner) return;
+        const offendingKey = peerKeys[activePartner.id];
+        if (offendingKey) {
+          setDismissedTofu(prev => ({
+            ...prev,
+            [activePartner.id]: offendingKey
+          }));
+          setTofuViolation(false);
+        }
       };
 
       // ================= CRYPTOGRAPHIC ADVANCED ENGINE (HASH-CHAIN RATCHET) =================
@@ -761,10 +761,8 @@
         );
       }
 
-      // FIX for self-chat: make info string canonical and independent of isSending
       async function deriveRatchetMessageKey(initialSharedSecret, sequenceNum, myId, peerId) {
         const salt = new TextEncoder().encode(`ratchet-salt-${Math.min(myId, peerId)}`);
-        // Canonical info string for the conversation and message sequence
         const info = new TextEncoder().encode(`vktg-msg-chain|${Math.min(myId, peerId)}|${Math.max(myId, peerId)}|${sequenceNum}`);
         
         const rawSecretKey = await window.crypto.subtle.importKey(
@@ -909,7 +907,6 @@
       async function encryptDataPFS(recipientPubJWKB64, arrayBufferOrBytes, sequenceNum) {
         if (!identityKeyPair || !myProfile) throw new Error("Ключ шифрования не разблокирован или профиль не загружен.");
         const sharedBits = await computeSharedSecret(recipientPubJWKB64, identityKeyPair.privateKey);
-        // Pass myProfile.id and activePartner.id to derive a canonical key
         const aesKey = await deriveRatchetMessageKey(sharedBits, sequenceNum, myProfile.id, activePartner.id);
 
         const iv = window.crypto.getRandomValues(new Uint8Array(12));
@@ -958,7 +955,6 @@
           if (!partnerKeyB64) return null;
 
           const sharedBits = await computeSharedSecret(partnerKeyB64, identityKeyPair.privateKey);
-          // Pass myProfile.id and partnerId to derive a canonical key
           const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), myProfile.id, partnerId);
 
           const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
@@ -1071,6 +1067,9 @@
               
               const isTrusted = await checkTOFU(item.from_id, rawKey);
               if (isTrusted) {
+                peerKeys[item.from_id] = rawKey;
+                setPeerKeys({ ...peerKeys });
+              } else {
                 peerKeys[item.from_id] = rawKey;
                 setPeerKeys({ ...peerKeys });
               }
@@ -1250,12 +1249,6 @@
         setActiveScreen('chat_room');
         setMessages([]);
         refreshMessages(partner.id);
-        
-        if (peerKeys[partner.id]) {
-          checkTOFU(partner.id, peerKeys[partner.id]);
-        } else {
-          setTofuViolation(false);
-        }
       };
 
       const handleSaveLocalProfile = () => {
@@ -1362,7 +1355,6 @@
           alert("Ошибка: профиль не загружен или ключи не готовы.");
           return;
         }
-        // Use a canonical seed for steganography based on both IDs for consistency
         const seed = stegoCustomSeed.trim() || String(Math.min(myProfile.id, activePartner.id)) + String(Math.max(myProfile.id, activePartner.id));
         try {
           const outPngUrl = await embedKeyInImage(stegoBaseImg, myPublicJWK, seed);
@@ -1393,7 +1385,6 @@
           alert("Ошибка: профиль не загружен.");
           return;
         }
-        // Use a canonical seed for steganography based on both IDs for consistency
         const seed = stegoExtractSeed.trim() || String(Math.min(myProfile.id, activePartner.id)) + String(Math.max(myProfile.id, activePartner.id));
         try {
           const extractedKey = await extractKeyFromImage(stegoExtractImg, seed);
@@ -1685,22 +1676,37 @@
                 </div>
               </div>
 
-              {/* TOFU VIOLATION DANGER ALERT */}
+              {/* TOFU VIOLATION DANGER ALERT (FIXED: Static banner with dismiss action) */}
               {tofuViolation && (
-                <div className="bg-rose-950/90 border-b border-rose-800/60 p-3 flex flex-col items-center gap-2 z-10 text-center animate-slide-up">
+                <div className="bg-rose-950/95 border-b border-rose-800/60 p-4 flex flex-col items-center gap-3.5 z-10 text-center animate-slide-up relative shrink-0 shadow-lg">
+                  <button 
+                    onClick={handleDismissTOFU}
+                    className="absolute top-2.5 right-2.5 text-rose-300 hover:text-white p-1 rounded-full hover:bg-rose-900/40 transition"
+                    title="Закрыть"
+                  >
+                    <Icons.Close />
+                  </button>
                   <div className="flex items-center gap-2">
                     <Icons.Warning className="w-5 h-5 text-rose-400" />
                     <span className="text-xs font-bold text-rose-300">КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ КЛЮЧА (Возможен перехват MITM)</span>
                   </div>
-                  <p className="text-[10px] text-rose-200 max-w-sm">
+                  <p className="text-[10px] text-rose-200 max-w-sm leading-relaxed px-5">
                     Публичный ключ шифрования собеседника изменился по сравнению с сохраненным ранее. 
                   </p>
-                  <button 
-                    onClick={handleOverrideTOFU}
-                    className="bg-rose-700 hover:bg-rose-600 text-white font-bold text-[10px] px-4 py-1.5 rounded-lg transition"
-                  >
-                    Доверять новому ключу
-                  </button>
+                  <div className="flex gap-2 w-full max-w-xs">
+                    <button 
+                      onClick={handleOverrideTOFU}
+                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg transition"
+                    >
+                      Доверять новому ключу
+                    </button>
+                    <button 
+                      onClick={handleDismissTOFU}
+                      className="px-4 py-2 bg-rose-900 hover:bg-rose-800 text-rose-100 font-bold text-[10px] rounded-lg transition"
+                    >
+                      Игнорировать
+                    </button>
+                  </div>
                 </div>
               )}
 
