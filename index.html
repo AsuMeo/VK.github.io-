@@ -304,7 +304,7 @@
           buffer.set(payloadBytes, 4);
 
           const totalBits = buffer.length * 8;
-          if (totalBits > (data.length * 3) / 4) {
+          if (totalBits > (data.length * 3) / 4) { // Each pixel can hold 3 bits (R,G,B)
             reject(new Error("Картинка слишком мала для скрытия ключа!"));
             return;
           }
@@ -376,7 +376,7 @@
           }
 
           const payloadLength = (headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3];
-          if (payloadLength <= 0 || payloadLength > 100000) {
+          if (payloadLength <= 0 || payloadLength > 100000) { // Max 100KB payload
             reject(new Error("Ключ не найден. Проверьте правильность ID (Seed) или целостность картинки."));
             return;
           }
@@ -645,7 +645,7 @@
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imgData.data, imgData.width, imgData.height);
             if (code) {
@@ -761,9 +761,11 @@
         );
       }
 
-      async function deriveRatchetMessageKey(initialSharedSecret, sequenceNum, isSending, partnerId) {
-        const salt = new TextEncoder().encode(`ratchet-salt-${partnerId}`);
-        const info = new TextEncoder().encode(isSending ? "sending-chain" : "receiving-chain");
+      // FIX for self-chat: make info string canonical and independent of isSending
+      async function deriveRatchetMessageKey(initialSharedSecret, sequenceNum, myId, peerId) {
+        const salt = new TextEncoder().encode(`ratchet-salt-${Math.min(myId, peerId)}`);
+        // Canonical info string for the conversation and message sequence
+        const info = new TextEncoder().encode(`vktg-msg-chain|${Math.min(myId, peerId)}|${Math.max(myId, peerId)}|${sequenceNum}`);
         
         const rawSecretKey = await window.crypto.subtle.importKey(
           "raw",
@@ -905,9 +907,10 @@
       }
 
       async function encryptDataPFS(recipientPubJWKB64, arrayBufferOrBytes, sequenceNum) {
-        if (!identityKeyPair) throw new Error("Ключ шифрования не разблокирован.");
+        if (!identityKeyPair || !myProfile) throw new Error("Ключ шифрования не разблокирован или профиль не загружен.");
         const sharedBits = await computeSharedSecret(recipientPubJWKB64, identityKeyPair.privateKey);
-        const aesKey = await deriveRatchetMessageKey(sharedBits, sequenceNum, true, activePartner.id);
+        // Pass myProfile.id and activePartner.id to derive a canonical key
+        const aesKey = await deriveRatchetMessageKey(sharedBits, sequenceNum, myProfile.id, activePartner.id);
 
         const iv = window.crypto.getRandomValues(new Uint8Array(12));
         const ciphertext = await window.crypto.subtle.encrypt(
@@ -948,14 +951,15 @@
       }
 
       async function decryptPFS(sequence, ivB64, ciphertextB64, item) {
-        if (!identityKeyPair) return null;
+        if (!identityKeyPair || !myProfile) return null;
         try {
           const partnerId = item.from_id;
           const partnerKeyB64 = peerKeys[partnerId];
           if (!partnerKeyB64) return null;
 
           const sharedBits = await computeSharedSecret(partnerKeyB64, identityKeyPair.privateKey);
-          const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), false, partnerId);
+          // Pass myProfile.id and partnerId to derive a canonical key
+          const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), myProfile.id, partnerId);
 
           const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
           const ciphertext = new Uint8Array(atob(ciphertextB64).split("").map(c => c.charCodeAt(0)));
@@ -1202,8 +1206,8 @@
           alert("Документ недоступен.");
           return;
         }
-        if (!identityKeyPair) {
-          alert("Ошибка: Сейф не расшифрован!");
+        if (!identityKeyPair || !myProfile) {
+          alert("Ошибка: Сейф не расшифрован или профиль не загружен!");
           return;
         }
 
@@ -1218,7 +1222,7 @@
           }
 
           const sharedBits = await computeSharedSecret(partnerKeyB64, identityKeyPair.privateKey);
-          const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), false, activePartner.id);
+          const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), myProfile.id, activePartner.id);
 
           const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
           const decryptedBytes = await window.crypto.subtle.decrypt(
@@ -1239,7 +1243,7 @@
         } catch (err) {
           alert("Ошибка расшифрования файла: " + err.message);
         }
-      }
+      };
 
       const handleSelectChat = (partner) => {
         setActivePartner(partner);
@@ -1354,7 +1358,12 @@
           alert("Загрузите исходную картинку-контейнер!");
           return;
         }
-        const seed = stegoCustomSeed.trim() || String(activePartner.id);
+        if (!myProfile || !myPublicJWK || !activePartner) {
+          alert("Ошибка: профиль не загружен или ключи не готовы.");
+          return;
+        }
+        // Use a canonical seed for steganography based on both IDs for consistency
+        const seed = stegoCustomSeed.trim() || String(Math.min(myProfile.id, activePartner.id)) + String(Math.max(myProfile.id, activePartner.id));
         try {
           const outPngUrl = await embedKeyInImage(stegoBaseImg, myPublicJWK, seed);
           setGeneratedStegoUrl(outPngUrl);
@@ -1380,13 +1389,18 @@
           alert("Загрузите полученную картинку-контейнер!");
           return;
         }
-        const seed = stegoExtractSeed.trim() || String(activePartner.id);
+        if (!myProfile || !activePartner) {
+          alert("Ошибка: профиль не загружен.");
+          return;
+        }
+        // Use a canonical seed for steganography based on both IDs for consistency
+        const seed = stegoExtractSeed.trim() || String(Math.min(myProfile.id, activePartner.id)) + String(Math.max(myProfile.id, activePartner.id));
         try {
           const extractedKey = await extractKeyFromImage(stegoExtractImg, seed);
           handleImportPeerKeyDirect(extractedKey);
           alert("Ключ успешно извлечен из пикселей и импортирован!");
         } catch (e) {
-          alert("Не удалось извлечь ключ: " + e.message + "\nУбедитесь, что ID (Seed) указан верно и картинка отправлена без сжатия.");
+          alert("Не удалось извлечь ключ: " + e.message + "\nУбедитесь, что ID (Seed) указан верно или картинка не повреждена (например, сжатием).");
         }
       };
 
@@ -1901,7 +1915,7 @@
                           <label className="block text-[10px] text-[#738294] uppercase tracking-wider font-semibold mb-1">Криптографический Seed (Необязательно)</label>
                           <input 
                             type="text" 
-                            placeholder={`По умолчанию: VK ID (${activePartner.id})`}
+                            placeholder={`По умолчанию: ID беседы (${activePartner ? `${Math.min(myProfile.id, activePartner.id)}|${Math.max(myProfile.id, activePartner.id)}` : 'нужен чат'})`}
                             value={stegoCustomSeed}
                             onChange={(e) => setStegoCustomSeed(e.target.value)}
                             className="w-full bg-[#0b0e14] text-xs text-white p-2.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-emerald-500"
@@ -1943,7 +1957,7 @@
                           <label className="block text-[10px] text-[#738294] uppercase tracking-wider font-semibold mb-1">Криптографический Seed (Необязательно)</label>
                           <input 
                             type="text" 
-                            placeholder={`По умолчанию: VK ID (${activePartner.id})`}
+                            placeholder={`По умолчанию: ID беседы (${activePartner ? `${Math.min(myProfile.id, activePartner.id)}|${Math.max(myProfile.id, activePartner.id)}` : 'нужен чат'})`}
                             value={stegoExtractSeed}
                             onChange={(e) => setStegoExtractSeed(e.target.value)}
                             className="w-full bg-[#0b0e14] text-xs text-white p-2.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500"
