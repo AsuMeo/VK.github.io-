@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VK Meow</title>
+  <title>VK-TG Ultra Secure Messenger (E2EE)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -553,32 +553,18 @@
       );
     }
 
-    // ================= MAIN CORE APP COMPONENT =================
     
-    // ================= SERVICE WORKER (CORS PROXY) =================
+    // ================= SERVICE WORKER REGISTRATION =================
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
-        self.addEventListener('fetch', event => {
-          const url = new URL(event.request.url);
-          // Проксируем запросы к VK upload серверам
-          if (url.hostname.includes('vk.com') || url.hostname.includes('vk.ru') || url.hostname.includes('vkuser')) {
-            event.respondWith(
-              fetch(event.request, { 
-                mode: 'cors',
-                credentials: 'omit'
-              }).catch(err => {
-                return new Response(JSON.stringify({error: err.message}), {
-                  status: 500,
-                  headers: {'Content-Type': 'application/json'}
-                });
-              })
-            );
-          }
-        });
-      `)).then(reg => console.log('SW registered')).catch(err => console.error('SW error:', err));
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.error('SW registration failed:', err));
+      });
     }
 
-function App() {
+// ================= MAIN CORE APP COMPONENT =================
+    function App() {
       const [token, setToken] = useState(localStorage.getItem('vk_token') || '');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [myProfile, setMyProfile] = useState(null);
@@ -1299,18 +1285,14 @@ function App() {
               peer_id: activePartner.id 
           });
 
-          // 3. Загрузка через Service Worker прокси
+          // 3. Загрузка через Service Worker (обход CORS)
           const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
           const formData = new FormData();
           formData.append('file', transportBlob, 'payload.txt');
 
-          // Используем Service Worker для проксирования (обход CORS)
           const uploadResp = await fetch(server.upload_url, { 
             method: 'POST', 
-            body: formData,
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest'
-            }
+            body: formData
           });
 
           if (!uploadResp.ok) {
@@ -1320,7 +1302,7 @@ function App() {
 
           const uploadData = await uploadResp.json();
 
-          // 4. Сохранение документа через vk.ru
+          // 4. Сохранение документа
           const saved = await vkRequest('docs.save', { 
               file: uploadData.file, 
               title: filename || 'encrypted_media.bin' 
