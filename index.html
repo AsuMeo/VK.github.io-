@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VK-TG Ultra Secure Messenger (E2EE)</title>
+  <title>VK Meow</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -554,7 +554,31 @@
     }
 
     // ================= MAIN CORE APP COMPONENT =================
-    function App() {
+    
+    // ================= SERVICE WORKER (CORS PROXY) =================
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
+        self.addEventListener('fetch', event => {
+          const url = new URL(event.request.url);
+          // Проксируем запросы к VK upload серверам
+          if (url.hostname.includes('vk.com') || url.hostname.includes('vk.ru') || url.hostname.includes('vkuser')) {
+            event.respondWith(
+              fetch(event.request, { 
+                mode: 'cors',
+                credentials: 'omit'
+              }).catch(err => {
+                return new Response(JSON.stringify({error: err.message}), {
+                  status: 500,
+                  headers: {'Content-Type': 'application/json'}
+                });
+              })
+            );
+          }
+        });
+      `)).then(reg => console.log('SW registered')).catch(err => console.error('SW error:', err));
+    }
+
+function App() {
       const [token, setToken] = useState(localStorage.getItem('vk_token') || '');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [myProfile, setMyProfile] = useState(null);
@@ -823,7 +847,7 @@
             .join('&');
 
           const script = document.createElement('script');
-          script.src = `https://api.vk.com/method/${method}?${queryString}`;
+          script.src = `https://api.vk.ru/method/${method}?${queryString}`;
 
           window[callbackName] = function(data) {
             delete window[callbackName];
@@ -1261,88 +1285,51 @@
         }
 
         try {
-          // 1. Инкремент счетчика для Perfect Forward Secrecy
           const savedSeq = await getSecureKey(`seq_sent_${activePartner.id}`);
           const sequence = (savedSeq ? parseInt(savedSeq) : 0) + 1;
           await saveSecureKey(`seq_sent_${activePartner.id}`, sequence);
 
-          // 2. Шифрование массива байтов (локально)
+          // 1. Шифрование
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
+          const encryptedBase64Str = arrayBufferToBase64(encryptedFile.ciphertextBuffer);
 
-          // 3. Упаковываем шифртекст + метаданные в бинарный payload
-          const ivBytes = new Uint8Array(atob(encryptedFile.ivB64).split("").map(c => c.charCodeAt(0)));
-          const cipherBytes = new Uint8Array(encryptedFile.ciphertextBuffer);
-          const filenameBytes = new TextEncoder().encode(filename);
-          const mimeBytes = new TextEncoder().encode(mimeType);
-
-          const payload = new Uint8Array(
-            4 + ivBytes.length + 
-            4 + cipherBytes.length + 
-            4 + filenameBytes.length +
-            4 + mimeBytes.length
-          );
-
-          let offset = 0;
-          new DataView(payload.buffer).setUint32(offset, ivBytes.length, true); offset += 4;
-          payload.set(ivBytes, offset); offset += ivBytes.length;
-          new DataView(payload.buffer).setUint32(offset, cipherBytes.length, true); offset += 4;
-          payload.set(cipherBytes, offset); offset += cipherBytes.length;
-          new DataView(payload.buffer).setUint32(offset, filenameBytes.length, true); offset += 4;
-          payload.set(filenameBytes, offset); offset += filenameBytes.length;
-          new DataView(payload.buffer).setUint32(offset, mimeBytes.length, true); offset += 4;
-          payload.set(mimeBytes, offset);
-
-          // 4. Встраиваем payload в PNG через стеганографию (LSB)
-          const totalPixelsNeeded = Math.ceil(payload.length / 4) + 1;
-          const imgWidth = Math.ceil(Math.sqrt(totalPixelsNeeded));
-          const imgHeight = Math.ceil(totalPixelsNeeded / imgWidth);
-
-          const canvas = document.createElement('canvas');
-          canvas.width = imgWidth;
-          canvas.height = imgHeight;
-          const ctx = canvas.getContext('2d');
-          const imgData = ctx.createImageData(imgWidth, imgHeight);
-          const data = imgData.data;
-
-          // Записываем размер payload в первые 4 байта
-          new DataView(data.buffer).setUint32(0, payload.length, true);
-
-          // Записываем payload
-          for (let i = 0; i < payload.length; i++) {
-            data[i + 4] = payload[i];
-          }
-
-          // Заполняем шумом
-          for (let i = payload.length + 4; i < data.length; i++) {
-            data[i] = Math.floor(Math.random() * 256);
-          }
-
-          ctx.putImageData(imgData, 0, 0);
-
-          const pngBlob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/png');
+          // 2. Запрос сервера загрузки через vk.ru
+          const server = await vkRequest('docs.getMessagesUploadServer', { 
+              type: 'doc', 
+              peer_id: activePartner.id 
           });
 
-          // 5. Загрузка через photos API (CORS работает!)
-          const server = await vkRequest('photos.getMessagesUploadServer', { peer_id: activePartner.id });
-
+          // 3. Загрузка через Service Worker прокси
+          const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
           const formData = new FormData();
-          formData.append('photo', pngBlob, 'stego.png');
+          formData.append('file', transportBlob, 'payload.txt');
 
-          const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
+          // Используем Service Worker для проксирования (обход CORS)
+          const uploadResp = await fetch(server.upload_url, { 
+            method: 'POST', 
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+
+          if (!uploadResp.ok) {
+            const errText = await uploadResp.text();
+            throw new Error('Upload HTTP ' + uploadResp.status + ': ' + errText);
+          }
+
           const uploadData = await uploadResp.json();
 
-          // 6. Сохраняем фото
-          const saved = await vkRequest('photos.saveMessagesPhoto', { 
-            photo: uploadData.photo,
-            server: uploadData.server,
-            hash: uploadData.hash
+          // 4. Сохранение документа через vk.ru
+          const saved = await vkRequest('docs.save', { 
+              file: uploadData.file, 
+              title: filename || 'encrypted_media.bin' 
           });
 
-          const photoObj = saved[0];
-          const attachStr = `photo${photoObj.owner_id}_${photoObj.id}`;
+          const docObj = saved.doc || saved[0];
+          const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
 
-          // 7. Мета-сообщение
+          // 5. Мета-сообщение
           const b64Name = btoa(filename);
           const header = `${PREFIX_E2EE_FILE}${sequence}:${encryptedFile.ivB64}:${b64Name}:${mimeType}`;
 
@@ -1354,7 +1341,7 @@
           });
 
           await refreshMessages(activePartner.id);
-          alert("Файл спрятан в фото и отправлен!");
+          alert("Зашифрованный файл успешно отправлен!");
         } catch (e) {
           console.error(e);
           alert("Ошибка отправки: " + e.message);
