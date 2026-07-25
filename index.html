@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VK Messenger EE)</title>
+  <title>VK-TG Ultra Secure Messenger (E2EE)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1261,57 +1261,44 @@
         }
 
         try {
+          // 1. Инкремент счетчика для Perfect Forward Secrecy
           const savedSeq = await getSecureKey(`seq_sent_${activePartner.id}`);
           const sequence = (savedSeq ? parseInt(savedSeq) : 0) + 1;
           await saveSecureKey(`seq_sent_${activePartner.id}`, sequence);
 
-          // 1. Encrypt file raw payload locally
+          // 2. Шифрование массива байтов (локально)
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
 
-          // 2. Create Blob directly from encrypted ArrayBuffer (BINARY, not base64!)
-          const encryptedBlob = new Blob([encryptedFile.ciphertextBuffer], { type: 'application/octet-stream' });
+          // 3. Безопасная сериализация шифртекста в Base64 для передачи через VK Docs
+          const encryptedBase64Str = arrayBufferToBase64(encryptedFile.ciphertextBuffer);
 
-          // 3. Prepare upload server
-          const server = await vkRequest('docs.getMessagesUploadServer', { type: 'doc', peer_id: activePartner.id });
-
-          // 4. Build multipart/form-data MANUALLY (like working Android code)
-          const boundary = '----MeowBoundary' + Date.now();
-          const uploadFilename = 'media.mur';
-
-          // Build body parts
-          const preBlob = new Blob([
-            '--' + boundary + '\r\n',
-            'Content-Disposition: form-data; name="file"; filename="' + uploadFilename + '"\r\n',
-            'Content-Type: application/octet-stream\r\n\r\n'
-          ], { type: 'text/plain' });
-
-          const postBlob = new Blob([
-            '\r\n--' + boundary + '--\r\n'
-          ], { type: 'text/plain' });
-
-          // Combine: pre + encrypted binary + post
-          const finalBody = new Blob([preBlob, encryptedBlob, postBlob]);
-
-          const uploadResp = await fetch(server.upload_url, { 
-            method: 'POST', 
-            body: finalBody,
-            headers: {
-              'Content-Type': 'multipart/form-data; boundary=' + boundary
-            }
+          // 4. Запрос сервера загрузки
+          const server = await vkRequest('docs.getMessagesUploadServer', { 
+              type: 'doc', 
+              peer_id: activePartner.id 
           });
 
-          if (!uploadResp.ok) {
-            const errText = await uploadResp.text();
-            throw new Error('Upload HTTP ' + uploadResp.status + ': ' + errText);
-          }
+          // 5. Загрузка через Blob (защита от CORS)
+          // Мы отправляем текстовый файл, содержащий шифрованную строку в Base64
+          const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
+          const formData = new FormData();
+          formData.append('file', transportBlob, 'payload.txt');
 
+          const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
           const uploadData = await uploadResp.json();
 
-          // 5. Save on VK servers
-          const saved = await vkRequest('docs.save', { file: uploadData.file, title: uploadFilename });
+          // 6. Фиксация документа в системе ВК
+          const saved = await vkRequest('docs.save', { 
+              file: uploadData.file, 
+              title: filename || 'encrypted_media.bin' 
+          });
+
+          // Получение ID аттачмента
           const docObj = saved.doc || saved[0];
           const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
 
+          // 7. Отправка мета-сообщения (управляющий сигнал)
+          // Формат: [SEQUENCE]:[IV]:[FILENAME_B64]:[MIME]
           const b64Name = btoa(filename);
           const header = `${PREFIX_E2EE_FILE}${sequence}:${encryptedFile.ivB64}:${b64Name}:${mimeType}`;
 
@@ -1323,9 +1310,10 @@
           });
 
           await refreshMessages(activePartner.id);
+          alert("Зашифрованный файл успешно отправлен!");
         } catch (e) {
-          console.error("sendEncryptedFileDirectly error:", e);
-          alert("Ошибка отправки зашифрованного медиафайла: " + (e.message || JSON.stringify(e)));
+          console.error(e);
+          alert("Ошибка отправки: " + e.message);
         }
       };
 
