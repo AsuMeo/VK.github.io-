@@ -6,7 +6,7 @@
   <title>VK-TG Secure Messenger | Элитный E2EE Мессенджер</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons for ultra-sharp TG aesthetics -->
+  <!-- Lucide Icons for TG aesthetics -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     /* Custom Telegram Dark Theme Palettes and Styles */
@@ -64,7 +64,7 @@
       </div>
       <h1 class="text-2xl font-bold mb-2">VK-TG Secure Messenger</h1>
       <p class="text-[#7f91a4] text-sm mb-6 leading-relaxed">
-        Первый мессенджер нового поколения на базе API ВКонтакте со сквозным шифрованием (E2EE). Ваши личные ключи никогда не покинут это устройство.
+        Вход через API ВКонтакте. Ваши личные ключи шифрования генерируются локально и никогда не покидают ваше устройство.
       </p>
 
       <div class="space-y-4 text-left">
@@ -76,25 +76,29 @@
             <i data-lucide="external-link" class="w-4 h-4"></i>
             Получить Access Token VK
           </a>
-          <span class="text-[11px] text-yellow-500/80 mt-1 block">
-            * Скопируйте часть адресной строки после <code class="bg-black/30 px-1 py-0.5 rounded">access_token=</code> в открывшемся окне.
-          </span>
         </div>
 
         <div class="pt-2">
-          <label class="block text-xs font-semibold text-[#7f91a4] uppercase tracking-wider mb-2">Шаг 2: Введите токен в систему</label>
-          <input type="password" id="vk-token-input" placeholder="vk1.a.xxxx..." 
-                 class="w-full bg-[#0e1621] border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition">
+          <label class="block text-xs font-semibold text-[#7f91a4] uppercase tracking-wider mb-2">Шаг 2: Вставьте токен ИЛИ полную ссылку</label>
+          <textarea id="vk-token-input" rows="3" placeholder="Вставьте сюда скопированный токен (vk1.a.xxxx...) ИЛИ всю ссылку целиком из адресной строки (https://oauth.vk.com/blank.html#access_token=...)" 
+                 class="w-full bg-[#0e1621] border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition resize-none"></textarea>
+          <span class="text-[10px] text-[#7f91a4] mt-1 block leading-tight">
+            * Приложение автоматически извлечет рабочий токен из ссылки.
+          </span>
         </div>
       </div>
 
-      <button id="login-btn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/30">
-        Авторизоваться и сгенерировать ключи E2EE
+      <button id="login-btn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
+        <i data-lucide="key" class="w-4 h-4"></i>
+        Авторизоваться и Войти
       </button>
+
+      <!-- Connection status logs for debugging -->
+      <div id="auth-error-log" class="hidden mt-4 p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-400 text-left overflow-x-auto font-mono"></div>
 
       <div class="mt-6 pt-4 border-t border-gray-800 flex items-center justify-center gap-2 text-xs text-emerald-400">
         <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-        100% Локальное шифрование (Web Crypto API)
+        Сквозное шифрование (Web Crypto API)
       </div>
     </div>
   </div>
@@ -378,6 +382,29 @@
       lucide.createIcons();
     }
 
+    // Extraction helper to parse access token from BOTH full URL and raw token input
+    function extractToken(input) {
+      input = input.trim();
+      if (!input) return '';
+
+      // Check if it's a VK blank.html redirect URL containing access_token
+      if (input.includes('access_token=')) {
+        try {
+          // Normalize hash parameter for URLSearchParams by swapping # to ?
+          const normalizedUrl = input.replace('#', '?');
+          const urlObj = new URL(normalizedUrl);
+          const token = urlObj.searchParams.get('access_token');
+          if (token) return token;
+        } catch (e) {
+          // Robust regex fallback
+          const match = input.match(/access_token=([^&]+)/);
+          if (match) return match[1];
+        }
+      }
+      // Return raw token if not a URL
+      return input;
+    }
+
     // Helper: JSONP request to VK API for CORS-bypass compatibility
     function vkRequest(method, params = {}) {
       return new Promise((resolve, reject) => {
@@ -406,7 +433,7 @@
         script.onerror = function() {
           delete window[callbackName];
           document.body.removeChild(script);
-          reject(new Error('Network error or CORS block on VK API'));
+          reject({ error_msg: 'Сетевая ошибка JSONP (CORS-блокировка на стороне VK или отсутствие интернета).' });
         };
 
         document.body.appendChild(script);
@@ -556,7 +583,6 @@
           startPolling();
         } catch (e) {
           console.error("Ошибка входа по токену:", e);
-          alert("Не удалось авторизоваться. Токен недействителен или устарел!");
           logout();
         }
       }
@@ -1252,13 +1278,19 @@
 
     // Login Action
     document.getElementById('login-btn').addEventListener('click', async () => {
-      const tokenInput = document.getElementById('vk-token-input').value.trim();
-      if (!tokenInput) {
-        alert("Введите ваш токен доступа!");
+      const rawInput = document.getElementById('vk-token-input').value.trim();
+      const extractedToken = extractToken(rawInput);
+      const logContainer = document.getElementById('auth-error-log');
+
+      if (!extractedToken) {
+        alert("Введите ваш токен доступа ВКонтакте или полную ссылку!");
         return;
       }
 
-      VK_TOKEN = tokenInput;
+      VK_TOKEN = extractedToken;
+      logContainer.classList.add('hidden');
+      logContainer.innerText = '';
+
       try {
         // Validate token by fetching own profile
         const response = await vkRequest('users.get', { fields: 'photo_100' });
@@ -1269,12 +1301,27 @@
           showDashboard();
           startPolling();
         } else {
-          alert("Токен не прошел проверку. Пожалуйста, убедитесь, что вы скопировали его полностью.");
+          showAuthError("VK API вернул пустой ответ при проверке токена.");
         }
       } catch (e) {
-        alert("Не удалось проверить токен ВКонтакте: " + e.message);
+        showAuthError(e);
       }
     });
+
+    function showAuthError(errorObj) {
+      const logContainer = document.getElementById('auth-error-log');
+      logContainer.classList.remove('hidden');
+      
+      let errorMsg = "Не удалось проверить токен доступа.\n";
+      if (errorObj && errorObj.error_msg) {
+        errorMsg += `Детали: [Код ${errorObj.error_code || '?'}] ${errorObj.error_msg}`;
+      } else {
+        errorMsg += `Неизвестная ошибка: ${JSON.stringify(errorObj)}`;
+      }
+      
+      logContainer.innerText = errorMsg;
+      alert("Ошибка проверки токена! Подробности выведены на экран под формой ввода.");
+    }
 
     // Logout
     function logout() {
