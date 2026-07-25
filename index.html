@@ -1267,23 +1267,34 @@
 
           // 1. Encrypt file raw payload locally
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
-          
-          // 2. Convert encrypted buffer to safe Base64 String
-          const encryptedBase64Str = arrayBufferToBase64(encryptedFile.ciphertextBuffer);
 
-          // 3. Prepare upload server
+          // 2. Convert encrypted buffer to Blob
+          const encryptedBlob = new Blob([encryptedFile.ciphertextBuffer], { type: 'application/octet-stream' });
+
+          // 3. Convert Blob to Base64 string for safe text transport
+          const encryptedBase64Str = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(encryptedBlob);
+          });
+
+          // 4. Prepare upload server
           const server = await vkRequest('docs.getMessagesUploadServer', { type: 'doc', peer_id: activePartner.id });
-          
-          // 4. Create text blob with Base64 content (Guarantees no CORS binary corruption)
+
+          // 5. Create text blob with Base64 content (safe text transport, no binary corruption)
           const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
           const formData = new FormData();
-          formData.append('file', transportBlob, 'payload.txt');
+          formData.append('file', transportBlob, 'payload.bin64');
 
           const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
+          if (!uploadResp.ok) {
+            throw new Error('Upload failed: ' + uploadResp.status + ' ' + uploadResp.statusText);
+          }
           const uploadData = await uploadResp.json();
 
-          // 5. Save on VK servers as text document
-          const saved = await vkRequest('docs.save', { file: uploadData.file, title: 'payload.txt' });
+          // 6. Save on VK servers as text document
+          const saved = await vkRequest('docs.save', { file: uploadData.file, title: 'payload.bin64' });
           const docObj = saved.doc || saved[0];
           const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
 
@@ -1299,7 +1310,8 @@
 
           await refreshMessages(activePartner.id);
         } catch (e) {
-          alert("Ошибка отправки зашифрованного медиафайла: " + JSON.stringify(e));
+          console.error("sendEncryptedFileDirectly error:", e);
+          alert("Ошибка отправки зашифрованного медиафайла: " + (e.message || JSON.stringify(e)));
         }
       };
 
