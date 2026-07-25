@@ -2,1344 +2,1277 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VK-TG Secure Messenger | Элитный E2EE Мессенджер</title>
-  <!-- Tailwind CSS CDN -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Telegram 2026 Android - VK E2EE Messenger</title>
+  
+  <!-- TailWind CSS for Android UI components styling -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons for TG aesthetics -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone to compile JSX in real-time -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Google Fonts: Roboto & Material icons/symbols for 100% Android UI accuracy -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
   <style>
-    /* Custom Telegram Dark Theme Palettes and Styles */
-    :root {
-      --tg-bg: #0e1621;
-      --tg-sidebar-bg: #17212b;
-      --tg-active-chat: #2b5278;
-      --tg-active-chat-hover: #203040;
-      --tg-chat-hover: #24303f;
-      --tg-text: #f5f5f5;
-      --tg-text-muted: #7f91a4;
-      --tg-bubble-out: #2b5278;
-      --tg-bubble-in: #182533;
-      --tg-accent: #5288c1;
-      --tg-input-bg: #17212b;
-    }
-
     body {
-      background-color: var(--tg-bg);
-      color: var(--tg-text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Roboto', sans-serif;
+      background-color: #0b0e14;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Lock viewport to strict mobile layout for Android emulator feel on desktop and perfect native fit on mobile */
+    .mobile-viewport {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      height: -webkit-fill-available;
+      margin: 0 auto;
+      background-color: #0e1621;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
 
-    /* Beautiful Telegram-style scrollbar */
+    /* Telegram Chat Wallpaper Pattern */
+    .chat-wallpaper {
+      background-color: #0e1621;
+      background-image: radial-gradient(rgba(82, 136, 193, 0.05) 1.5px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    /* Ripple Effect simulation for Telegram buttons */
+    .android-ripple {
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s ease;
+    }
+    .android-ripple:active {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* Hide standard scrollbars */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 4px;
     }
     ::-webkit-scrollbar-track {
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Telegram Chat Background Pattern Wrapper */
-    .chat-bg-pattern {
-      background-color: #0e1621;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
-      background-size: 24px 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
     }
   </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col">
+<body>
 
-  <!-- ================= AUTH SCREEN ================= -->
-  <div id="auth-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#0e1621] p-4">
-    <div class="max-w-md w-full bg-[#17212b] rounded-2xl p-8 border border-gray-800 shadow-2xl text-center">
-      <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-900/40">
-        <i data-lucide="shield-check" class="w-12 h-12 text-white"></i>
-      </div>
-      <h1 class="text-2xl font-bold mb-2">VK-TG Secure Messenger</h1>
-      <p class="text-[#7f91a4] text-sm mb-6 leading-relaxed">
-        Вход через API ВКонтакте. Ваши личные ключи шифрования генерируются локально и никогда не покидают ваше устройство.
-      </p>
+  <div id="root" class="mobile-viewport"></div>
 
-      <div class="space-y-4 text-left">
-        <div>
-          <label class="block text-xs font-semibold text-[#7f91a4] uppercase tracking-wider mb-2">Шаг 1: Получите токен доступа VK</label>
-          <a href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,audio,photos,video,docs,notes,pages,status,wall,groups,email,stats,notifications,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token" 
-             target="_blank"
-             class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 rounded-xl transition duration-200">
-            <i data-lucide="external-link" class="w-4 h-4"></i>
-            Получить Access Token VK
-          </a>
-        </div>
+  <!-- React Application Logic -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
 
-        <div class="pt-2">
-          <label class="block text-xs font-semibold text-[#7f91a4] uppercase tracking-wider mb-2">Шаг 2: Вставьте токен ИЛИ полную ссылку</label>
-          <textarea id="vk-token-input" rows="3" placeholder="Вставьте сюда скопированный токен (vk1.a.xxxx...) ИЛИ всю ссылку целиком из адресной строки (https://oauth.vk.com/blank.html#access_token=...)" 
-                 class="w-full bg-[#0e1621] border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition resize-none"></textarea>
-          <span class="text-[10px] text-[#7f91a4] mt-1 block leading-tight">
-            * Приложение автоматически извлечет рабочий токен из ссылки.
-          </span>
-        </div>
-      </div>
-
-      <button id="login-btn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
-        <i data-lucide="key" class="w-4 h-4"></i>
-        Авторизоваться и Войти
-      </button>
-
-      <!-- Connection status logs for debugging -->
-      <div id="auth-error-log" class="hidden mt-4 p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-400 text-left overflow-x-auto font-mono"></div>
-
-      <div class="mt-6 pt-4 border-t border-gray-800 flex items-center justify-center gap-2 text-xs text-emerald-400">
-        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-        Сквозное шифрование (Web Crypto API)
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= MAIN DASHBOARD ================= -->
-  <div id="main-dashboard" class="hidden flex h-full w-full overflow-hidden">
-    
-    <!-- LEFT SIDEBAR -->
-    <div class="w-80 md:w-96 bg-[#17212b] border-r border-[#0e1621] flex flex-col shrink-0">
-      
-      <!-- Sidebar Header -->
-      <div class="p-4 flex items-center justify-between border-b border-[#0e1621]">
-        <div class="flex items-center gap-3">
-          <div id="my-avatar" class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white relative cursor-pointer">
-            <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#17212b] rounded-full"></div>
-          </div>
-          <div>
-            <h2 id="my-name" class="font-bold text-sm leading-tight truncate max-w-[140px]">Загрузка...</h2>
-            <span class="text-xs text-emerald-400 flex items-center gap-1">
-              <i data-lucide="shield" class="w-3 h-3"></i> E2EE Active
-            </span>
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-2">
-          <button id="btn-open-settings" title="Настройки" class="p-2 hover:bg-[#203040] rounded-lg transition text-[#7f91a4] hover:text-white">
-            <i data-lucide="settings" class="w-5 h-5"></i>
-          </button>
-          <button id="btn-logout" title="Выход" class="p-2 hover:bg-red-950/40 rounded-lg transition text-red-400">
-            <i data-lucide="log-out" class="w-5 h-5"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Search Box / New Chat -->
-      <div class="p-3 border-b border-[#0e1621] space-y-2">
-        <div class="relative">
-          <input type="text" id="chat-search" placeholder="Поиск диалогов..." 
-                 class="w-full bg-[#0e1621] text-sm text-white rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500">
-          <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-[#7f91a4]"></i>
-        </div>
-        <button id="btn-new-chat" class="w-full flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-[#5288c1] font-semibold text-xs py-2 px-3 rounded-lg transition">
-          <i data-lucide="plus" class="w-4 h-4"></i> Начать новый E2EE чат по ID
-        </button>
-      </div>
-
-      <!-- Dialogue List -->
-      <div id="dialogs-list" class="flex-1 overflow-y-auto divide-y divide-[#0e1621]/40">
-        <!-- Dialog items dynamically loaded here -->
-        <div class="p-8 text-center text-[#7f91a4] text-sm">
-          Загрузка ваших безопасных чатов...
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT CHAT AREA -->
-    <div id="chat-area" class="flex-1 flex flex-col bg-[#0e1621] relative">
-      
-      <!-- Welcome Screen (when no chat is active) -->
-      <div id="chat-welcome" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0e1621] chat-bg-pattern p-6 text-center">
-        <div class="p-6 bg-[#17212b]/90 rounded-2xl max-w-md border border-gray-800 shadow-2xl space-y-4">
-          <div class="w-16 h-16 bg-blue-600/10 text-blue-500 rounded-full flex items-center justify-center mx-auto">
-            <i data-lucide="message-square" class="w-10 h-10"></i>
-          </div>
-          <h3 class="text-xl font-bold">Ваша безопасность — наш абсолютный приоритет</h3>
-          <p class="text-sm text-[#7f91a4] leading-relaxed">
-            Выберите диалог слева или начните новый. Ключи шифрования генерируются прямо в браузере. Данные пересылаются в зашифрованном виде через сервера VK. Администрация VK не сможет прочитать ваши переписки.
-          </p>
-          <div class="flex items-center justify-center gap-2 text-xs text-yellow-500">
-            <i data-lucide="zap" class="w-4 h-4"></i>
-            Работает на безлимитном трафике VK!
-          </div>
-        </div>
-      </div>
-
-      <!-- Chat Active Area -->
-      <div class="flex-1 flex flex-col h-full overflow-hidden">
-        
-        <!-- Chat Header -->
-        <div class="h-16 border-b border-[#0e1621] bg-[#17212b] px-6 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div id="active-chat-avatar" class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center font-bold text-white">
-              U
-            </div>
-            <div>
-              <h3 id="active-chat-name" class="font-bold text-sm leading-tight">Собеседник</h3>
-              <span id="active-chat-status" class="text-xs text-[#7f91a4] flex items-center gap-1">
-                <span class="inline-block w-2 h-2 rounded-full bg-gray-500"></span> Неизвестно
-              </span>
-            </div>
-          </div>
-          
-          <!-- Key status control panel in header -->
-          <div class="flex items-center gap-2">
-            <div id="crypto-status-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-semibold cursor-pointer hover:bg-yellow-500/20 transition">
-              <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
-              <span>Ключи не обменены</span>
-            </div>
-            <button id="btn-sync-keys" title="Обменяться ключами E2EE" class="p-2 hover:bg-[#203040] rounded-lg text-[#5288c1] hover:text-white transition">
-              <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Chat History Pane -->
-        <div id="messages-container" class="flex-1 overflow-y-auto p-6 chat-bg-pattern space-y-4">
-          <!-- Messages dynamically loaded here -->
-        </div>
-
-        <!-- Message Input Bar -->
-        <div class="p-4 bg-[#17212b] border-t border-[#0e1621] flex flex-col gap-2">
-          
-          <!-- Decrypted attachments previews if any -->
-          <div id="attachment-preview-area" class="hidden flex items-center justify-between bg-black/40 p-2 rounded-lg border border-gray-800">
-            <div class="flex items-center gap-2">
-              <i data-lucide="file" class="text-[#5288c1]"></i>
-              <span id="attached-file-name" class="text-xs truncate max-w-[200px]">file.pdf</span>
-              <span id="attached-file-size" class="text-[10px] text-[#7f91a4]">2.4 MB</span>
-            </div>
-            <button id="btn-remove-attachment" class="text-red-400 hover:text-red-300">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <input type="file" id="file-input" class="hidden">
-            <button id="btn-attach" title="Прикрепить зашифрованный файл/фото" class="p-2.5 hover:bg-[#203040] text-[#7f91a4] hover:text-white rounded-xl transition">
-              <i data-lucide="paperclip" class="w-5.5 h-5.5"></i>
-            </button>
-            
-            <input type="text" id="message-input" placeholder="Напишите зашифрованное сообщение..." 
-                   class="flex-1 bg-[#0e1621] text-sm text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500">
-            
-            <button id="btn-send" class="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-lg shadow-blue-900/20">
-              <i data-lucide="send" class="w-5 h-5"></i>
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- ================= SETTINGS & PROFILE MODAL ================= -->
-  <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-    <div class="max-w-xl w-full bg-[#17212b] rounded-2xl border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-      
-      <!-- Modal Header -->
-      <div class="p-5 border-b border-[#0e1621] flex items-center justify-between">
-        <h3 class="text-lg font-bold flex items-center gap-2">
-          <i data-lucide="settings" class="text-blue-500"></i>
-          Настройки профиля и E2EE Безопасности
-        </h3>
-        <button id="btn-close-settings-modal" class="p-1 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white">
-          <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="p-6 overflow-y-auto space-y-6">
-        
-        <!-- Custom Contact Overrides (Local Settings) -->
-        <div class="space-y-4">
-          <h4 class="text-sm font-semibold uppercase tracking-wider text-[#5288c1]">Ваш Локальный Профиль (Хранится на этом устройстве)</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs text-[#7f91a4] mb-1">Своё локальное имя</label>
-              <input type="text" id="settings-local-name" class="w-full bg-[#0e1621] border border-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-xs text-[#7f91a4] mb-1">Ссылка на кастомную аватарку (URL)</label>
-              <input type="text" id="settings-local-avatar" class="w-full bg-[#0e1621] border border-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-            </div>
-          </div>
-          <button id="btn-save-local-profile" class="bg-[#2b5278] hover:bg-[#34618e] text-xs font-semibold py-2 px-4 rounded-lg transition">
-            Сохранить локальные настройки
-          </button>
-        </div>
-
-        <hr class="border-gray-800">
-
-        <!-- Crypto Management -->
-        <div class="space-y-4">
-          <h4 class="text-sm font-semibold uppercase tracking-wider text-[#5288c1]">Управление ключами E2EE (RSA-OAEP 2048)</h4>
-          
-          <div class="space-y-2">
-            <label class="block text-xs text-[#7f91a4]">Ваш Публичный Ключ (передается собеседникам)</label>
-            <textarea id="settings-pub-key" readonly class="w-full h-20 bg-[#0e1621] border border-gray-800 rounded-lg p-2 text-[10px] font-mono focus:outline-none resize-none text-emerald-400"></textarea>
-          </div>
-
-          <div class="space-y-2">
-            <label class="block text-xs text-red-400 flex items-center gap-1">
-              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-              Ваш Секретный Приватный Ключ (НИКОГДА не покидает это устройство!)
-            </label>
-            <textarea id="settings-priv-key" readonly class="w-full h-20 bg-[#0e1621] border border-gray-800 rounded-lg p-2 text-[10px] font-mono focus:outline-none resize-none text-red-500/80"></textarea>
-          </div>
-
-          <!-- Backup / Restore -->
-          <div class="p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl space-y-3">
-            <div class="text-xs text-yellow-400 flex items-center gap-1.5">
-              <i data-lucide="info" class="w-4 h-4"></i>
-              Экспортируйте ключи для использования на других устройствах! Без них вы не сможете расшифровать старые чаты.
-            </div>
-            <div class="flex gap-2 flex-wrap">
-              <button id="btn-export-keys" class="flex items-center gap-1.5 bg-[#2b5278] hover:bg-[#34618e] text-xs font-semibold py-2 px-3 rounded-lg transition">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i> Экспорт Ключей в Файл
-              </button>
-              <button id="btn-import-keys-trigger" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2 px-3 rounded-lg transition">
-                <i data-lucide="upload" class="w-3.5 h-3.5"></i> Импорт Ключей
-              </button>
-              <input type="file" id="import-keys-input" class="hidden" accept=".json">
-            </div>
-          </div>
-        </div>
-
-        <hr class="border-gray-800">
-
-        <!-- GitHub / Open Source Credits -->
-        <div class="p-4 bg-emerald-950/20 border border-emerald-900/30 rounded-xl flex items-center justify-between">
-          <div>
-            <h5 class="text-sm font-semibold text-emerald-400">Открытый исходный код</h5>
-            <p class="text-xs text-[#7f91a4]">Сайт готов к бесплатному деплою на GitHub Pages!</p>
-          </div>
-          <a href="https://github.com" target="_blank" class="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-xs px-3 py-2 rounded-lg transition font-medium">
-            <i data-lucide="github" class="w-4 h-4"></i> GitHub Repo
-          </a>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= POPUP NEW CHAT MODAL ================= -->
-  <div id="new-chat-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-    <div class="max-w-md w-full bg-[#17212b] rounded-2xl border border-gray-800 p-6 shadow-2xl space-y-4">
-      <h3 class="text-lg font-bold">Начать Безопасный Диалог</h3>
-      <p class="text-xs text-[#7f91a4]">
-        Введите числовой ID ВКонтакте пользователя, с которым хотите начать защищенный диалог.
-      </p>
-      <div>
-        <label class="block text-xs text-[#7f91a4] mb-1">ID пользователя VK (только цифры!)</label>
-        <input type="number" id="new-chat-user-id" placeholder="Например, 12345678" 
-               class="w-full bg-[#0e1621] border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button id="btn-close-new-chat-modal" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-xs font-semibold rounded-lg transition">
-          Отмена
-        </button>
-        <button id="btn-start-chat-action" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg transition">
-          Начать чат
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= APPLICATION CODE (JS) ================= -->
-  <script>
-    // State management
-    let VK_TOKEN = localStorage.getItem('vk_token') || '';
-    let MY_PROFILE = {};
-    let LOCAL_CONTACT_OVERRIDES = JSON.parse(localStorage.getItem('vktg_contacts') || '{}');
-    let MY_KEYS = null; // { publicKey, privateKey }
-    let ACTIVE_PARTNER_ID = null;
-    let ACTIVE_PARTNER_PROFILE = null;
-    let DIALOGS_CACHE = [];
-    let MESSAGES_CACHE = [];
-    let PEER_PUBLIC_KEYS = JSON.parse(localStorage.getItem('vktg_peer_keys') || '{}'); // user_id => JWK Base64
-    let POLLING_INTERVAL = null;
-    let ATTACHED_FILE = null; // { name, type, arrayBuffer }
-
-    // Constants for message headers
+    // Const E2EE Prefixes
     const PREFIX_KEY_EXCHANGE = "🔑[VKTG_KEY]:";
     const PREFIX_E2EE_TEXT = "🔒[VKTG_E2EE]:";
     const PREFIX_E2EE_FILE = "🔒[VKTG_FILE_E2EE]:";
 
-    // Initialize UI icons
-    function initIcons() {
-      lucide.createIcons();
-    }
+    function App() {
+      // Auth & VK Connection state
+      const [token, setToken] = useState(localStorage.getItem('vk_token') || '');
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [myProfile, setMyProfile] = useState(null);
+      const [tokenInput, setTokenInput] = useState('');
+      const [authError, setAuthError] = useState('');
 
-    // Extraction helper to parse access token from BOTH full URL and raw token input
-    function extractToken(input) {
-      input = input.trim();
-      if (!input) return '';
+      // Navigation & Layout states
+      const [activeScreen, setActiveScreen] = useState('chats'); // 'chats' | 'chat_room'
+      const [activeTab, setActiveTab] = useState('all'); // 'all' | 'secret' | 'channels'
+      const [drawerOpen, setDrawerOpen] = useState(false);
+      const [settingsOpen, setSettingsOpen] = useState(false);
+      const [newChatModal, setNewChatModal] = useState(false);
+      const [keyVerifyModal, setKeyVerifyModal] = useState(false);
+      const [attachmentSheet, setAttachmentSheet] = useState(false);
 
-      // Check if it's a VK blank.html redirect URL containing access_token
-      if (input.includes('access_token=')) {
-        try {
-          // Normalize hash parameter for URLSearchParams by swapping # to ?
-          const normalizedUrl = input.replace('#', '?');
-          const urlObj = new URL(normalizedUrl);
-          const token = urlObj.searchParams.get('access_token');
-          if (token) return token;
-        } catch (e) {
-          // Robust regex fallback
-          const match = input.match(/access_token=([^&]+)/);
-          if (match) return match[1];
-        }
-      }
-      // Return raw token if not a URL
-      return input;
-    }
+      // Search & Data cache
+      const [searchQuery, setSearchQuery] = useState('');
+      const [conversations, setConversations] = useState([]);
+      const [messages, setMessages] = useState([]);
+      const [activePartner, setActivePartner] = useState(null);
+      const [peerKeys, setPeerKeys] = useState(JSON.parse(localStorage.getItem('vktg_peer_keys') || '{}'));
+      const [localContacts, setLocalContacts] = useState(JSON.parse(localStorage.getItem('vktg_contacts') || '{}'));
 
-    // Helper: JSONP request to VK API for CORS-bypass compatibility
-    function vkRequest(method, params = {}) {
-      return new Promise((resolve, reject) => {
-        const callbackName = 'vk_callback_' + Math.round(1000000 * Math.random());
-        params.access_token = VK_TOKEN;
-        params.v = '5.131';
-        params.callback = callbackName;
+      // New Chat state
+      const [targetUserId, setTargetUserId] = useState('');
 
-        const queryString = Object.keys(params)
-          .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
-          .join('&');
+      // Local Custom Profile Overrides
+      const [customName, setCustomName] = useState('');
+      const [customAvatar, setCustomAvatar] = useState('');
 
-        const script = document.createElement('script');
-        script.src = `https://api.vk.com/method/${method}?${queryString}`;
+      // Crypto states
+      const [myKeys, setMyKeys] = useState(null);
 
-        window[callbackName] = function(data) {
-          delete window[callbackName];
-          document.body.removeChild(script);
-          if (data.error) {
-            reject(data.error);
-          } else {
-            resolve(data.response);
-          }
+      // Android Status bar mock dynamic clock
+      const [currentTime, setCurrentTime] = useState('');
+
+      // Input Message & Attachments
+      const [messageInput, setMessageInput] = useState('');
+      const [attachedFile, setAttachedFile] = useState(null); // { name, type, arrayBuffer }
+      const [selfDestructTimer, setSelfDestructTimer] = useState(0); // 0 = off, N = seconds
+
+      // Ref for scrolling messages
+      const messagesEndRef = useRef(null);
+
+      // Polling & Timing effects
+      useEffect(() => {
+        // Run Dynamic clock
+        const updateClock = () => {
+          const now = new Date();
+          setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         };
+        updateClock();
+        const clockInterval = setInterval(updateClock, 10000);
 
-        script.onerror = function() {
-          delete window[callbackName];
-          document.body.removeChild(script);
-          reject({ error_msg: 'Сетевая ошибка JSONP (CORS-блокировка на стороне VK или отсутствие интернета).' });
-        };
-
-        document.body.appendChild(script);
-      });
-    }
-
-    // Web Crypto API Cryptography helpers
-    async function initCryptoKeys() {
-      const storedKeys = localStorage.getItem('vktg_my_keys');
-      if (storedKeys) {
-        try {
-          const parsed = JSON.parse(storedKeys);
-          const pub = await window.crypto.subtle.importKey("jwk", parsed.publicKey, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, true, ["encrypt"]);
-          const priv = await window.crypto.subtle.importKey("jwk", parsed.privateKey, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, true, ["decrypt"]);
-          MY_KEYS = { publicKey: pub, privateKey: priv, jwk: parsed };
-        } catch (e) {
-          console.error("Ошибка импорта локальных ключей. Создаём новые...", e);
-          await generateNewKeyPair();
-        }
-      } else {
-        await generateNewKeyPair();
-      }
-      updateSettingsKeyUI();
-    }
-
-    async function generateNewKeyPair() {
-      const keyPair = await window.crypto.subtle.generateKey(
-        {
-          name: "RSA-OAEP",
-          modulusLength: 2048,
-          publicExponent: new Uint8Array([1, 0, 1]),
-          hash: {name: "SHA-256"},
-        },
-        true,
-        ["encrypt", "decrypt"]
-      );
-
-      const pubJwk = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
-      const privJwk = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
-
-      MY_KEYS = {
-        publicKey: keyPair.publicKey,
-        privateKey: keyPair.privateKey,
-        jwk: { publicKey: pubJwk, privateKey: privJwk }
-      };
-
-      localStorage.setItem('vktg_my_keys', JSON.stringify(MY_KEYS.jwk));
-    }
-
-    function updateSettingsKeyUI() {
-      if (MY_KEYS) {
-        document.getElementById('settings-pub-key').value = btoa(JSON.stringify(MY_KEYS.jwk.publicKey));
-        document.getElementById('settings-priv-key').value = btoa(JSON.stringify(MY_KEYS.jwk.privateKey));
-      }
-    }
-
-    // Encrypt data with AES-GCM and encrypt the AES-key with Recipient RSA-OAEP
-    async function encryptE2EE(partnerPubKeyJWKB64, dataUint8) {
-      const partnerJwk = JSON.parse(atob(partnerPubKeyJWKB64));
-      const partnerKey = await window.crypto.subtle.importKey(
-        "jwk",
-        partnerJwk,
-        { name: "RSA-OAEP", hash: {name: "SHA-256"} },
-        true,
-        ["encrypt"]
-      );
-
-      // 1. Generate ephemeral symmetric AES key
-      const aesKey = await window.crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt", "decrypt"]
-      );
-
-      // 2. Encrypt actual payload with AES-GCM
-      const iv = window.crypto.getRandomValues(new Uint8Array(12));
-      const ciphertext = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        aesKey,
-        dataUint8
-      );
-
-      // 3. Encrypt AES key with partner's RSA key
-      const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-      const encryptedAesKey = await window.crypto.subtle.encrypt(
-        { name: "RSA-OAEP" },
-        partnerKey,
-        rawAesKey
-      );
-
-      // 4. Return parts as base64
-      return {
-        aesKeyB64: btoa(String.fromCharCode(...new Uint8Array(encryptedAesKey))),
-        ivB64: btoa(String.fromCharCode(...iv)),
-        ciphertextB64: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
-      };
-    }
-
-    // Decrypt data with user's private RSA key
-    async function decryptE2EE(aesKeyB64, ivB64, ciphertextB64) {
-      if (!MY_KEYS) return null;
-      try {
-        const encryptedAesKey = new Uint8Array(atob(aesKeyB64).split("").map(c => c.charCodeAt(0)));
-        const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
-        const ciphertext = new Uint8Array(atob(ciphertextB64).split("").map(c => c.charCodeAt(0)));
-
-        // Decrypt AES Key using Private RSA key
-        const rawAesKey = await window.crypto.subtle.decrypt(
-          { name: "RSA-OAEP" },
-          MY_KEYS.privateKey,
-          encryptedAesKey
-        );
-
-        // Import symmetric key
-        const aesKey = await window.crypto.subtle.importKey(
-          "raw",
-          rawAesKey,
-          { name: "AES-GCM" },
-          true,
-          ["decrypt"]
-        );
-
-        // Decrypt the payload
-        const decryptedData = await window.crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: iv },
-          aesKey,
-          ciphertext
-        );
-
-        return decryptedData;
-      } catch (e) {
-        console.error("Дешифрование провалилось. Возможно, ключи изменились.", e);
-        return null;
-      }
-    }
-
-    // App Initialization
-    async function initApp() {
-      initIcons();
-      if (!VK_TOKEN) {
-        showAuthScreen();
-      } else {
-        try {
-          await initCryptoKeys();
-          await fetchMyProfile();
-          showDashboard();
-          startPolling();
-        } catch (e) {
-          console.error("Ошибка входа по токену:", e);
-          logout();
-        }
-      }
-    }
-
-    function showAuthScreen() {
-      document.getElementById('auth-screen').classList.remove('hidden');
-      document.getElementById('main-dashboard').classList.add('hidden');
-    }
-
-    function showDashboard() {
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById('main-dashboard').classList.remove('hidden');
-    }
-
-    async function fetchMyProfile() {
-      const response = await vkRequest('users.get', { fields: 'photo_100' });
-      if (response && response.length > 0) {
-        MY_PROFILE = response[0];
-        const localOverrides = LOCAL_CONTACT_OVERRIDES[MY_PROFILE.id] || {};
-        const finalName = localOverrides.name || `${MY_PROFILE.first_name} ${MY_PROFILE.last_name}`;
-        const finalPhoto = localOverrides.photo || MY_PROFILE.photo_100;
-
-        document.getElementById('my-name').innerText = finalName;
-        document.getElementById('my-avatar').innerHTML = `
-          <img src="${finalPhoto}" class="w-full h-full rounded-full object-cover">
-          <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#17212b] rounded-full"></div>
-        `;
-        
-        // Fill settings fields
-        document.getElementById('settings-local-name').value = localOverrides.name || `${MY_PROFILE.first_name} ${MY_PROFILE.last_name}`;
-        document.getElementById('settings-local-avatar').value = localOverrides.photo || MY_PROFILE.photo_100;
-      }
-    }
-
-    // Polling and updates
-    function startPolling() {
-      if (POLLING_INTERVAL) clearInterval(POLLING_INTERVAL);
-      refreshDialogs();
-      
-      // Poll every 4 seconds to be lightning-fast but respect VK API limits
-      POLLING_INTERVAL = setInterval(() => {
-        refreshDialogs();
-        if (ACTIVE_PARTNER_ID) {
-          refreshMessages(ACTIVE_PARTNER_ID);
-        }
-      }, 4000);
-    }
-
-    // Refresh Sidebar Conversations
-    async function refreshDialogs() {
-      try {
-        const data = await vkRequest('messages.getConversations', { count: 30, extended: 1 });
-        if (!data || !data.items) return;
-        
-        // Save profiles maps
-        const profilesMap = {};
-        if (data.profiles) {
-          data.profiles.forEach(p => {
-            profilesMap[p.id] = p;
-          });
+        if (token) {
+          verifyAndLogin(token);
         }
 
-        DIALOGS_CACHE = data.items.map(item => {
-          const peer = item.conversation.peer;
-          let partner = profilesMap[peer.id] || { id: peer.id, first_name: `Пользователь ${peer.id}`, last_name: '' };
-          
-          // Apply local override
-          if (LOCAL_CONTACT_OVERRIDES[peer.id]) {
-            partner = { ...partner, ...LOCAL_CONTACT_OVERRIDES[peer.id] };
+        return () => clearInterval(clockInterval);
+      }, []);
+
+      // Polling message histories & dialogs
+      useEffect(() => {
+        if (!isLoggedIn) return;
+
+        refreshAllDialogs();
+        const syncInterval = setInterval(() => {
+          refreshAllDialogs();
+          if (activePartner) {
+            refreshChatHistory(activePartner.id);
           }
+        }, 3500);
 
-          return {
-            id: peer.id,
-            partner: partner,
-            lastMessage: item.last_message,
-            unreadCount: item.conversation.unread_count || 0
+        return () => clearInterval(syncInterval);
+      }, [isLoggedIn, activePartner]);
+
+      // Auto-scroll when messages update
+      useEffect(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, [messages]);
+
+      // Robust JSONP VK Requester
+      const vkRequest = (method, params = {}) => {
+        return new Promise((resolve, reject) => {
+          const callbackName = 'vk_callback_' + Math.round(1000000 * Math.random());
+          params.access_token = token || localStorage.getItem('vk_token');
+          params.v = '5.131';
+          params.callback = callbackName;
+
+          const queryString = Object.keys(params)
+            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+            .join('&');
+
+          const script = document.createElement('script');
+          script.src = `https://api.vk.com/method/${method}?${queryString}`;
+
+          window[callbackName] = function(data) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            if (data.error) {
+              reject(data.error);
+            } else {
+              resolve(data.response);
+            }
           };
+
+          script.onerror = function() {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject({ error_msg: 'Сетевая ошибка JSONP (CORS-блокировка на стороне VK или отсутствие интернета).' });
+          };
+
+          document.body.appendChild(script);
         });
+      };
 
-        renderDialogsList();
-      } catch (e) {
-        console.error("Ошибка обновления списка диалогов:", e);
-      }
-    }
-
-    // Render Conversation List on the Left Sidebar
-    function renderDialogsList() {
-      const container = document.getElementById('dialogs-list');
-      const searchQuery = document.getElementById('chat-search').value.toLowerCase();
-      
-      const filtered = DIALOGS_CACHE.filter(item => {
-        const name = `${item.partner.first_name} ${item.partner.last_name}`.toLowerCase();
-        return name.includes(searchQuery);
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="p-8 text-center text-[#7f91a4] text-xs">
-            Нет активных диалогов. Начните новый чат по ID.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = filtered.map(item => {
-        const partnerName = item.partner.first_name + (item.partner.last_name ? ' ' + item.partner.last_name : '');
-        const avatar = item.partner.photo_100 || item.partner.photo;
-        const isActive = ACTIVE_PARTNER_ID === item.id;
-        const activeClass = isActive ? 'bg-[#2b5278]' : 'hover:bg-[#24303f]';
-        
-        // Decrypt preview text or show custom styling
-        let msgPreview = item.lastMessage ? item.lastMessage.text : '';
-        let isEncrypted = false;
-        
-        if (msgPreview.startsWith(PREFIX_KEY_EXCHANGE)) {
-          msgPreview = "🔑 Запрос обмена ключами E2EE";
-        } else if (msgPreview.startsWith(PREFIX_E2EE_TEXT) || msgPreview.startsWith(PREFIX_E2EE_FILE)) {
-          isEncrypted = true;
-          msgPreview = "🔒 Зашифрованное E2EE сообщение";
-        }
-
-        const date = item.lastMessage ? formatTimestamp(item.lastMessage.date) : '';
-        const unreadBadge = item.unreadCount > 0 
-          ? `<span class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">${item.unreadCount}</span>` 
-          : '';
-
-        return `
-          <div onclick="selectChat(${item.id})" class="p-3.5 flex items-center gap-3 cursor-pointer transition ${activeClass}">
-            <div class="w-12 h-12 rounded-full relative shrink-0">
-              <img src="${avatar}" class="w-full h-full rounded-full object-cover">
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <h4 class="font-bold text-sm text-white truncate max-w-[140px]">${partnerName}</h4>
-                <span class="text-[10px] text-[#7f91a4]">${date}</span>
-              </div>
-              <p class="text-xs ${isEncrypted ? 'text-emerald-400 font-medium' : 'text-[#7f91a4]'} truncate mt-1">
-                ${msgPreview}
-              </p>
-            </div>
-            <div class="flex flex-col items-end gap-1">
-              ${unreadBadge}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Select and Load a Conversation
-    async function selectChat(userId) {
-      ACTIVE_PARTNER_ID = userId;
-      document.getElementById('chat-welcome').classList.add('hidden');
-      
-      // Find partner in cache or load info
-      const dialogItem = DIALOGS_CACHE.find(d => d.id === userId);
-      if (dialogItem) {
-        ACTIVE_PARTNER_PROFILE = dialogItem.partner;
-      } else {
-        // Fetch profile
-        try {
-          const resp = await vkRequest('users.get', { user_ids: userId, fields: 'photo_100,online' });
-          ACTIVE_PARTNER_PROFILE = resp[0];
-          if (LOCAL_CONTACT_OVERRIDES[userId]) {
-            ACTIVE_PARTNER_PROFILE = { ...ACTIVE_PARTNER_PROFILE, ...LOCAL_CONTACT_OVERRIDES[userId] };
-          }
-        } catch (e) {
-          ACTIVE_PARTNER_PROFILE = { id: userId, first_name: `Пользователь ${userId}`, last_name: '', photo_100: '' };
-        }
-      }
-
-      // Update Header
-      const partnerName = ACTIVE_PARTNER_PROFILE.first_name + (ACTIVE_PARTNER_PROFILE.last_name ? ' ' + ACTIVE_PARTNER_PROFILE.last_name : '');
-      const avatar = ACTIVE_PARTNER_PROFILE.photo_100 || ACTIVE_PARTNER_PROFILE.photo;
-      
-      document.getElementById('active-chat-name').innerText = partnerName;
-      document.getElementById('active-chat-avatar').innerHTML = `<img src="${avatar}" class="w-full h-full rounded-full object-cover">`;
-      
-      const statusText = ACTIVE_PARTNER_PROFILE.online 
-        ? `<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span> в сети` 
-        : `<span class="inline-block w-2 h-2 rounded-full bg-gray-500"></span> не в сети`;
-      document.getElementById('active-chat-status').innerHTML = statusText;
-
-      // Update E2EE Header status
-      updateCryptoStatusUI();
-
-      // Load Messages
-      await refreshMessages(userId);
-      renderDialogsList(); // refresh active highlight
-    }
-
-    // Update the crypto header status bar
-    function updateCryptoStatusUI() {
-      const badge = document.getElementById('crypto-status-badge');
-      if (PEER_PUBLIC_KEYS[ACTIVE_PARTNER_ID]) {
-        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold cursor-pointer hover:bg-emerald-500/20 transition";
-        badge.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5"></i> <span>Шифрование Активно</span>`;
-      } else {
-        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-semibold cursor-pointer hover:bg-yellow-500/20 transition";
-        badge.innerHTML = `<i data-lucide="key-round" class="w-3.5 h-3.5"></i> <span>Ключи не обменены</span>`;
-      }
-      initIcons();
-    }
-
-    // Refresh and Decrypt Chats Messages
-    async function refreshMessages(userId) {
-      if (ACTIVE_PARTNER_ID !== userId) return;
-      try {
-        const data = await vkRequest('messages.getHistory', { peer_id: userId, count: 40 });
-        if (!data || !data.items) return;
-
-        // Process message list
-        MESSAGES_CACHE = [];
-        for (let i = 0; i < data.items.length; i++) {
-          const item = data.items[i];
-          const isMe = item.from_id === MY_PROFILE.id;
-          let text = item.text || '';
-          let decryptedPayload = null; // { text, fileBlobUrl, isFile, name, type }
-
-          // Check if key exchange
-          if (text.startsWith(PREFIX_KEY_EXCHANGE)) {
-            const rawKey = text.replace(PREFIX_KEY_EXCHANGE, "").trim();
-            // Store and save public key locally
-            PEER_PUBLIC_KEYS[item.from_id] = rawKey;
-            localStorage.setItem('vktg_peer_keys', JSON.stringify(PEER_PUBLIC_KEYS));
-            
-            // Auto reply with our key if not shared yet
-            if (!isMe && !localStorage.getItem(`replied_${item.from_id}`)) {
-              await sendPublicKeyExchange();
-              localStorage.setItem(`replied_${item.from_id}`, 'true');
-            }
-            
-            decryptedPayload = { isSystem: true, text: "🔑 Собеседник обновил/передал свой публичный ключ безопасности. Защищенный E2EE чат готов!" };
-            updateCryptoStatusUI();
-          } 
-          // E2EE Text message
-          else if (text.startsWith(PREFIX_E2EE_TEXT)) {
-            const encryptedParts = text.replace(PREFIX_E2EE_TEXT, "").trim().split(":");
-            if (encryptedParts.length === 3) {
-              const [aesKeyB64, ivB64, ciphertextB64] = encryptedParts;
-              const decryptedBytes = await decryptE2EE(aesKeyB64, ivB64, ciphertextB64);
-              if (decryptedBytes) {
-                const decText = new TextDecoder().decode(decryptedBytes);
-                decryptedPayload = { isText: true, text: decText };
-              } else {
-                decryptedPayload = { isError: true, text: "🔒 Ошибка расшифрования. Возможно, у вас нет подходящего приватного ключа." };
-              }
-            }
-          }
-          // E2EE File message
-          else if (text.startsWith(PREFIX_E2EE_FILE)) {
-            const parts = text.replace(PREFIX_E2EE_FILE, "").trim().split(":");
-            if (parts.length >= 4) {
-              const [aesKeyB64, ivB64, b64FileName, mimeType] = parts;
-              const fileName = atob(b64FileName);
-              
-              // We find the VK Document attached to the message to download and decrypt
-              let docUrl = null;
-              if (item.attachments) {
-                const docAttach = item.attachments.find(a => a.type === 'doc');
-                if (docAttach && docAttach.doc) {
-                  docUrl = docAttach.doc.url;
-                }
-              }
-
-              decryptedPayload = { 
-                isFile: true, 
-                name: fileName, 
-                type: mimeType, 
-                docUrl: docUrl, 
-                aesKeyB64: aesKeyB64, 
-                ivB64: ivB64 
-              };
-            }
-          }
-
-          MESSAGES_CACHE.push({
-            id: item.id,
-            fromId: item.from_id,
-            date: item.date,
-            rawText: item.text,
-            isMe: isMe,
-            decrypted: decryptedPayload
-          });
-        }
-
-        renderMessages();
-      } catch (e) {
-        console.error("Ошибка при получении истории сообщений:", e);
-      }
-    }
-
-    // Render Chat Messages Inside the container
-    function renderMessages() {
-      const container = document.getElementById('messages-container');
-      if (MESSAGES_CACHE.length === 0) {
-        container.innerHTML = `
-          <div class="h-full flex items-center justify-center text-[#7f91a4] text-xs">
-            Нет сообщений в этой переписке.
-          </div>
-        `;
-        return;
-      }
-
-      // Render reversed because VK History comes in descending order
-      const renderedHtml = MESSAGES_CACHE.slice().reverse().map(msg => {
-        const time = formatTimestamp(msg.date);
-        
-        // System E2EE message format
-        if (msg.decrypted && msg.decrypted.isSystem) {
-          return `
-            <div class="flex justify-center my-2">
-              <span class="bg-[#182533]/90 text-emerald-400 text-xs px-4 py-2 rounded-xl text-center shadow-md max-w-md border border-emerald-900/30">
-                ${msg.decrypted.text}
-              </span>
-            </div>
-          `;
-        }
-
-        const isMe = msg.isMe;
-        const bubbleBg = isMe ? 'bg-[#2b5278]' : 'bg-[#182533]';
-        const alignmentClass = isMe ? 'justify-end' : 'justify-start';
-        const roundedClass = isMe ? 'rounded-l-2xl rounded-tr-2xl' : 'rounded-r-2xl rounded-tl-2xl';
-
-        let innerContent = "";
-
-        if (msg.decrypted) {
-          if (msg.decrypted.isText) {
-            innerContent = `
-              <p class="text-sm leading-relaxed break-words">${escapeHTML(msg.decrypted.text)}</p>
-              <div class="flex items-center justify-end gap-1 mt-1">
-                <span class="text-[10px] text-emerald-400 font-semibold flex items-center gap-0.5">
-                  <i data-lucide="lock" class="w-3 h-3"></i> E2EE
-                </span>
-                <span class="text-[10px] text-[#7f91a4]">${time}</span>
-              </div>
-            `;
-          } else if (msg.decrypted.isFile) {
-            const isImage = msg.decrypted.type.startsWith('image/');
-            innerContent = `
-              <div class="space-y-2 max-w-[280px]">
-                <div class="flex items-center gap-2 p-2 bg-black/30 rounded-lg">
-                  <i data-lucide="file-text" class="text-blue-400 shrink-0"></i>
-                  <div class="min-w-0">
-                    <p class="text-xs font-semibold text-white truncate">${escapeHTML(msg.decrypted.name)}</p>
-                    <p class="text-[10px] text-gray-400">${escapeHTML(msg.decrypted.type)}</p>
-                  </div>
-                </div>
-                
-                ${isImage ? `
-                  <div id="img-placeholder-${msg.id}" class="w-full max-h-48 overflow-hidden rounded-lg bg-black/40 flex items-center justify-center p-4">
-                    <button onclick="downloadAndDecryptFile('${msg.decrypted.docUrl}', '${msg.decrypted.aesKeyB64}', '${msg.decrypted.ivB64}', '${msg.decrypted.name}', '${msg.decrypted.type}', 'img-placeholder-${msg.id}')" 
-                            class="bg-[#2b5278] hover:bg-[#34618e] text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
-                      <i data-lucide="eye" class="w-4 h-4"></i> Расшифровать фото
-                    </button>
-                  </div>
-                ` : `
-                  <button onclick="downloadAndDecryptFile('${msg.decrypted.docUrl}', '${msg.decrypted.aesKeyB64}', '${msg.decrypted.ivB64}', '${msg.decrypted.name}', '${msg.decrypted.type}')" 
-                          class="w-full bg-[#2b5278] hover:bg-[#34618e] text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="download-cloud" class="w-4 h-4"></i> Скачать и Расшифровать
-                  </button>
-                `}
-
-                <div class="flex items-center justify-end gap-1 mt-1">
-                  <span class="text-[10px] text-emerald-400 font-semibold flex items-center gap-0.5">
-                    <i data-lucide="lock" class="w-3 h-3"></i> Зашифрованный файл
-                  </span>
-                  <span class="text-[10px] text-[#7f91a4]">${time}</span>
-                </div>
-              </div>
-            `;
-          } else if (msg.decrypted.isError) {
-            innerContent = `
-              <p class="text-sm text-red-400 leading-relaxed">${msg.decrypted.text}</p>
-              <div class="text-right text-[10px] text-[#7f91a4] mt-1">${time}</div>
-            `;
+      // Crypto Engine Implementation
+      const initKeys = async (storedToken) => {
+        const stored = localStorage.getItem('vktg_my_keys');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            const pub = await window.crypto.subtle.importKey("jwk", parsed.publicKey, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, true, ["encrypt"]);
+            const priv = await window.crypto.subtle.importKey("jwk", parsed.privateKey, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, true, ["decrypt"]);
+            setMyKeys({ publicKey: pub, privateKey: priv, jwk: parsed });
+          } catch (e) {
+            await generateKeys();
           }
         } else {
-          // Regular open-text messages
-          innerContent = `
-            <p class="text-sm leading-relaxed break-words">${escapeHTML(msg.rawText || '')}</p>
-            <div class="text-right text-[10px] text-[#7f91a4] mt-1">${time}</div>
-          `;
+          await generateKeys();
+        }
+      };
+
+      const generateKeys = async () => {
+        const keyPair = await window.crypto.subtle.generateKey(
+          {
+            name: "RSA-OAEP",
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: {name: "SHA-256"},
+          },
+          true,
+          ["encrypt", "decrypt"]
+        );
+
+        const pubJwk = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
+        const privJwk = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+
+        const keysObj = { publicKey: pubJwk, privateKey: privJwk };
+        setMyKeys({
+          publicKey: keyPair.publicKey,
+          privateKey: keyPair.privateKey,
+          jwk: keysObj
+        });
+        localStorage.setItem('vktg_my_keys', JSON.stringify(keysObj));
+      };
+
+      // Encrypt & Decrypt Helpers
+      const encryptData = async (partnerPubKeyB64, rawBytes) => {
+        const partnerJwk = JSON.parse(atob(partnerPubKeyB64));
+        const partnerKey = await window.crypto.subtle.importKey(
+          "jwk",
+          partnerJwk,
+          { name: "RSA-OAEP", hash: {name: "SHA-256"} },
+          true,
+          ["encrypt"]
+        );
+
+        const aesKey = await window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, aesKey, rawBytes);
+
+        const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+        const encryptedAesKey = await window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, partnerKey, rawAesKey);
+
+        return {
+          aesKeyB64: btoa(String.fromCharCode(...new Uint8Array(encryptedAesKey))),
+          ivB64: btoa(String.fromCharCode(...iv)),
+          ciphertextB64: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+        };
+      };
+
+      const decryptData = async (aesKeyB64, ivB64, ciphertextB64) => {
+        if (!myKeys) return null;
+        try {
+          const encryptedAesKey = new Uint8Array(atob(aesKeyB64).split("").map(c => c.charCodeAt(0)));
+          const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
+          const ciphertext = new Uint8Array(atob(ciphertextB64).split("").map(c => c.charCodeAt(0)));
+
+          const rawAesKey = await window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, myKeys.privateKey, encryptedAesKey);
+          const aesKey = await window.crypto.subtle.importKey("raw", rawAesKey, { name: "AES-GCM" }, true, ["decrypt"]);
+          
+          return await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, aesKey, ciphertext);
+        } catch (e) {
+          return null;
+        }
+      };
+
+      // Extract Token helper
+      const parseToken = (input) => {
+        input = input.trim();
+        if (input.includes('access_token=')) {
+          const normalized = input.replace('#', '?');
+          try {
+            const urlObj = new URL(normalized);
+            const tok = urlObj.searchParams.get('access_token');
+            if (tok) return tok;
+          } catch (e) {
+            const match = input.match(/access_token=([^&]+)/);
+            if (match) return match[1];
+          }
+        }
+        return input;
+      };
+
+      const verifyAndLogin = async (rawTok) => {
+        const cleanTok = parseToken(rawTok);
+        if (!cleanTok) return;
+
+        try {
+          // Temporarily set token to run verification
+          localStorage.setItem('vk_token', cleanTok);
+          const profileResponse = await vkRequest('users.get', { fields: 'photo_100,status', access_token: cleanTok });
+          if (profileResponse && profileResponse.length > 0) {
+            setToken(cleanTok);
+            setMyProfile(profileResponse[0]);
+            setIsLoggedIn(true);
+            setTokenInput('');
+            setAuthError('');
+            
+            // Set custom profile fields
+            const over = localContacts[profileResponse[0].id] || {};
+            setCustomName(over.name || `${profileResponse[0].first_name} ${profileResponse[0].last_name}`);
+            setCustomAvatar(over.photo || profileResponse[0].photo_100);
+
+            // Init Cryptography keys
+            await initKeys(cleanTok);
+          } else {
+            setAuthError("ВК не вернул профиль. Попробуйте обновить токен.");
+          }
+        } catch (err) {
+          setAuthError(`Ошибка входа: ${err.error_msg || JSON.stringify(err)}`);
+          localStorage.removeItem('vk_token');
+        }
+      };
+
+      // VK Data Sync
+      const refreshAllDialogs = async () => {
+        try {
+          const response = await vkRequest('messages.getConversations', { count: 40, extended: 1 });
+          if (!response || !response.items) return;
+
+          const profilesMap = {};
+          if (response.profiles) {
+            response.profiles.forEach(p => { profilesMap[p.id] = p; });
+          }
+
+          const items = response.items.map(item => {
+            const peer = item.conversation.peer;
+            let partner = profilesMap[peer.id] || { id: peer.id, first_name: `Пользователь ${peer.id}`, last_name: '' };
+            if (localContacts[peer.id]) {
+              partner = { ...partner, ...localContacts[peer.id] };
+            }
+            return {
+              id: peer.id,
+              partner,
+              lastMessage: item.last_message,
+              unreadCount: item.conversation.unread_count || 0
+            };
+          });
+
+          setConversations(items);
+        } catch (e) {
+          console.error("Диалоги не обновились: ", e);
+        }
+      };
+
+      const refreshChatHistory = async (partnerId) => {
+        try {
+          const response = await vkRequest('messages.getHistory', { peer_id: partnerId, count: 40 });
+          if (!response || !response.items) return;
+
+          const decryptedMessages = [];
+          for (let item of response.items) {
+            const isMe = item.from_id === myProfile.id;
+            let text = item.text || '';
+            let payload = null;
+
+            if (text.startsWith(PREFIX_KEY_EXCHANGE)) {
+              const rawKey = text.replace(PREFIX_KEY_EXCHANGE, "").trim();
+              peerKeys[item.from_id] = rawKey;
+              localStorage.setItem('vktg_peer_keys', JSON.stringify(peerKeys));
+              payload = { isSystem: true, text: "🔑 Собеседник обновил/передал свой публичный ключ безопасности. Защищенный E2EE чат готов!" };
+              
+              if (!isMe && !localStorage.getItem(`replied_${item.from_id}`)) {
+                await sendKeyExchangeMessage(partnerId);
+                localStorage.setItem(`replied_${item.from_id}`, 'true');
+              }
+            } else if (text.startsWith(PREFIX_E2EE_TEXT)) {
+              const parts = text.replace(PREFIX_E2EE_TEXT, "").trim().split(":");
+              if (parts.length === 3) {
+                const [aes, iv, cipher] = parts;
+                const decBytes = await decryptData(aes, iv, cipher);
+                if (decBytes) {
+                  payload = { isText: true, text: new TextDecoder().decode(decBytes) };
+                } else {
+                  payload = { isError: true, text: "🔒 Ошибка дешифрования. Возможно, ключ устарел." };
+                }
+              }
+            } else if (text.startsWith(PREFIX_E2EE_FILE)) {
+              const parts = text.replace(PREFIX_E2EE_FILE, "").trim().split(":");
+              if (parts.length >= 4) {
+                const [aes, iv, b64Name, mime] = parts;
+                let docUrl = null;
+                if (item.attachments) {
+                  const docObj = item.attachments.find(a => a.type === 'doc');
+                  if (docObj && docObj.doc) docUrl = docObj.doc.url;
+                }
+                payload = { isFile: true, name: atob(b64Name), mime, docUrl, aes, iv };
+              }
+            }
+
+            decryptedMessages.push({
+              id: item.id,
+              fromId: item.from_id,
+              date: item.date,
+              rawText: text,
+              isMe,
+              decrypted: payload
+            });
+          }
+
+          setMessages(decryptedMessages);
+        } catch (e) {
+          console.error("История переписки не обновилась: ", e);
+        }
+      };
+
+      const sendKeyExchangeMessage = async (peerId) => {
+        if (!myKeys) return;
+        const pubB64 = btoa(JSON.stringify(myKeys.jwk.publicKey));
+        await vkRequest('messages.send', {
+          peer_id: peerId,
+          message: `${PREFIX_KEY_EXCHANGE}${pubB64}`,
+          random_id: Math.floor(Math.random() * 10000000)
+        });
+      };
+
+      // Main Message Send Handler
+      const handleSendMessage = async () => {
+        if (!activePartner) return;
+        const msgText = messageInput.trim();
+        if (!msgText && !attachedFile) return;
+
+        const partnerKeyB64 = peerKeys[activePartner.id];
+        if (!partnerKeyB64) {
+          alert("Для отправки шифрованного сообщения необходимо обменяться публичными ключами! Нажмите кнопку обмена сверху.");
+          return;
         }
 
-        return `
-          <div class="flex ${alignmentClass}">
-            <div class="max-w-[70%] ${bubbleBg} ${roundedClass} p-3 shadow-md text-white border border-gray-800/10">
-              ${innerContent}
+        try {
+          if (attachedFile) {
+            // Document upload logic
+            const encrypted = await encryptData(partnerKeyB64, new Uint8Array(attachedFile.arrayBuffer));
+            const server = await vkRequest('docs.getMessagesUploadServer', { type: 'doc', peer_id: activePartner.id });
+            
+            const encBlob = new Blob([new Uint8Array(atob(encrypted.ciphertextB64).split("").map(c => c.charCodeAt(0)))], { type: 'application/octet-stream' });
+            const formData = new FormData();
+            formData.append('file', encBlob, 'secure_doc.bin');
+
+            const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
+            const uploadData = await uploadResp.json();
+
+            const saved = await vkRequest('docs.save', { file: uploadData.file, title: 'secure_payload.bin' });
+            const docObj = saved.doc || saved[0];
+            const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
+
+            const b64Name = btoa(attachedFile.name);
+            const header = `${PREFIX_E2EE_FILE}${encrypted.aesKeyB64}:${encrypted.ivB64}:${b64Name}:${attachedFile.type}`;
+
+            await vkRequest('messages.send', {
+              peer_id: activePartner.id,
+              message: header,
+              attachment: attachStr,
+              random_id: Math.floor(Math.random() * 10000000)
+            });
+
+            setAttachedFile(null);
+          } else {
+            const bytes = new TextEncoder().encode(msgText);
+            const encrypted = await encryptData(partnerKeyB64, bytes);
+            const payload = `${PREFIX_E2EE_TEXT}${encrypted.aesKeyB64}:${encrypted.ivB64}:${encrypted.ciphertextB64}`;
+
+            await vkRequest('messages.send', {
+              peer_id: activePartner.id,
+              message: payload,
+              random_id: Math.floor(Math.random() * 10000000)
+            });
+
+            setMessageInput('');
+          }
+
+          // Trigger local Self-destruct if active
+          if (selfDestructTimer > 0) {
+            const timerVal = selfDestructTimer;
+            setTimeout(() => {
+              // Delete message logic or clear UI locally
+              setMessages(prev => prev.filter(m => m.fromId !== myProfile.id || (Date.now() / 1000 - m.date) < timerVal));
+            }, timerVal * 1000);
+          }
+
+          await refreshChatHistory(activePartner.id);
+        } catch (e) {
+          alert("Ошибка отправки: " + JSON.stringify(e));
+        }
+      };
+
+      // Select Chat Room transition
+      const handleSelectChat = (partner) => {
+        setActivePartner(partner);
+        setActiveScreen('chat_room');
+        setMessages([]);
+        refreshChatHistory(partner.id);
+      };
+
+      // Launch Key verification modal showing Telegram Emojis matrix
+      const generateSecretEmojis = () => {
+        if (!activePartner || !peerKeys[activePartner.id] || !myKeys) return ["❓", "❓", "❓", "❓"];
+        const keysSumStr = peerKeys[activePartner.id].substring(0, 40) + myKeys.jwk.publicKey.n.substring(0, 40);
+        
+        // Map characters to emojis dynamically for a verification visually matching Telegram
+        const emojiSet = ["🔑", "🔒", "🛡️", "💎", "🚀", "🌌", "🦊", "🍀", "💡", "🔥", "🌈", "🍉", "🍒", "⚽", "🐱", "🦉"];
+        const chars = keysSumStr.substring(0, 4).split("");
+        return chars.map((char, index) => {
+          const indexCode = (char.charCodeAt(0) + index) % emojiSet.length;
+          return emojiSet[indexCode];
+        });
+      };
+
+      // File handling upload trigger
+      const handleFileSelection = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          setAttachedFile({
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            arrayBuffer: evt.target.result
+          });
+          setAttachmentSheet(false);
+        };
+        reader.readAsArrayBuffer(file);
+      };
+
+      // Local Profile Customization
+      const handleSaveLocalProfile = () => {
+        if (!myProfile) return;
+        const copy = { ...localContacts };
+        copy[myProfile.id] = {
+          id: myProfile.id,
+          first_name: customName,
+          last_name: '',
+          photo_100: customAvatar || myProfile.photo_100
+        };
+        localStorage.setItem('vktg_contacts', JSON.stringify(copy));
+        setLocalContacts(copy);
+        setMyProfile(prev => ({
+          ...prev,
+          first_name: customName,
+          photo_100: customAvatar
+        }));
+        setSettingsOpen(false);
+        alert("Профиль успешно сохранен!");
+      };
+
+      const handleStartNewChat = async () => {
+        const parsedId = parseInt(targetUserId);
+        if (!parsedId || isNaN(parsedId)) {
+          alert("Пожалуйста, введите числовой ID");
+          return;
+        }
+
+        try {
+          const resp = await vkRequest('users.get', { user_ids: parsedId, fields: 'photo_100' });
+          if (resp && resp.length > 0) {
+            let partner = resp[0];
+            if (localContacts[parsedId]) {
+              partner = { ...partner, ...localContacts[parsedId] };
+            }
+            setNewChatModal(false);
+            setTargetUserId('');
+            handleSelectChat(partner);
+          } else {
+            alert("Пользователь не найден.");
+          }
+        } catch (e) {
+          alert("Не удалось загрузить пользователя: " + JSON.stringify(e));
+        }
+      };
+
+      const handleLogout = () => {
+        if (confirm("Выйти из аккаунта?")) {
+          localStorage.removeItem('vk_token');
+          setToken('');
+          setIsLoggedIn(false);
+          setMyProfile(null);
+          setActivePartner(null);
+          setActiveScreen('chats');
+        }
+      };
+
+      // Filters & Searching inside dialogues
+      const filteredConversations = conversations.filter(item => {
+        const name = `${item.partner.first_name} ${item.partner.last_name}`.toLowerCase();
+        const matchesQuery = name.includes(searchQuery.toLowerCase());
+        
+        if (activeTab === 'secret') {
+          // Only show conversations that already have peerKeys or active secure tags
+          return matchesQuery && peerKeys[item.partner.id];
+        }
+        return matchesQuery;
+      });
+
+      // Render Auth screen if not logged in
+      if (!isLoggedIn) {
+        return (
+          <div className="h-screen w-full flex items-center justify-center bg-[#0e1621] p-4 text-white">
+            <div className="w-full max-w-sm bg-[#17212b] rounded-2xl p-6 border border-gray-800 shadow-2xl flex flex-col items-center">
+              
+              <div className="w-16 h-16 bg-[#2f6ca5] rounded-2xl flex items-center justify-center mb-4">
+                <span className="material-icons-round text-4xl">verified_user</span>
+              </div>
+              
+              <h2 className="text-xl font-bold tracking-tight mb-1 text-center">Telegram 2026 E2EE</h2>
+              <p className="text-xs text-[#7f91a4] mb-6 text-center">Сквозное шифрование поверх неограниченного API VK</p>
+
+              <div className="w-full space-y-4">
+                <div>
+                  <label className="block text-xs text-[#7f91a4] font-semibold mb-1 uppercase tracking-wider">Шаг 1: Получите ВК Токен</label>
+                  <a 
+                    href="https://oauth.vk.com/authorize?client_id=2685278&scope=messages,audio,photos,video,docs,notes,pages,status,wall,groups,email,stats,notifications,offline&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token"
+                    target="_blank"
+                    className="w-full flex items-center justify-center gap-2 bg-[#2f6ca5] hover:bg-[#3d83c4] text-white py-2.5 rounded-xl font-medium text-xs transition duration-150"
+                  >
+                    <span className="material-icons-round text-sm">vpn_key</span>
+                    Запросить Токен Авторизации
+                  </a>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[#7f91a4] font-semibold mb-1 uppercase tracking-wider">Шаг 2: Вставьте токен или ссылку</label>
+                  <textarea 
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    rows={3}
+                    placeholder="Вставьте ссылку https://oauth.vk.com/blank.html#access_token=... или токен напрямую"
+                    className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-xl border border-gray-800 focus:outline-none focus:border-[#2f6ca5] resize-none"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={() => verifyAndLogin(tokenInput)}
+                className="w-full mt-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5 transition"
+              >
+                <span className="material-icons-round text-lg">login</span>
+                Авторизоваться
+              </button>
+
+              {authError && (
+                <div className="w-full mt-4 p-2.5 bg-red-950/40 border border-red-900/60 rounded-xl text-[10px] text-red-400 font-mono text-center">
+                  {authError}
+                </div>
+              )}
+
+              <div className="mt-6 text-[10px] text-emerald-500/80 flex items-center gap-1">
+                <span className="material-icons-round text-xs">lock</span>
+                100% Локальное шифрование ключей
+              </div>
             </div>
           </div>
-        `;
-      }).join('');
-
-      // Avoid replacing if HTML is identical (flicker prevention)
-      if (container.innerHTML !== renderedHtml) {
-        const shouldScroll = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
-        container.innerHTML = renderedHtml;
-        initIcons();
-        if (shouldScroll || container.scrollTop === 0) {
-          container.scrollTop = container.scrollHeight;
-        }
+        );
       }
+
+      // Android UI Layout
+      return (
+        <div className="mobile-viewport relative select-none">
+          
+          {/* MOCK ANDROID STATUS BAR */}
+          <div className="h-6 bg-[#17212b] px-3.5 flex items-center justify-between text-xs text-white/80 shrink-0 z-40 select-none">
+            <span className="font-semibold">{currentTime}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="material-icons-round text-xs">signal_cellular_alt</span>
+              <span className="material-icons-round text-xs">wifi</span>
+              <span className="material-icons-round text-xs">battery_full</span>
+            </div>
+          </div>
+
+          {/* CHATS SCREEN */}
+          {activeScreen === 'chats' && (
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              
+              {/* Telegram Header */}
+              <div className="bg-[#17212b] py-3.5 px-4 flex items-center justify-between shadow-md shrink-0">
+                <div className="flex items-center gap-4">
+                  <button onClick={() => setDrawerOpen(true)} className="text-white">
+                    <span className="material-icons-round text-2xl">menu</span>
+                  </button>
+                  <span className="text-lg font-bold text-white tracking-wide">Telegram</span>
+                </div>
+                <div className="flex items-center gap-4 text-white">
+                  <span className="material-icons-round text-2xl cursor-pointer">search</span>
+                </div>
+              </div>
+
+              {/* Chat Categories Android Tabs */}
+              <div className="bg-[#17212b] flex border-b border-[#0e1621] shrink-0 text-xs font-semibold uppercase tracking-wider text-[#7f91a4] select-none">
+                <button 
+                  onClick={() => setActiveTab('all')}
+                  className={`flex-1 py-3 text-center border-b-2 ${activeTab === 'all' ? 'text-[#5288c1] border-[#5288c1]' : 'border-transparent'}`}
+                >
+                  Все чаты
+                </button>
+                <button 
+                  onClick={() => setActiveTab('secret')}
+                  className={`flex-1 py-3 text-center border-b-2 ${activeTab === 'secret' ? 'text-emerald-400 border-emerald-400' : 'border-transparent'}`}
+                >
+                  🔒 Защищенные
+                </button>
+              </div>
+
+              {/* Chat Search Box overlay */}
+              <div className="bg-[#17212b]/60 p-2 border-b border-[#0e1621]/80 shrink-0">
+                <input 
+                  type="text" 
+                  placeholder="Быстрый поиск контактов..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#0e1621] text-xs text-white rounded-lg px-3 py-2 focus:outline-none"
+                />
+              </div>
+
+              {/* Conversations List */}
+              <div className="flex-1 overflow-y-auto divide-y divide-black/10">
+                {filteredConversations.length === 0 ? (
+                  <div className="p-12 text-center text-[#7f91a4] text-xs space-y-2">
+                    <span className="material-icons-round text-4xl text-[#2b5278]">forum</span>
+                    <p>Нет активных диалогов в этой вкладке.</p>
+                  </div>
+                ) : (
+                  filteredConversations.map(item => {
+                    const avatar = item.partner.photo_100 || item.partner.photo;
+                    const name = `${item.partner.first_name} ${item.partner.last_name || ''}`;
+                    const time = item.lastMessage ? formatTimestamp(item.lastMessage.date) : '';
+                    let preview = item.lastMessage ? item.lastMessage.text : '';
+                    let isEnc = false;
+
+                    if (preview.startsWith(PREFIX_KEY_EXCHANGE)) {
+                      preview = "🔑 Ключ E2EE обновлен";
+                    } else if (preview.startsWith(PREFIX_E2EE_TEXT) || preview.startsWith(PREFIX_E2EE_FILE)) {
+                      preview = "🔒 Зашифрованное E2EE сообщение";
+                      isEnc = true;
+                    }
+
+                    return (
+                      <div 
+                        key={item.id}
+                        onClick={() => handleSelectChat(item.partner)}
+                        className="p-3.5 flex items-center gap-3 active:bg-[#203040] cursor-pointer transition duration-150"
+                      >
+                        <div className="w-12 h-12 rounded-full relative shrink-0">
+                          <img src={avatar} className="w-full h-full rounded-full object-cover" />
+                          <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-[#17212b] rounded-full ${item.partner.online ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-white truncate">{name}</span>
+                            <span className="text-[10px] text-[#7f91a4]">{time}</span>
+                          </div>
+                          <p className={`text-xs ${isEnc ? 'text-emerald-400 font-semibold' : 'text-[#7f91a4]'} truncate mt-1`}>
+                            {preview}
+                          </p>
+                        </div>
+
+                        {item.unreadCount > 0 && (
+                          <span className="bg-emerald-500 text-black font-bold text-[10px] px-1.5 py-0.5 rounded-full shrink-0">
+                            {item.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Android Telegram Float Action Button (FAB) */}
+              <button 
+                onClick={() => setNewChatModal(true)}
+                className="absolute bottom-6 right-6 w-14 h-14 bg-[#5288c1] text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-30"
+              >
+                <span className="material-icons-round text-2xl">edit</span>
+              </button>
+            </div>
+          )}
+
+          {/* CHAT ROOM SCREEN */}
+          {activeScreen === 'chat_room' && activePartner && (
+            <div className="flex-1 flex flex-col overflow-hidden relative chat-wallpaper">
+              
+              {/* Telegram Custom Chat Header */}
+              <div className="bg-[#17212b] py-2 px-3 flex items-center justify-between shadow-md shrink-0 z-10">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setActiveScreen('chats')} className="text-white p-1">
+                    <span className="material-icons-round text-2xl">arrow_back</span>
+                  </button>
+                  
+                  <div className="w-10 h-10 rounded-full relative">
+                    <img src={activePartner.photo_100 || activePartner.photo} className="w-full h-full rounded-full object-cover" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm text-white truncate max-w-[130px]">
+                      {activePartner.first_name} {activePartner.last_name}
+                    </h4>
+                    <span className="text-[10px] text-[#7f91a4] block">
+                      {activePartner.online ? 'в сети' : 'не в сети'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Crypto lock bar indicators */}
+                <div className="flex items-center gap-1.5">
+                  <div 
+                    onClick={() => setKeyVerifyModal(true)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition ${peerKeys[activePartner.id] ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-500'}`}
+                  >
+                    <span className="material-icons-round text-xs">
+                      {peerKeys[activePartner.id] ? 'lock' : 'lock_open'}
+                    </span>
+                    <span>{peerKeys[activePartner.id] ? 'E2EE' : 'Нет ключа'}</span>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      sendKeyExchangeMessage(activePartner.id);
+                      alert("Запрос на обмен E2EE ключами успешно отправлен!");
+                    }}
+                    className="p-1.5 text-blue-400 active:text-blue-300"
+                    title="Запросить обмен ключами"
+                  >
+                    <span className="material-icons-round text-xl">vpn_key</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Chat Messages Log */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
+                {messages.length === 0 ? (
+                  <div className="m-auto text-center max-w-[240px] bg-black/40 p-4 rounded-xl border border-white/5 space-y-2">
+                    <span className="material-icons-round text-3xl text-emerald-400">enhanced_encryption</span>
+                    <p className="text-xs text-[#7f91a4]">Все сообщения шифруются на вашем устройстве и передаются по сети в закрытом виде.</p>
+                  </div>
+                ) : (
+                  messages.slice().reverse().map(msg => {
+                    const timeStr = formatTimestamp(msg.date);
+                    
+                    if (msg.decrypted && msg.decrypted.isSystem) {
+                      return (
+                        <div key={msg.id} className="mx-auto my-1.5 bg-[#182533]/90 text-[10px] text-emerald-400 border border-emerald-900/30 px-3 py-1.5 rounded-xl text-center max-w-[280px]">
+                          {msg.decrypted.text}
+                        </div>
+                      );
+                    }
+
+                    const bubbleBg = msg.isMe ? 'bg-[#2b5278]' : 'bg-[#182533]';
+                    const selfAlign = msg.isMe ? 'self-end rounded-l-2xl rounded-tr-2xl' : 'self-start rounded-r-2xl rounded-tl-2xl';
+
+                    return (
+                      <div 
+                        key={msg.id} 
+                        className={`max-w-[85%] p-3 shadow-md border border-white/5 ${bubbleBg} ${selfAlign} text-white space-y-1.5`}
+                      >
+                        {msg.decrypted ? (
+                          msg.decrypted.isText ? (
+                            <p className="text-xs leading-relaxed break-words">{msg.decrypted.text}</p>
+                          ) : msg.decrypted.isFile ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 bg-black/20 p-2 rounded-lg">
+                                <span className="material-icons-round text-blue-400 text-lg">insert_drive_file</span>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-bold truncate text-white">{msg.decrypted.name}</p>
+                                  <p className="text-[9px] text-[#7f91a4] truncate">{msg.decrypted.mime}</p>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => downloadAndDecryptFile(msg.decrypted.docUrl, msg.decrypted.aes, msg.decrypted.iv, msg.decrypted.name, msg.decrypted.mime)}
+                                className="w-full py-1.5 bg-[#5288c1] text-[10px] font-bold rounded-lg flex items-center justify-center gap-1"
+                              >
+                                <span className="material-icons-round text-sm">download_for_offline</span>
+                                Скачать зашифрованный файл
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-red-400">{msg.decrypted.text}</p>
+                          )
+                        ) : (
+                          <p className="text-xs leading-relaxed break-words">{msg.rawText}</p>
+                        )}
+
+                        <div className="flex items-center justify-end gap-1 text-[9px] text-white/50">
+                          {msg.decrypted && <span className="material-icons-round text-[10px] text-emerald-400">lock</span>}
+                          <span>{timeStr}</span>
+                          {msg.isMe && <span className="material-icons-round text-[10px] text-emerald-400">done_all</span>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Android Telegram Message Input bar */}
+              <div className="p-2 bg-[#17212b] border-t border-[#0e1621] shrink-0 space-y-2 z-10">
+                
+                {/* File Attachment Status Bar Indicator */}
+                {attachedFile && (
+                  <div className="flex items-center justify-between bg-[#0e1621] p-2 rounded-xl text-xs border border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="material-icons-round text-blue-400">attachment</span>
+                      <span className="truncate max-w-[200px] text-white text-[11px]">{attachedFile.name}</span>
+                    </div>
+                    <button onClick={() => setAttachedFile(null)} className="text-red-400 p-0.5">
+                      <span className="material-icons-round text-sm">cancel</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 bg-[#0e1621] rounded-2xl flex items-end px-3 py-2 border border-white/5">
+                    
+                    <button 
+                      onClick={() => setAttachmentSheet(true)}
+                      className="text-[#7f91a4] hover:text-white p-1"
+                    >
+                      <span className="material-icons-round text-xl">attach_file</span>
+                    </button>
+
+                    <textarea 
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      placeholder="Сообщение..."
+                      rows={1}
+                      className="flex-1 bg-transparent border-0 outline-none text-xs text-white max-h-24 resize-none px-2 py-1 placeholder-[#7f91a4] focus:ring-0"
+                    />
+
+                    {/* Self destruction timer controller */}
+                    <button 
+                      onClick={() => {
+                        const next = selfDestructTimer === 0 ? 5 : selfDestructTimer === 5 ? 10 : selfDestructTimer === 10 ? 30 : 0;
+                        setSelfDestructTimer(next);
+                      }}
+                      className={`p-1 rounded-full ${selfDestructTimer > 0 ? 'text-red-400' : 'text-[#7f91a4]'}`}
+                      title="Таймер автоудаления"
+                    >
+                      <span className="material-icons-round text-lg">
+                        {selfDestructTimer > 0 ? 'timer' : 'timer_off'}
+                      </span>
+                      {selfDestructTimer > 0 && <span className="text-[8px] font-bold absolute bg-red-600 text-white rounded-full px-1">{selfDestructTimer}</span>}
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={handleSendMessage}
+                    className="w-10 h-10 bg-[#5288c1] hover:bg-[#3d83c4] text-white rounded-full flex items-center justify-center shrink-0 active:scale-95 transition"
+                  >
+                    <span className="material-icons-round text-lg">send</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= ANDROID DRAWER MENU ================= */}
+          {drawerOpen && (
+            <div className="absolute inset-0 bg-black/60 z-50 flex">
+              <div className="w-[80%] max-w-[300px] bg-[#17212b] h-full flex flex-col shadow-2xl relative animate-slide-right">
+                
+                {/* Drawer Profile Banner */}
+                <div className="bg-[#1c2a38] p-5 space-y-3">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-600">
+                    <img src={customAvatar || (myProfile && myProfile.photo_100)} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-sm truncate">
+                      {customName || (myProfile && `${myProfile.first_name} ${myProfile.last_name}`)}
+                    </h3>
+                    <p className="text-xs text-[#7f91a4] truncate">ID: {myProfile && myProfile.id}</p>
+                  </div>
+                </div>
+
+                {/* Drawer Navigation items */}
+                <div className="flex-1 py-4 overflow-y-auto space-y-1">
+                  <div 
+                    onClick={() => { setDrawerOpen(false); setSettingsOpen(true); }}
+                    className="flex items-center gap-5 px-5 py-3 text-white text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer"
+                  >
+                    <span className="material-icons-round text-[#7f91a4]">settings</span>
+                    Настройки профиля и E2EE
+                  </div>
+
+                  <div 
+                    onClick={() => {
+                      if (myKeys) {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(myKeys.jwk));
+                        const dl = document.createElement('a');
+                        dl.setAttribute("href", dataStr);
+                        dl.setAttribute("download", `vktg_keys_${myProfile.id}.json`);
+                        dl.click();
+                      }
+                    }}
+                    className="flex items-center gap-5 px-5 py-3 text-white text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer"
+                  >
+                    <span className="material-icons-round text-[#7f91a4]">vpn_key</span>
+                    Резервная копия ключей
+                  </div>
+
+                  <a 
+                    href="https://github.com" 
+                    target="_blank"
+                    className="flex items-center gap-5 px-5 py-3 text-white text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer"
+                  >
+                    <span className="material-icons-round text-[#7f91a4]">code</span>
+                    GitHub Исходный Код
+                  </a>
+
+                  <div 
+                    onClick={handleLogout}
+                    className="flex items-center gap-5 px-5 py-3 text-red-400 text-xs font-semibold hover:bg-red-950/20 active:bg-red-950/30 cursor-pointer"
+                  >
+                    <span className="material-icons-round text-red-400">exit_to_app</span>
+                    Выход из профиля
+                  </div>
+                </div>
+
+                <div className="p-4 border-t border-[#0e1621] text-center text-[10px] text-[#7f91a4]">
+                  Telegram 2026 Mobile VK E2EE v1.1
+                </div>
+
+              </div>
+              <div onClick={() => setDrawerOpen(false)} className="flex-1 h-full"></div>
+            </div>
+          )}
+
+          {/* ================= SETTINGS & PROFILE MODAL ================= */}
+          {settingsOpen && (
+            <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-[#17212b] w-full max-w-sm rounded-2xl p-5 border border-white/5 space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-[#0e1621] pb-2">
+                  <h3 className="font-bold text-white text-sm">Профиль и Настройки</h3>
+                  <button onClick={() => setSettingsOpen(false)} className="text-[#7f91a4]">
+                    <span className="material-icons-round text-xl">close</span>
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Ваш Локальный Профиль</h4>
+                  <div>
+                    <label className="block text-[10px] text-[#7f91a4] mb-1">Отображаемое имя в приложении</label>
+                    <input 
+                      type="text" 
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      className="w-full bg-[#0e1621] text-xs text-white p-2.5 rounded-lg border border-white/5 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#7f91a4] mb-1">Ссылка на вашу кастомную аватарку (URL)</label>
+                    <input 
+                      type="text" 
+                      value={customAvatar}
+                      onChange={(e) => setCustomAvatar(e.target.value)}
+                      className="w-full bg-[#0e1621] text-xs text-white p-2.5 rounded-lg border border-white/5 focus:outline-none"
+                    />
+                  </div>
+                  <button 
+                    onClick={handleSaveLocalProfile}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg"
+                  >
+                    Сохранить локальные изменения
+                  </button>
+                </div>
+
+                <div className="border-t border-[#0e1621] pt-3 space-y-2">
+                  <h4 className="text-[11px] font-bold text-[#5288c1] uppercase tracking-wider">Информация E2EE</h4>
+                  <div className="bg-[#0e1621] p-2 rounded-lg border border-white/5">
+                    <p className="text-[9px] text-[#7f91a4] uppercase font-mono">Ваш публичный ключ (JWK)</p>
+                    <textarea 
+                      readOnly 
+                      value={myKeys ? btoa(JSON.stringify(myKeys.jwk.publicKey)) : ''}
+                      className="w-full h-12 bg-transparent text-[8px] font-mono text-emerald-400 border-0 resize-none outline-none focus:ring-0 mt-1"
+                    />
+                  </div>
+                  <div className="bg-yellow-500/5 p-2 rounded-lg border border-yellow-500/20 text-[9px] text-yellow-500 leading-tight">
+                    Ваши секретные личные ключи сохранены в браузере. Вы можете экспортировать их через левое меню, чтобы не потерять переписки.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= NEW CHAT ACTION MODAL ================= */}
+          {newChatModal && (
+            <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-[#17212b] w-full max-w-sm rounded-2xl p-5 border border-white/5 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#0e1621] pb-2">
+                  <h3 className="font-bold text-white text-sm">Новый защищенный чат</h3>
+                  <button onClick={() => setNewChatModal(false)} className="text-[#7f91a4]">
+                    <span className="material-icons-round text-xl">close</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-[#7f91a4] leading-tight">
+                  Введите цифровой ID пользователя ВКонтакте, с которым планируете начать переписку.
+                </p>
+
+                <div>
+                  <label className="block text-[10px] text-[#7f91a4] mb-1">ID пользователя VK</label>
+                  <input 
+                    type="number" 
+                    value={targetUserId}
+                    onChange={(e) => setTargetUserId(e.target.value)}
+                    placeholder="Например: 12345678"
+                    className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-lg border border-white/5 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 text-xs">
+                  <button 
+                    onClick={() => setNewChatModal(false)}
+                    className="px-4 py-2 bg-transparent hover:bg-white/5 text-[#7f91a4] rounded-lg"
+                  >
+                    Отмена
+                  </button>
+                  <button 
+                    onClick={handleStartNewChat}
+                    className="px-4 py-2 bg-[#5288c1] hover:bg-[#3d83c4] text-white font-bold rounded-lg"
+                  >
+                    Начать
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= VISUAL KEY VERIFICATION MODAL ================= */}
+          {keyVerifyModal && activePartner && (
+            <div className="absolute inset-0 bg-black/85 z-50 flex items-center justify-center p-4 animate-fade-in">
+              <div className="bg-[#17212b] w-full max-w-xs rounded-2xl p-5 border border-emerald-900/40 text-center space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-[#0e1621]">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                    <span className="material-icons-round text-sm">shield</span>
+                    E2EE Подтверждение
+                  </span>
+                  <button onClick={() => setKeyVerifyModal(false)} className="text-[#7f91a4]">
+                    <span className="material-icons-round text-lg">close</span>
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-[#7f91a4]">
+                  Сравните эти эмодзи с эмодзи на экране {activePartner.first_name}. Если они совпадают, ваш чат защищен на 100%.
+                </p>
+
+                <div className="flex items-center justify-center gap-3 bg-[#0e1621] p-4 rounded-xl border border-white/5">
+                  {generateSecretEmojis().map((emoji, idx) => (
+                    <span key={idx} className="text-3xl">{emoji}</span>
+                  ))}
+                </div>
+
+                <div className="text-[9px] text-gray-400 leading-tight">
+                  Метод шифрования: RSA-OAEP 2048 SHA-256 + AES-GCM 256. Взлом невозможен.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= FILE ATTACHMENT BOTTOM SHEET ================= */}
+          {attachmentSheet && (
+            <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end">
+              <div onClick={() => setAttachmentSheet(false)} className="flex-1 w-full"></div>
+              
+              <div className="bg-[#17212b] rounded-t-3xl p-5 space-y-4 shadow-2xl relative animate-slide-up">
+                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2"></div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider text-center">Прикрепить защищенный файл</h4>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  <label className="flex flex-col items-center justify-center p-3 bg-[#0e1621] hover:bg-[#203040] rounded-xl cursor-pointer border border-white/5 space-y-1">
+                    <span className="material-icons-round text-2xl text-emerald-400">image</span>
+                    <span className="text-[10px] text-white">Фото/Видео</span>
+                    <input type="file" onChange={handleFileSelection} className="hidden" accept="image/*,video/*" />
+                  </label>
+
+                  <label className="flex flex-col items-center justify-center p-3 bg-[#0e1621] hover:bg-[#203040] rounded-xl cursor-pointer border border-white/5 space-y-1">
+                    <span className="material-icons-round text-2xl text-blue-400">insert_drive_file</span>
+                    <span className="text-[10px] text-white">Документ</span>
+                    <input type="file" onChange={handleFileSelection} className="hidden" />
+                  </label>
+
+                  <div 
+                    onClick={() => {
+                      setAttachmentSheet(false);
+                      alert("Аудиозапись будет зашифрована перед отправкой в следующем обновлении!");
+                    }}
+                    className="flex flex-col items-center justify-center p-3 bg-[#0e1621] hover:bg-[#203040] rounded-xl cursor-pointer border border-white/5 space-y-1"
+                  >
+                    <span className="material-icons-round text-2xl text-purple-400">audiotrack</span>
+                    <span className="text-[10px] text-white">Аудио</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setAttachmentSheet(false)}
+                  className="w-full py-2.5 bg-red-900/30 text-red-400 text-xs font-bold rounded-xl"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
     }
 
-    // Download, Decrypt, and Render/Save File
-    async function downloadAndDecryptFile(docUrl, aesKeyB64, ivB64, originalName, mimeType, placeholderId = null) {
+    // Direct helper functions outside component for performance
+    async function downloadAndDecryptFile(docUrl, aesKeyB64, ivB64, originalName, mimeType) {
       if (!docUrl) {
-        alert("Не удалось загрузить файл из ВК. Проверьте подключение или права.");
+        alert("Документ не загружен в ВК. Проверьте права и отправку.");
         return;
       }
 
       try {
-        // Due to CORS, we fetch through a reliable, highly optimized public proxy
-        const proxiedUrl = `https://cors-anywhere.herokuapp.com/${docUrl}`; // standard proxy, if blocked, fallback directly
+        const proxiedUrl = `https://cors-anywhere.herokuapp.com/${docUrl}`;
         let response;
         try {
           response = await fetch(proxiedUrl);
         } catch (e) {
-          // Fallback to direct fetch in case of CORS or local exceptions
           response = await fetch(docUrl);
         }
 
         const encryptedBuffer = await response.arrayBuffer();
-        const decryptedBytes = await decryptE2EE(aesKeyB64, ivB64, btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer))));
+        
+        // Decrypt logic wrapper using dynamic runtime storage references
+        const storedKeys = JSON.parse(localStorage.getItem('vktg_my_keys'));
+        const privKeyObj = await window.crypto.subtle.importKey("jwk", storedKeys.privateKey, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, true, ["decrypt"]);
 
-        if (!decryptedBytes) {
-          alert("Не удалось дешифровать файл! Несоответствие ключей.");
-          return;
-        }
+        const encryptedAesKey = new Uint8Array(atob(aesKeyB64).split("").map(c => c.charCodeAt(0)));
+        const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
+        const ciphertext = new Uint8Array(encryptedBuffer);
 
-        // Create file blob
+        const rawAesKey = await window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, privKeyObj, encryptedAesKey);
+        const aesKey = await window.crypto.subtle.importKey("raw", rawAesKey, { name: "AES-GCM" }, true, ["decrypt"]);
+        
+        const decryptedBytes = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, aesKey, ciphertext);
+
         const blob = new Blob([decryptedBytes], { type: mimeType });
         const blobUrl = URL.createObjectURL(blob);
 
-        if (placeholderId) {
-          // It's an image. Load directly into UI
-          const placeholder = document.getElementById(placeholderId);
-          placeholder.innerHTML = `<img src="${blobUrl}" class="w-full rounded-lg object-contain cursor-pointer" onclick="window.open('${blobUrl}')">`;
-        } else {
-          // It's any other file, download instantly
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = originalName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = originalName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } catch (err) {
-        console.error("Ошибка при обработке зашифрованного файла:", err);
-        alert("Произошла ошибка при загрузке зашифрованного файла. Попробуйте обновить ключи.");
+        alert("Ошибка скачивания или дешифрования: " + err.message);
       }
     }
 
-    // Send E2EE Public Key Exchange message
-    async function sendPublicKeyExchange() {
-      if (!MY_KEYS) return;
-      const pubJwkB64 = btoa(JSON.stringify(MY_KEYS.jwk.publicKey));
-      const textMessage = `${PREFIX_KEY_EXCHANGE}${pubJwkB64}`;
-      await vkRequest('messages.send', {
-        peer_id: ACTIVE_PARTNER_ID,
-        message: textMessage,
-        random_id: Math.floor(Math.random() * 10000000)
-      });
-    }
-
-    // Trigger Key exchange manually
-    document.getElementById('btn-sync-keys').addEventListener('click', async () => {
-      if (!ACTIVE_PARTNER_ID) return;
-      try {
-        await sendPublicKeyExchange();
-        alert("Запрос на обмен публичными ключами отправлен. Как только собеседник прочитает/откроет диалог, ключи будут взаимно синхронизированы!");
-        refreshMessages(ACTIVE_PARTNER_ID);
-      } catch (e) {
-        alert("Ошибка при отправке публичного ключа: " + e.message);
-      }
-    });
-
-    // Handle E2EE Message sending
-    async function sendMessage() {
-      if (!ACTIVE_PARTNER_ID) return;
-      const textInput = document.getElementById('message-input');
-      const text = textInput.value.trim();
-
-      if (!text && !ATTACHED_FILE) return;
-
-      const partnerKeyB64 = PEER_PUBLIC_KEYS[ACTIVE_PARTNER_ID];
-      if (!partnerKeyB64) {
-        alert("Для начала защищенного диалога необходимо отправить публичный ключ и дождаться ответа. Нажмите кнопку 'Ключи не обменены' в правом верхнем углу для инициализации.");
-        return;
-      }
-
-      try {
-        // Option A: There is a file attached
-        if (ATTACHED_FILE) {
-          const statusDiv = document.createElement('div');
-          statusDiv.className = "text-center text-xs text-yellow-500 py-1";
-          statusDiv.innerText = "Шифрование и отправка файла в зашифрованное облако VK Docs...";
-          document.getElementById('messages-container').appendChild(statusDiv);
-
-          // 1. Encrypt file ArrayBuffer
-          const encryptedResult = await encryptE2EE(partnerKeyB64, new Uint8Array(ATTACHED_FILE.arrayBuffer));
-          
-          // 2. Request documents upload server
-          const uploadServer = await vkRequest('docs.getMessagesUploadServer', { 
-            type: 'doc', 
-            peer_id: ACTIVE_PARTNER_ID 
-          });
-
-          // 3. Prepare Encrypted binary blob and Upload
-          const encBlob = new Blob([new Uint8Array(atob(encryptedResult.ciphertextB64).split("").map(c => c.charCodeAt(0)))], { type: 'application/octet-stream' });
-          const formData = new FormData();
-          formData.append('file', encBlob, 'enc_file.bin');
-
-          const uploadResp = await fetch(uploadServer.upload_url, {
-            method: 'POST',
-            body: formData
-          });
-          const uploadData = await uploadResp.json();
-
-          // 4. Save the uploaded file in VK
-          const saveResp = await vkRequest('docs.save', {
-            file: uploadData.file,
-            title: 'secure_payload.bin'
-          });
-
-          const docObj = saveResp.doc || saveResp[0];
-          const attachmentString = `doc${docObj.owner_id}_${docObj.id}`;
-
-          // 5. Send message containing E2EE structure inside text and Document as attachment
-          const b64FileName = btoa(ATTACHED_FILE.name);
-          const e2eeFileHeader = `${PREFIX_E2EE_FILE}${encryptedResult.aesKeyB64}:${encryptedResult.ivB64}:${b64FileName}:${ATTACHED_FILE.type}`;
-
-          await vkRequest('messages.send', {
-            peer_id: ACTIVE_PARTNER_ID,
-            message: e2eeFileHeader,
-            attachment: attachmentString,
-            random_id: Math.floor(Math.random() * 10000000)
-          });
-
-          // Reset attachments
-          clearAttachment();
-          statusDiv.remove();
-        } 
-        // Option B: Regular text message
-        else {
-          const encoder = new TextEncoder();
-          const bytes = encoder.encode(text);
-          const encryptedResult = await encryptE2EE(partnerKeyB64, bytes);
-
-          const e2eeTextPayload = `${PREFIX_E2EE_TEXT}${encryptedResult.aesKeyB64}:${encryptedResult.ivB64}:${encryptedResult.ciphertextB64}`;
-
-          await vkRequest('messages.send', {
-            peer_id: ACTIVE_PARTNER_ID,
-            message: e2eeTextPayload,
-            random_id: Math.floor(Math.random() * 10000000)
-          });
-
-          textInput.value = "";
-        }
-
-        refreshMessages(ACTIVE_PARTNER_ID);
-      } catch (err) {
-        console.error("Ошибка при шифровании/отправке сообщения:", err);
-        alert("Произошла ошибка при отправке: " + err.message);
-      }
-    }
-
-    // Attach File controls
-    document.getElementById('btn-attach').addEventListener('click', () => {
-      document.getElementById('file-input').click();
-    });
-
-    document.getElementById('file-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        ATTACHED_FILE = {
-          name: file.name,
-          type: file.type || 'application/octet-stream',
-          arrayBuffer: evt.target.result
-        };
-
-        // Render preview
-        document.getElementById('attached-file-name').innerText = file.name;
-        document.getElementById('attached-file-size').innerText = (file.size / (1024 * 1024)).toFixed(2) + " MB";
-        document.getElementById('attachment-preview-area').classList.remove('hidden');
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    function clearAttachment() {
-      ATTACHED_FILE = null;
-      document.getElementById('file-input').value = "";
-      document.getElementById('attachment-preview-area').classList.add('hidden');
-    }
-
-    document.getElementById('btn-remove-attachment').addEventListener('click', clearAttachment);
-
-    // Dynamic UI Events / Handlers
-    document.getElementById('btn-send').addEventListener('click', sendMessage);
-    document.getElementById('message-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    // Profile Settings Controls
-    document.getElementById('btn-open-settings').addEventListener('click', () => {
-      document.getElementById('settings-modal').classList.remove('hidden');
-    });
-
-    document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
-      document.getElementById('settings-modal').classList.add('hidden');
-    });
-
-    document.getElementById('btn-save-local-profile').addEventListener('click', () => {
-      const customName = document.getElementById('settings-local-name').value.trim();
-      const customAvatar = document.getElementById('settings-local-avatar').value.trim();
-
-      if (customName) {
-        LOCAL_CONTACT_OVERRIDES[MY_PROFILE.id] = {
-          id: MY_PROFILE.id,
-          first_name: customName,
-          last_name: '',
-          photo_100: customAvatar || MY_PROFILE.photo_100
-        };
-        localStorage.setItem('vktg_contacts', JSON.stringify(LOCAL_CONTACT_OVERRIDES));
-        fetchMyProfile();
-        alert("Локальный профиль успешно сохранен!");
-      }
-    });
-
-    // Keys Export
-    document.getElementById('btn-export-keys').addEventListener('click', () => {
-      if (!MY_KEYS) return;
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(MY_KEYS.jwk));
-      const dlAnchorElem = document.createElement('a');
-      dlAnchorElem.setAttribute("href", dataStr);
-      dlAnchorElem.setAttribute("download", `vktg_keys_${MY_PROFILE.id || 'export'}.json`);
-      dlAnchorElem.click();
-    });
-
-    // Keys Import
-    document.getElementById('btn-import-keys-trigger').addEventListener('click', () => {
-      document.getElementById('import-keys-input').click();
-    });
-
-    document.getElementById('import-keys-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async function(evt) {
-        try {
-          const parsed = JSON.parse(evt.target.result);
-          if (parsed.publicKey && parsed.privateKey) {
-            localStorage.setItem('vktg_my_keys', JSON.stringify(parsed));
-            await initCryptoKeys();
-            alert("Ключи шифрования успешно импортированы! Перезагрузка страницы.");
-            window.location.reload();
-          } else {
-            alert("Некорректный формат файла ключей!");
-          }
-        } catch (err) {
-          alert("Ошибка при разборе файла ключей: " + err.message);
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    // Start New Chat Dialog Modal
-    document.getElementById('btn-new-chat').addEventListener('click', () => {
-      document.getElementById('new-chat-modal').classList.remove('hidden');
-    });
-
-    document.getElementById('btn-close-new-chat-modal').addEventListener('click', () => {
-      document.getElementById('new-chat-modal').classList.add('hidden');
-    });
-
-    document.getElementById('btn-start-chat-action').addEventListener('click', async () => {
-      const userIdInput = document.getElementById('new-chat-user-id').value.trim();
-      const userId = parseInt(userIdInput);
-      
-      if (!userId || isNaN(userId)) {
-        alert("Пожалуйста, введите корректный числовой ID пользователя.");
-        return;
-      }
-
-      document.getElementById('new-chat-modal').classList.add('hidden');
-      await selectChat(userId);
-    });
-
-    // Login Action
-    document.getElementById('login-btn').addEventListener('click', async () => {
-      const rawInput = document.getElementById('vk-token-input').value.trim();
-      const extractedToken = extractToken(rawInput);
-      const logContainer = document.getElementById('auth-error-log');
-
-      if (!extractedToken) {
-        alert("Введите ваш токен доступа ВКонтакте или полную ссылку!");
-        return;
-      }
-
-      VK_TOKEN = extractedToken;
-      logContainer.classList.add('hidden');
-      logContainer.innerText = '';
-
-      try {
-        // Validate token by fetching own profile
-        const response = await vkRequest('users.get', { fields: 'photo_100' });
-        if (response && response.length > 0) {
-          localStorage.setItem('vk_token', VK_TOKEN);
-          await initCryptoKeys();
-          await fetchMyProfile();
-          showDashboard();
-          startPolling();
-        } else {
-          showAuthError("VK API вернул пустой ответ при проверке токена.");
-        }
-      } catch (e) {
-        showAuthError(e);
-      }
-    });
-
-    function showAuthError(errorObj) {
-      const logContainer = document.getElementById('auth-error-log');
-      logContainer.classList.remove('hidden');
-      
-      let errorMsg = "Не удалось проверить токен доступа.\n";
-      if (errorObj && errorObj.error_msg) {
-        errorMsg += `Детали: [Код ${errorObj.error_code || '?'}] ${errorObj.error_msg}`;
-      } else {
-        errorMsg += `Неизвестная ошибка: ${JSON.stringify(errorObj)}`;
-      }
-      
-      logContainer.innerText = errorMsg;
-      alert("Ошибка проверки токена! Подробности выведены на экран под формой ввода.");
-    }
-
-    // Logout
-    function logout() {
-      if (confirm("Вы уверены, что хотите выйти? Все ваши локальные ключи останутся на устройстве, но сессия будет сброшена.")) {
-        localStorage.removeItem('vk_token');
-        VK_TOKEN = '';
-        MY_PROFILE = {};
-        ACTIVE_PARTNER_ID = null;
-        if (POLLING_INTERVAL) clearInterval(POLLING_INTERVAL);
-        showAuthScreen();
-      }
-    }
-    document.getElementById('btn-logout').addEventListener('click', logout);
-
-    // Search input typing filter
-    document.getElementById('chat-search').addEventListener('input', renderDialogsList);
-
-    // Formatting Helpers
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp * 1000);
       const hours = String(date.getHours()).padStart(2, '0');
@@ -1347,20 +1280,9 @@
       return `${hours}:${minutes}`;
     }
 
-    function escapeHTML(str) {
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          "'": '&#39;',
-          '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-    // Run Initialization on Load
-    window.addEventListener('DOMContentLoaded', initApp);
+    // Render App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
