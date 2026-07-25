@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VK-TG Ultra Secure Messenger (E2EE)</title>
+  <title>VK Messenger EE)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1268,33 +1268,47 @@
           // 1. Encrypt file raw payload locally
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
 
-          // 2. Convert encrypted buffer to Blob
+          // 2. Create Blob directly from encrypted ArrayBuffer (BINARY, not base64!)
           const encryptedBlob = new Blob([encryptedFile.ciphertextBuffer], { type: 'application/octet-stream' });
 
-          // 3. Convert Blob to Base64 string for safe text transport
-          const encryptedBase64Str = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(encryptedBlob);
-          });
-
-          // 4. Prepare upload server
+          // 3. Prepare upload server
           const server = await vkRequest('docs.getMessagesUploadServer', { type: 'doc', peer_id: activePartner.id });
 
-          // 5. Create text blob with Base64 content (safe text transport, no binary corruption)
-          const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
-          const formData = new FormData();
-          formData.append('file', transportBlob, 'payload.bin64');
+          // 4. Build multipart/form-data MANUALLY (like working Android code)
+          const boundary = '----MeowBoundary' + Date.now();
+          const uploadFilename = 'media.mur';
 
-          const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
+          // Build body parts
+          const preBlob = new Blob([
+            '--' + boundary + '\r\n',
+            'Content-Disposition: form-data; name="file"; filename="' + uploadFilename + '"\r\n',
+            'Content-Type: application/octet-stream\r\n\r\n'
+          ], { type: 'text/plain' });
+
+          const postBlob = new Blob([
+            '\r\n--' + boundary + '--\r\n'
+          ], { type: 'text/plain' });
+
+          // Combine: pre + encrypted binary + post
+          const finalBody = new Blob([preBlob, encryptedBlob, postBlob]);
+
+          const uploadResp = await fetch(server.upload_url, { 
+            method: 'POST', 
+            body: finalBody,
+            headers: {
+              'Content-Type': 'multipart/form-data; boundary=' + boundary
+            }
+          });
+
           if (!uploadResp.ok) {
-            throw new Error('Upload failed: ' + uploadResp.status + ' ' + uploadResp.statusText);
+            const errText = await uploadResp.text();
+            throw new Error('Upload HTTP ' + uploadResp.status + ': ' + errText);
           }
+
           const uploadData = await uploadResp.json();
 
-          // 6. Save on VK servers as text document
-          const saved = await vkRequest('docs.save', { file: uploadData.file, title: 'payload.bin64' });
+          // 5. Save on VK servers
+          const saved = await vkRequest('docs.save', { file: uploadData.file, title: uploadFilename });
           const docObj = saved.doc || saved[0];
           const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
 
