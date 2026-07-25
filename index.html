@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VK-TG Ultra Secure Messenger (E2EE)</title>
+  <title>VK (E2EE)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -308,9 +308,9 @@
           const totalLength = payloadBytes.length;
           
           const buffer = new Uint8Array(4 + totalLength);
-          buffer[0] = (totalLength >> 24) & 0xFF;
-          buffer[1] = (totalLength >> 16) & 0xFF;
-          buffer[2] = (totalLength >> 8) & 0xFF;
+          buffer[0] = (totalLength >>> 24) & 0xFF;
+          buffer[1] = (totalLength >>> 16) & 0xFF;
+          buffer[2] = (totalLength >>> 8) & 0xFF;
           buffer[3] = totalLength & 0xFF;
           buffer.set(payloadBytes, 4);
 
@@ -337,7 +337,7 @@
 
             const byteIdx = Math.floor(bitPtr / 8);
             const bitShift = 7 - (bitPtr % 8);
-            const bit = (buffer[byteIdx] >> bitShift) & 1;
+            const bit = (buffer[byteIdx] >>> bitShift) & 1;
 
             data[dataIdx] = (data[dataIdx] & 0xFE) | bit;
             bitPtr++;
@@ -448,18 +448,31 @@
             const encryptedBuffer = base64ToArrayBuffer(base64Text);
 
             // 4. Decrypt
-            const ivBytes = new Uint8Array(atob(iv).split("").map(c => c.charCodeAt(0)));
+            const ivBytes = base64ToArrayBuffer(iv); // Use base64ToArrayBuffer for IV
             const decryptedBytes = await window.crypto.subtle.decrypt(
-              { name: "AES-GCM", iv: ivBytes },
+              { name: "AES-GCM", iv: new Uint8Array(ivBytes) }, // Pass Uint8Array
               aesKey,
               encryptedBuffer
             );
 
             let finalMime = mime;
+            // Standardize MIME types based on common extensions used in the protocol
             if (name.endsWith('.mur')) finalMime = 'image/png';
             else if (name.endsWith('.meow')) finalMime = 'video/mp4';
             else if (name.endsWith('.meo')) finalMime = 'audio/webm';
             else if (name.endsWith('.me')) finalMime = 'video/webm';
+            else if (!finalMime || finalMime === 'application/octet-stream' || finalMime === 'text/plain') {
+                // Fallback for generic file types based on common usage
+                if (name.toLowerCase().endsWith('.jpg') || name.toLowerCase().endsWith('.jpeg')) finalMime = 'image/jpeg';
+                else if (name.toLowerCase().endsWith('.png')) finalMime = 'image/png';
+                else if (name.toLowerCase().endsWith('.gif')) finalMime = 'image/gif';
+                else if (name.toLowerCase().endsWith('.mp4')) finalMime = 'video/mp4';
+                else if (name.toLowerCase().endsWith('.webm')) finalMime = 'video/webm';
+                else if (name.toLowerCase().endsWith('.mp3')) finalMime = 'audio/mpeg';
+                else if (name.toLowerCase().endsWith('.wav')) finalMime = 'audio/wav';
+                else if (name.toLowerCase().endsWith('.ogg')) finalMime = 'audio/ogg';
+            }
+
 
             const blob = new Blob([decryptedBytes], { type: finalMime });
             const localObjUrl = URL.createObjectURL(blob);
@@ -478,6 +491,7 @@
         decrypt();
         return () => {
           isMounted = false;
+          if (localUrl) URL.revokeObjectURL(localUrl); // Clean up blob URL on unmount
         };
       }, [docUrl, sequence, iv, name, mime, peerKeyB64, privKeyObj, myId, partnerId]);
 
@@ -498,7 +512,8 @@
         );
       }
 
-      if (name.endsWith('.mur')) {
+      // Render based on custom extensions or MIME types
+      if (name.endsWith('.mur') || mime.startsWith('image/')) {
         return (
           <div className="rounded-xl overflow-hidden border border-white/5 shadow-inner">
             <img src={localUrl} className="max-w-full rounded-xl max-h-72 object-cover cursor-pointer hover:opacity-90 transition" onClick={() => window.open(localUrl, '_blank')} />
@@ -506,7 +521,7 @@
         );
       }
 
-      if (name.endsWith('.meow')) {
+      if (name.endsWith('.meow') || (mime.startsWith('video/') && !name.endsWith('.me'))) {
         return (
           <div className="rounded-xl overflow-hidden border border-white/5 bg-black">
             <video src={localUrl} controls className="w-full rounded-xl max-h-72" />
@@ -514,7 +529,7 @@
         );
       }
 
-      if (name.endsWith('.meo')) {
+      if (name.endsWith('.meo') || mime.startsWith('audio/')) {
         return (
           <div className="flex items-center gap-3 bg-slate-900/40 p-3 rounded-2xl border border-sky-500/10 max-w-full">
             <div className="w-9 h-9 rounded-full bg-sky-500/10 flex items-center justify-center text-sky-400 shrink-0">
@@ -525,7 +540,7 @@
         );
       }
 
-      if (name.endsWith('.me')) {
+      if (name.endsWith('.me')) { // Circular video note
         return (
           <div className="flex justify-center p-1.5">
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-2 border-emerald-500 bg-black shadow-lg">
@@ -537,6 +552,7 @@
         );
       }
 
+      // Default file display for unrecognized types
       return (
         <div className="p-3 bg-black/20 rounded-xl border border-white/5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -1042,7 +1058,7 @@
         );
 
         return {
-          ivB64: btoa(String.fromCharCode(...iv)),
+          ivB64: arrayBufferToBase64(iv.buffer), // Encode IV to Base64
           ciphertextBuffer: ciphertext
         };
       }
@@ -1068,7 +1084,7 @@
         return {
           sequence,
           ivB64: encrypted.ivB64,
-          ciphertextB64: btoa(String.fromCharCode(...new Uint8Array(encrypted.ciphertextBuffer)))
+          ciphertextB64: arrayBufferToBase64(encrypted.ciphertextBuffer)
         };
       }
 
@@ -1082,8 +1098,8 @@
           const sharedBits = await computeSharedSecret(partnerKeyB64, identityKeyPair.privateKey);
           const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), myProfile.id, partnerId);
 
-          const iv = new Uint8Array(atob(ivB64).split("").map(c => c.charCodeAt(0)));
-          const ciphertext = new Uint8Array(atob(ciphertextB64).split("").map(c => c.charCodeAt(0)));
+          const iv = new Uint8Array(base64ToArrayBuffer(ivB64)); // Decode IV from Base64
+          const ciphertext = new Uint8Array(base64ToArrayBuffer(ciphertextB64)); // Decode ciphertext from Base64
 
           const decryptedBytes = await window.crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv },
@@ -1093,7 +1109,7 @@
 
           const payload = JSON.parse(new TextDecoder().decode(decryptedBytes));
           
-          if (payload.recipient_id !== myProfile.id) {
+          if (payload.recipient_id !== myProfile.id && payload.recipient_id !== myProfile.id.toString()) { // Check for both number and string
             return { error: "Нарушение адресации! Сообщение заблокировано." };
           }
 
@@ -1251,14 +1267,11 @@
         });
       };
 
-      // Unified 100% E2EE VK Doc Sender Engine with Base64 Transport wrapper!
+      // *** ИСПРАВЛЕННЫЙ И ОБНОВЛЕННЫЙ МЕТОД ОТПРАВКИ МЕДИАФАЙЛОВ ***
       const sendEncryptedFileDirectly = async (arrayBuffer, filename, mimeType) => {
         if (!activePartner) return;
         const partnerKeyB64 = peerKeys[activePartner.id];
-        if (!partnerKeyB64) {
-          alert("Необходимо обменяться ключами E2EE!");
-          return;
-        }
+        if (!partnerKeyB64) { alert("Необходимо обменяться ключами E2EE!"); return; }
 
         try {
           // 1. Инкремент счетчика для Perfect Forward Secrecy
@@ -1268,8 +1281,9 @@
 
           // 2. Шифрование массива байтов (локально)
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
-
+          
           // 3. Безопасная сериализация шифртекста в Base64 для передачи через VK Docs
+          // Это предотвращает порчу бинарных данных при передаче через VK API
           const encryptedBase64Str = arrayBufferToBase64(encryptedFile.ciphertextBuffer);
 
           // 4. Запрос сервера загрузки
@@ -1278,11 +1292,10 @@
               peer_id: activePartner.id 
           });
 
-          // 5. Загрузка через Blob (защита от CORS)
-          // Мы отправляем текстовый файл, содержащий шифрованную строку в Base64
+          // 5. Отправляем Base64-строку как обычный текстовый файл (blob)
           const transportBlob = new Blob([encryptedBase64Str], { type: 'text/plain' });
           const formData = new FormData();
-          formData.append('file', transportBlob, 'payload.txt');
+          formData.append('file', transportBlob, 'data.txt'); // Имя файла не имеет значения, так как это просто контейнер
 
           const uploadResp = await fetch(server.upload_url, { method: 'POST', body: formData });
           const uploadData = await uploadResp.json();
@@ -1290,15 +1303,15 @@
           // 6. Фиксация документа в системе ВК
           const saved = await vkRequest('docs.save', { 
               file: uploadData.file, 
-              title: filename || 'encrypted_media.bin' 
+              title: filename // Сохраняем оригинальное имя файла
           });
-
+          
           // Получение ID аттачмента
           const docObj = saved.doc || saved[0];
           const attachStr = `doc${docObj.owner_id}_${docObj.id}`;
 
           // 7. Отправка мета-сообщения (управляющий сигнал)
-          // Формат: [SEQUENCE]:[IV]:[FILENAME_B64]:[MIME]
+          // Формат: [PREFIX][SEQUENCE]:[IV_B64]:[FILENAME_B64]:[MIME]
           const b64Name = btoa(filename);
           const header = `${PREFIX_E2EE_FILE}${sequence}:${encryptedFile.ivB64}:${b64Name}:${mimeType}`;
 
@@ -1312,10 +1325,11 @@
           await refreshMessages(activePartner.id);
           alert("Зашифрованный файл успешно отправлен!");
         } catch (e) {
-          console.error(e);
+          console.error("Ошибка отправки зашифрованного медиафайла:", e);
           alert("Ошибка отправки: " + e.message);
         }
       };
+      // *** КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ***
 
       const handleSendMessage = async () => {
         if (!activePartner) return;
@@ -1359,7 +1373,7 @@
           recorder.onstop = async () => {
             const blob = new Blob(chunks, { type: 'audio/webm' });
             const arrBuffer = await blob.arrayBuffer();
-            await sendEncryptedFileDirectly(arrBuffer, 'voice.meo', 'audio/webm');
+            await sendEncryptedFileDirectly(arrBuffer, `voice_${Date.now()}.meo`, 'audio/webm');
             stream.getTracks().forEach(t => t.stop());
           };
 
@@ -1400,7 +1414,7 @@
           recorder.onstop = async () => {
             const blob = new Blob(chunks, { type: 'video/webm' });
             const arrBuffer = await blob.arrayBuffer();
-            await sendEncryptedFileDirectly(arrBuffer, 'circle.me', 'video/webm');
+            await sendEncryptedFileDirectly(arrBuffer, `circle_${Date.now()}.me`, 'video/webm');
             stream.getTracks().forEach(t => t.stop());
           };
 
@@ -1502,18 +1516,8 @@
         if (!file) return;
         const reader = new FileReader();
         reader.onload = async function(evt) {
-          let filename = file.name;
-          const mimeType = file.type || 'application/octet-stream';
-
-          if (mimeType.startsWith('image/')) {
-            filename = 'image.mur';
-          } else if (mimeType.startsWith('video/')) {
-            filename = 'video.meow';
-          } else if (mimeType.startsWith('audio/')) {
-            filename = 'voice.meo';
-          }
-
-          await sendEncryptedFileDirectly(evt.target.result, filename, mimeType);
+          // sendEncryptedFileDirectly теперь принимает оригинальное имя и MIME-тип
+          await sendEncryptedFileDirectly(evt.target.result, file.name, file.type || 'application/octet-stream');
           setAttachmentSheet(false);
         };
         reader.readAsArrayBuffer(file);
@@ -1930,7 +1934,7 @@
                                 peerKeyB64={peerKeys[activePartner.id]}
                                 privKeyObj={identityKeyPair.privateKey}
                                 computeSharedSecret={computeSharedSecret}
-                                deriveRatchetMessageKey={deriveRatchetMessageKey}
+                                deriveRatchetMessageKey={deriveRathetMessageKey}
                               />
                             ) : (
                               <p className="text-xs text-rose-400 font-bold">{msg.decrypted.text}</p>
@@ -2201,12 +2205,14 @@
 
                   <div 
                     onClick={() => {
-                      if (identityKeyPair) {
+                      if (identityKeyPair && myPublicJWK && myProfile) {
                         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(myPublicJWK));
                         const dl = document.createElement('a');
                         dl.setAttribute("href", dataStr);
                         dl.setAttribute("download", `pub_identity_${myProfile.id}.json`);
                         dl.click();
+                      } else {
+                         alert("Публичный ключ еще не сгенерирован или не доступен.");
                       }
                     }}
                     className="flex items-center gap-4 px-5 py-3.5 text-gray-300 text-xs font-semibold hover:bg-white/5 active:bg-white/10 cursor-pointer transition"
