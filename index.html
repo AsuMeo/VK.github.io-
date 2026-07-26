@@ -6,11 +6,9 @@
 <title>3D Messenger — Miside Style</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-database-compat.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-storage-compat.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -171,7 +169,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   position:fixed; bottom:0; left:0; right:0; z-index:100;
   padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px);
   background:linear-gradient(0deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0.7) 60%,transparent 100%);
-  display:flex; align-items:center; gap:10px; backdrop-filter:blur(12px);
+  display:flex; align-items:center; gap:8px; backdrop-filter:blur(12px);
 }
 .input-bar .msg-input {
   flex:1; padding:14px 20px;
@@ -181,8 +179,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 }
 .input-bar .msg-input:focus { border-color:rgba(102,126,234,0.5); box-shadow:0 0 20px rgba(102,126,234,0.1); }
 .input-bar .msg-input::placeholder { color:rgba(255,255,255,0.3); }
-.input-bar .send-btn, .input-bar .attach-btn, .input-bar .emoji-btn, .input-bar .music-btn {
-  width:44px; height:44px; border-radius:50%;
+.input-bar .send-btn, .input-bar .attach-btn, .input-bar .emoji-btn, .input-bar .music-btn,
+.input-bar .reaction-btn, .input-bar .draw-btn, .input-bar .voice-btn, .input-bar .gesture-btn {
+  width:42px; height:42px; border-radius:50%;
   border:none; cursor:pointer; display:flex;
   align-items:center; justify-content:center;
   font-size:18px; transition:all 0.3s; flex-shrink:0;
@@ -212,6 +211,37 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   background:rgba(0,255,150,0.3);
   animation:pulseMusic 1s infinite;
 }
+.input-bar .reaction-btn {
+  background:rgba(255,100,100,0.1); color:#ff6b6b;
+  border:1px solid rgba(255,100,100,0.2); font-size:18px;
+}
+.input-bar .reaction-btn:hover { background:rgba(255,100,100,0.2); transform:scale(1.1); }
+.input-bar .draw-btn {
+  background:rgba(100,200,255,0.1); color:#64c8ff;
+  border:1px solid rgba(100,200,255,0.2); font-size:18px;
+}
+.input-bar .draw-btn:hover { background:rgba(100,200,255,0.2); }
+.input-bar .draw-btn.active {
+  background:rgba(100,200,255,0.4); box-shadow:0 0 15px rgba(100,200,255,0.4);
+}
+.input-bar .voice-btn {
+  background:rgba(255,100,200,0.1); color:#ff64c8;
+  border:1px solid rgba(255,100,200,0.2); font-size:18px;
+}
+.input-bar .voice-btn:hover { background:rgba(255,100,200,0.2); }
+.input-bar .voice-btn.recording {
+  background:rgba(255,100,200,0.4);
+  animation:pulseRecord 0.8s infinite;
+}
+@keyframes pulseRecord {
+  0%,100% { box-shadow:0 0 5px rgba(255,100,200,0.3); }
+  50% { box-shadow:0 0 20px rgba(255,100,200,0.7); }
+}
+.input-bar .gesture-btn {
+  background:rgba(200,100,255,0.1); color:#c864ff;
+  border:1px solid rgba(200,100,255,0.2); font-size:18px;
+}
+.input-bar .gesture-btn:hover { background:rgba(200,100,255,0.2); }
 @keyframes pulseMusic {
   0%,100% { box-shadow:0 0 5px rgba(0,255,150,0.3); }
   50% { box-shadow:0 0 20px rgba(0,255,150,0.6); }
@@ -436,6 +466,142 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 .emoji-grid span { font-size:22px; cursor:pointer; text-align:center; padding:4px; border-radius:6px; transition:all 0.2s; }
 .emoji-grid span:hover { background:rgba(255,255,255,0.1); transform:scale(1.2); }
 
+/* ===== REACTION PANEL ===== */
+.reaction-panel {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
+  padding:16px; display:none; opacity:0;
+  transition:all 0.3s;
+}
+.reaction-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
+.reaction-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+.reaction-item {
+  width:50px; height:50px; border-radius:12px;
+  background:rgba(255,255,255,0.05);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; cursor:pointer;
+  transition:all 0.3s; border:1px solid transparent;
+}
+.reaction-item:hover { transform:scale(1.2); background:rgba(255,255,255,0.1); border-color:rgba(255,100,100,0.3); }
+.reaction-item .reaction-label {
+  position:absolute; bottom:-18px; font-size:10px; color:rgba(255,255,255,0.5);
+  white-space:nowrap;
+}
+
+/* ===== DRAWING PANEL ===== */
+.draw-panel {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9);
+  z-index:250; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); border-radius:20px;
+  padding:20px; display:none; opacity:0;
+  transition:all 0.3s;
+  width:min(90vw,500px);
+}
+.draw-panel.active { display:block; opacity:1; transform:translate(-50%,-50%) scale(1); }
+.draw-panel h3 { color:#fff; font-family:'Orbitron',sans-serif; font-size:16px; margin-bottom:12px; text-align:center; }
+.draw-canvas-wrap {
+  width:100%; height:300px; background:rgba(255,255,255,0.03);
+  border-radius:12px; border:1px solid rgba(255,255,255,0.1);
+  position:relative; overflow:hidden;
+}
+.draw-canvas-wrap canvas { width:100%; height:100%; cursor:crosshair; }
+.draw-colors {
+  display:flex; gap:8px; margin-top:12px; justify-content:center;
+}
+.draw-color {
+  width:28px; height:28px; border-radius:50%; cursor:pointer;
+  border:2px solid transparent; transition:all 0.2s;
+}
+.draw-color.active { border-color:#fff; transform:scale(1.2); }
+.draw-actions {
+  display:flex; gap:8px; margin-top:12px;
+}
+.draw-actions button {
+  flex:1; padding:10px; border:none; border-radius:10px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:#fff; font-size:13px; cursor:pointer; transition:all 0.3s;
+}
+.draw-actions button:hover { transform:translateY(-2px); }
+.draw-actions button.secondary {
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+}
+
+/* ===== GESTURE PANEL ===== */
+.gesture-panel {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
+  padding:16px; display:none; opacity:0;
+  transition:all 0.3s;
+}
+.gesture-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
+.gesture-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.gesture-item {
+  padding:12px; border-radius:12px;
+  background:rgba(255,255,255,0.05);
+  text-align:center; cursor:pointer;
+  transition:all 0.3s; border:1px solid transparent;
+}
+.gesture-item:hover { background:rgba(200,100,255,0.15); border-color:rgba(200,100,255,0.3); transform:scale(1.1); }
+.gesture-item .gesture-emoji { font-size:28px; display:block; margin-bottom:4px; }
+.gesture-item .gesture-name { font-size:11px; color:rgba(255,255,255,0.6); }
+
+/* ===== VOICE WAVE OVERLAY ===== */
+.voice-overlay {
+  position:fixed; inset:0; z-index:250;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(10px);
+  display:none; align-items:center; justify-content:center; flex-direction:column;
+}
+.voice-overlay.active { display:flex; }
+.voice-wave-container {
+  width:300px; height:200px;
+  position:relative;
+}
+.voice-timer {
+  color:#fff; font-family:'Orbitron',sans-serif; font-size:32px;
+  margin-top:20px; text-shadow:0 0 20px rgba(255,100,200,0.5);
+}
+.voice-hint {
+  color:rgba(255,255,255,0.5); font-size:13px; margin-top:12px;
+}
+.voice-stop-btn {
+  margin-top:20px; padding:12px 32px;
+  background:linear-gradient(135deg,#ff6b6b,#ff4444);
+  border:none; border-radius:14px; color:#fff;
+  font-size:16px; cursor:pointer; transition:all 0.3s;
+}
+.voice-stop-btn:hover { transform:scale(1.05); box-shadow:0 0 30px rgba(255,100,100,0.4); }
+
+/* ===== 3D MESSAGE TIMELINE ===== */
+.timeline-hint {
+  position:fixed; top:80px; right:20px; z-index:70;
+  color:rgba(255,255,255,0.3); font-size:11px;
+  text-align:right; pointer-events:none;
+}
+
+/* ===== ENVIRONMENT CONTROLS ===== */
+.env-controls {
+  position:fixed; top:80px; left:20px; z-index:70;
+  display:flex; flex-direction:column; gap:8px;
+}
+.env-btn {
+  width:40px; height:40px; border-radius:10px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  color:#fff; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s;
+}
+.env-btn:hover { background:rgba(255,255,255,0.1); transform:scale(1.1); }
+.env-btn.active { background:rgba(102,126,234,0.3); border-color:rgba(102,126,234,0.5); }
+
+/* ===== STICKER THROW EFFECT ===== */
+.sticker-3d {
+  position:fixed; pointer-events:none; z-index:60;
+  font-size:60px; transition:none;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -462,6 +628,11 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   .side-panel { width:80vw; }
   .panel-toggle.open { left:80vw; }
   .music-panel { width:80vw; }
+  .input-bar .msg-input { font-size:14px; padding:12px 14px; }
+  .input-bar .send-btn, .input-bar .attach-btn, .input-bar .emoji-btn, .input-bar .music-btn,
+  .input-bar .reaction-btn, .input-bar .draw-btn, .input-bar .voice-btn, .input-bar .gesture-btn {
+    width:38px; height:38px; font-size:16px;
+  }
 }
 </style>
 </head>
@@ -515,6 +686,14 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="users-list" id="usersList"></div>
   </div>
 
+  <!-- Environment Controls -->
+  <div class="env-controls" id="envControls">
+    <button class="env-btn" id="envDay" onclick="setEnvironment('day')" title="День">☀️</button>
+    <button class="env-btn active" id="envNight" onclick="setEnvironment('night')" title="Ночь">🌙</button>
+    <button class="env-btn" id="envRain" onclick="setEnvironment('rain')" title="Дождь">🌧️</button>
+    <button class="env-btn" id="envNeon" onclick="setEnvironment('neon')" title="Неон">🌃</button>
+  </div>
+
   <canvas id="room-canvas"></canvas>
 
   <div class="chat-partner" id="chatPartner">
@@ -530,8 +709,17 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <span></span><span></span><span></span>
   </div>
 
+  <div class="timeline-hint" id="timelineHint">
+    🖱 Колёсико мыши — листать историю<br>
+    🖱 ПКМ + движение — рисовать в 3D
+  </div>
+
   <div class="input-bar">
     <button class="music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
+    <button class="gesture-btn" onclick="toggleGesturePanel()" title="Жесты">🎭</button>
+    <button class="reaction-btn" onclick="toggleReactionPanel()" title="Реакции">💖</button>
+    <button class="draw-btn" id="drawBtn" onclick="toggleDrawPanel()" title="Рисовать">✏️</button>
+    <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()" title="Голос">🎤</button>
     <button class="emoji-btn" onclick="toggleEmojiPanel()" title="Эмодзи">😊</button>
     <button class="attach-btn" onclick="triggerFile()" title="Фото/Видео">📎</button>
     <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
@@ -546,34 +734,22 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   <h3>🎵 Фоновая Музыка</h3>
   <div class="music-track" data-src="minecraft" onclick="playTrack('minecraft')">
     <div class="track-icon">⛏️</div>
-    <div class="track-info">
-      <div class="track-name">Minecraft Ambient</div>
-      <div class="track-desc">Спокойная атмосфера</div>
-    </div>
+    <div class="track-info"><div class="track-name">Minecraft Ambient</div><div class="track-desc">Спокойная атмосфера</div></div>
     <div class="track-play" id="play-minecraft">▶</div>
   </div>
   <div class="music-track" data-src="genshin" onclick="playTrack('genshin')">
     <div class="track-icon">🌸</div>
-    <div class="track-info">
-      <div class="track-name">Genshin Impact</div>
-      <div class="track-desc">Мелодичная фантазия</div>
-    </div>
+    <div class="track-info"><div class="track-name">Genshin Impact</div><div class="track-desc">Мелодичная фантазия</div></div>
     <div class="track-play" id="play-genshin">▶</div>
   </div>
   <div class="music-track" data-src="lofi" onclick="playTrack('lofi')">
     <div class="track-icon">☕</div>
-    <div class="track-info">
-      <div class="track-name">Lo-Fi Chill</div>
-      <div class="track-desc">Расслабляющий бит</div>
-    </div>
+    <div class="track-info"><div class="track-name">Lo-Fi Chill</div><div class="track-desc">Расслабляющий бит</div></div>
     <div class="track-play" id="play-lofi">▶</div>
   </div>
   <div class="music-track" data-src="cyber" onclick="playTrack('cyber')">
     <div class="track-icon">🌃</div>
-    <div class="track-info">
-      <div class="track-name">Cyberpunk Vibes</div>
-      <div class="track-desc">Неоновая ночь</div>
-    </div>
+    <div class="track-info"><div class="track-name">Cyberpunk Vibes</div><div class="track-desc">Неоновая ночь</div></div>
     <div class="track-play" id="play-cyber">▶</div>
   </div>
   <div class="music-volume">
@@ -595,6 +771,66 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <span onclick="insertEmoji('🍕')">🍕</span><span onclick="insertEmoji('🍔')">🍔</span><span onclick="insertEmoji('🍦')">🍦</span><span onclick="insertEmoji('🍩')">🍩</span>
     <span onclick="insertEmoji('⚡')">⚡</span><span onclick="insertEmoji('💎')">💎</span><span onclick="insertEmoji('🌺')">🌺</span><span onclick="insertEmoji('🍀')">🍀</span>
   </div>
+</div>
+
+<!-- Reaction Panel (3D Particle Emojis) -->
+<div class="reaction-panel" id="reactionPanel">
+  <div class="reaction-grid">
+    <div class="reaction-item" onclick="send3DReaction('heart')">❤️</div>
+    <div class="reaction-item" onclick="send3DReaction('fire')">🔥</div>
+    <div class="reaction-item" onclick="send3DReaction('star')">⭐</div>
+    <div class="reaction-item" onclick="send3DReaction('sparkle')">✨</div>
+    <div class="reaction-item" onclick="send3DReaction('ghost')">👻</div>
+    <div class="reaction-item" onclick="send3DReaction('bomb')">💣</div>
+    <div class="reaction-item" onclick="send3DReaction('rainbow')">🌈</div>
+    <div class="reaction-item" onclick="send3DReaction('lightning')">⚡</div>
+    <div class="reaction-item" onclick="send3DReaction('diamond')">💎</div>
+    <div class="reaction-item" onclick="send3DReaction('rose')">🌹</div>
+  </div>
+</div>
+
+<!-- Gesture Panel -->
+<div class="gesture-panel" id="gesturePanel">
+  <div class="gesture-grid">
+    <div class="gesture-item" onclick="sendGesture('wave')"><span class="gesture-emoji">👋</span><span class="gesture-name">Махать</span></div>
+    <div class="gesture-item" onclick="sendGesture('dance')"><span class="gesture-emoji">💃</span><span class="gesture-name">Танец</span></div>
+    <div class="gesture-item" onclick="sendGesture('bow')"><span class="gesture-emoji">🙇</span><span class="gesture-name">Поклон</span></div>
+    <div class="gesture-item" onclick="sendGesture('clap')"><span class="gesture-emoji">👏</span><span class="gesture-name">Хлопать</span></div>
+    <div class="gesture-item" onclick="sendGesture('think')"><span class="gesture-emoji">🤔</span><span class="gesture-name">Думать</span></div>
+    <div class="gesture-item" onclick="sendGesture('sleep')"><span class="gesture-emoji">😴</span><span class="gesture-name">Спать</span></div>
+    <div class="gesture-item" onclick="sendGesture('angry')"><span class="gesture-emoji">😤</span><span class="gesture-name">Злиться</span></div>
+    <div class="gesture-item" onclick="sendGesture('love')"><span class="gesture-emoji">😍</span><span class="gesture-name">Влюблён</span></div>
+  </div>
+</div>
+
+<!-- Drawing Panel -->
+<div class="draw-panel" id="drawPanel">
+  <h3>✏️ Рисовать в 3D</h3>
+  <div class="draw-canvas-wrap">
+    <canvas id="drawCanvas"></canvas>
+  </div>
+  <div class="draw-colors">
+    <div class="draw-color active" style="background:#ff6b6b" data-color="#ff6b6b" onclick="setDrawColor(this)"></div>
+    <div class="draw-color" style="background:#4ecdc4" data-color="#4ecdc4" onclick="setDrawColor(this)"></div>
+    <div class="draw-color" style="background:#667eea" data-color="#667eea" onclick="setDrawColor(this)"></div>
+    <div class="draw-color" style="background:#ffd700" data-color="#ffd700" onclick="setDrawColor(this)"></div>
+    <div class="draw-color" style="background:#ff00ff" data-color="#ff00ff" onclick="setDrawColor(this)"></div>
+    <div class="draw-color" style="background:#00ff96" data-color="#00ff96" onclick="setDrawColor(this)"></div>
+    <div class="draw-color" style="background:#ffffff" data-color="#ffffff" onclick="setDrawColor(this)"></div>
+  </div>
+  <div class="draw-actions">
+    <button onclick="clearDrawCanvas()">Очистить</button>
+    <button class="secondary" onclick="send3DDrawing()">Отправить в 3D 🚀</button>
+    <button class="secondary" onclick="toggleDrawPanel()">Закрыть</button>
+  </div>
+</div>
+
+<!-- Voice Overlay -->
+<div class="voice-overlay" id="voiceOverlay">
+  <div class="voice-wave-container" id="voiceWaveContainer"></div>
+  <div class="voice-timer" id="voiceTimer">00:00</div>
+  <div class="voice-hint">Говорите... Голосовая волна в 3D</div>
+  <button class="voice-stop-btn" onclick="stopVoiceRecording()">⏹ Стоп</button>
 </div>
 
 <!-- Media Viewer -->
@@ -638,7 +874,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-const storage = firebase.storage();
 
 // ===== STATE =====
 let currentUser = null;
@@ -649,15 +884,33 @@ let scene, camera, renderer, roomGroup;
 let messages3D = [];
 let mediaObjects = [];
 let avatar3DObjects = {};
+let particleReactions = [];
+let voiceWaves3D = [];
+let drawings3D = [];
+let gestureAnimations = [];
+let stickerObjects = [];
+let rainParticles = null;
 let animationId;
 let isPanelOpen = false;
 let isMusicPanelOpen = false;
+let isReactionPanelOpen = false;
+let isGesturePanelOpen = false;
+let isDrawPanelOpen = false;
+let isRecordingVoice = false;
 let currentAudio = null;
 let currentTrack = null;
 let audioVolume = 0.3;
 let userData = {};
 let partnerLastSeen = 0;
 let partnerStatusListener = null;
+let mediaRecorder = null;
+let voiceChunks = [];
+let voiceTimerInterval = null;
+let drawColor = '#ff6b6b';
+let isDrawing = false;
+let drawCtx = null;
+let currentEnvironment = 'night';
+let envLights = {};
 
 // ===== MUSIC TRACKS =====
 const MUSIC_TRACKS = {
@@ -665,6 +918,20 @@ const MUSIC_TRACKS = {
   genshin: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3',
   lofi: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Algorithms.mp3',
   cyber: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Tours/Enthusiast/Tours_-_01_-_Enthusiast.mp3'
+};
+
+// ===== REACTION PARTICLE SHAPES =====
+const REACTION_SHAPES = {
+  heart: { color: 0xff3366, particles: 80, type: 'heart' },
+  fire: { color: 0xff6600, particles: 100, type: 'fire' },
+  star: { color: 0xffd700, particles: 60, type: 'star' },
+  sparkle: { color: 0xffffff, particles: 120, type: 'sparkle' },
+  ghost: { color: 0xccffff, particles: 70, type: 'ghost' },
+  bomb: { color: 0x333333, particles: 150, type: 'bomb' },
+  rainbow: { color: 'rainbow', particles: 200, type: 'rainbow' },
+  lightning: { color: 0xffff00, particles: 90, type: 'lightning' },
+  diamond: { color: 0x00ffff, particles: 50, type: 'diamond' },
+  rose: { color: 0xff0044, particles: 70, type: 'rose' }
 };
 
 // ===== AUTH =====
@@ -689,12 +956,8 @@ function doRegister() {
     auth.createUserWithEmailAndPassword(email,pass).then(cred=>{
       const uid = cred.user.uid;
       db.ref('users/'+uid).set({
-        username: username,
-        email: email,
-        displayName: username,
-        createdAt: Date.now(),
-        online: true,
-        avatar: ''
+        username: username, email: email, displayName: username,
+        createdAt: Date.now(), online: true, avatar: ''
       });
       db.ref('usernames/'+username).set(uid);
     }).catch(e=>err.textContent=e.message);
@@ -705,8 +968,7 @@ function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
   const err = document.getElementById('loginError');
-  auth.signInWithEmailAndPassword(email,pass)
-    .catch(e=>err.textContent=e.message);
+  auth.signInWithEmailAndPassword(email,pass).catch(e=>err.textContent=e.message);
 }
 
 function doLogout() {
@@ -732,10 +994,7 @@ auth.onAuthStateChanged(user=>{
       }
       db.ref('users/'+user.uid+'/online').set(true);
       db.ref('users/'+user.uid+'/lastSeen').set(Date.now());
-      // Update lastSeen every 30s
-      setInterval(()=>{
-        if(currentUser) db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now());
-      }, 30000);
+      setInterval(()=>{ if(currentUser) db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now()); }, 30000);
     });
     document.getElementById('authScreen').classList.add('hidden');
     setTimeout(()=>{
@@ -743,19 +1002,17 @@ auth.onAuthStateChanged(user=>{
       document.getElementById('mainUI').classList.add('active');
       init3DRoom();
       loadUsers();
+      initDrawCanvas();
       document.getElementById('loading').classList.add('hidden');
     },800);
   } else {
-    currentUser = null;
-    userData = {};
+    currentUser = null; userData = {};
     document.getElementById('authScreen').style.display='flex';
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('mainUI').classList.remove('active');
     document.getElementById('loading').classList.remove('hidden');
     if(renderer) { renderer.dispose(); cancelAnimationFrame(animationId); }
-    Object.values(avatar3DObjects).forEach(obj=>{
-      if(obj.mesh && roomGroup) roomGroup.remove(obj.mesh);
-    });
+    Object.values(avatar3DObjects).forEach(obj=>{ if(obj.mesh && roomGroup) roomGroup.remove(obj.mesh); });
     avatar3DObjects = {};
   }
 });
@@ -768,29 +1025,14 @@ function openProfile() {
   document.getElementById('profileUsername').textContent = '@' + (userData.username || 'user');
   document.getElementById('profileAvatarText').style.display = 'none';
   const img = document.getElementById('profileAvatarImg');
-  if(userData.avatar) {
-    img.src = userData.avatar;
-    img.style.display = 'block';
-  } else {
-    img.style.display = 'none';
-    document.getElementById('profileAvatarText').textContent = name.charAt(0).toUpperCase();
-    document.getElementById('profileAvatarText').style.display = 'block';
-  }
+  if(userData.avatar) { img.src = userData.avatar; img.style.display = 'block'; }
+  else { img.style.display = 'none'; document.getElementById('profileAvatarText').textContent = name.charAt(0).toUpperCase(); document.getElementById('profileAvatarText').style.display = 'block'; }
   document.getElementById('profileModal').classList.add('active');
 }
-
-function closeProfile() {
-  document.getElementById('profileModal').classList.remove('active');
-}
-
-function triggerAvatarUpload() {
-  document.getElementById('avatarInput').click();
-}
-
+function closeProfile() { document.getElementById('profileModal').classList.remove('active'); }
+function triggerAvatarUpload() { document.getElementById('avatarInput').click(); }
 function handleAvatarUpload(input) {
-  const file = input.files[0];
-  if(!file) return;
-
+  const file = input.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
     const base64 = e.target.result;
@@ -803,13 +1045,9 @@ function handleAvatarUpload(input) {
       document.getElementById('userAvatar').innerHTML = '<img src="'+base64+'">';
     }
   };
-  reader.readAsDataURL(file);
-  input.value = '';
+  reader.readAsDataURL(file); input.value = '';
 }
-
-function saveProfile() {
-  closeProfile();
-}
+function saveProfile() { closeProfile(); }
 
 // ===== USERS =====
 function loadUsers() {
@@ -824,25 +1062,16 @@ function loadUsers() {
       div.dataset.uid = uid;
       div.dataset.username = (data.username||'').toLowerCase();
       div.onclick = ()=>selectUser(uid,data);
-
       const isOnline = data.online === true;
       const lastSeen = data.lastSeen || 0;
       const timeAgo = formatTimeAgo(lastSeen);
-
       let avatarHTML = '<div class="u-avatar">' + (data.displayName||data.username||'U').charAt(0).toUpperCase() + '</div>';
       if(data.avatar) {
         avatarHTML = '<div class="u-avatar"><img src="' + data.avatar + '" onerror="this.style.display=\'none\';this.parentNode.textContent=\''+(data.displayName||data.username||'U').charAt(0).toUpperCase()+'\'"></div>';
       }
-
       div.innerHTML = avatarHTML + `
-        <div class="u-info">
-          <div class="u-name">${data.displayName||data.username||'User'}</div>
-          <div class="u-username">@${data.username||'user'}</div>
-        </div>
-        <div class="u-status-wrap">
-          <div class="u-status ${isOnline?'':'offline'}"></div>
-          <div class="u-last-seen">${isOnline?'online':timeAgo}</div>
-        </div>
+        <div class="u-info"><div class="u-name">${data.displayName||data.username||'User'}</div><div class="u-username">@${data.username||'user'}</div></div>
+        <div class="u-status-wrap"><div class="u-status ${isOnline?'':'offline'}"></div><div class="u-last-seen">${isOnline?'online':timeAgo}</div></div>
       `;
       list.appendChild(div);
     });
@@ -862,8 +1091,7 @@ function formatTimeAgo(timestamp) {
 function searchUsers() {
   const q = document.getElementById('userSearch').value.toLowerCase();
   document.querySelectorAll('.user-item').forEach(item=>{
-    const uname = item.dataset.username;
-    item.style.display = uname.includes(q) ? 'flex' : 'none';
+    item.style.display = item.dataset.username.includes(q) ? 'flex' : 'none';
   });
 }
 
@@ -872,15 +1100,11 @@ function selectUser(uid,data) {
   document.querySelectorAll('.user-item').forEach(i=>i.classList.remove('active'));
   document.querySelector(`.user-item[data-uid="${uid}"]`).classList.add('active');
   document.getElementById('partnerName').textContent = data.displayName||data.username;
-
   const statusWrap = document.getElementById('partnerStatus');
   const statusDot = document.getElementById('partnerStatusDot');
   const statusText = document.getElementById('partnerStatusText');
   statusWrap.style.display = 'flex';
-
-  if(partnerStatusListener) {
-    db.ref('users/'+uid).off('value', partnerStatusListener);
-  }
+  if(partnerStatusListener) db.ref('users/'+uid).off('value', partnerStatusListener);
   partnerStatusListener = snap=>{
     const pData = snap.val()||{};
     const isOnline = pData.online === true;
@@ -890,33 +1114,29 @@ function selectUser(uid,data) {
     updatePartner3DAvatar(pData);
   };
   db.ref('users/'+uid).on('value', partnerStatusListener);
-
   const ids = [currentUser.uid,uid].sort();
   chatId = ids.join('_');
-
-  messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); });
-  messages3D = [];
-  mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); });
-  mediaObjects = [];
-
-  if(avatar3DObjects[uid]) {
-    if(avatar3DObjects[uid].mesh && roomGroup) roomGroup.remove(avatar3DObjects[uid].mesh);
-    delete avatar3DObjects[uid];
-  }
-
+  messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
+  mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
+  particleReactions.forEach(r=>{ if(r.group && roomGroup) roomGroup.remove(r.group); }); particleReactions = [];
+  voiceWaves3D.forEach(w=>{ if(w.mesh && roomGroup) roomGroup.remove(w.mesh); }); voiceWaves3D = [];
+  drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.remove(d.mesh); }); drawings3D = [];
+  if(avatar3DObjects[uid]) { if(avatar3DObjects[uid].mesh && roomGroup) roomGroup.remove(avatar3DObjects[uid].mesh); delete avatar3DObjects[uid]; }
   db.ref('chats/'+chatId).off();
-  db.ref('chats/'+chatId).limitToLast(20).on('child_added',snap=>{
+  db.ref('chats/'+chatId).limitToLast(30).on('child_added',snap=>{
     const msg = snap.val();
-    if(msg.sender!==currentUser.uid) showMisideText(msg.text||'📎 Медиа');
-    if(msg.mediaData) {
-      create3DMedia(msg.mediaData, msg.mediaType, msg.sender===currentUser.uid);
+    if(msg.sender!==currentUser.uid) {
+      if(msg.text) showMisideText(msg.text);
+      if(msg.reactionType) create3DParticleReaction(msg.reactionType, false);
+      if(msg.gestureType) create3DGesture(msg.gestureType, false);
+      if(msg.drawingData) create3DDrawing(msg.drawingData, false);
+      if(msg.voiceData) create3DVoiceWave(msg.voiceData, false);
     }
+    if(msg.mediaData) create3DMedia(msg.mediaData, msg.mediaType, msg.sender===currentUser.uid);
   });
-
   db.ref('typing/'+uid+'/'+currentUser.uid).on('value',snap=>{
     document.getElementById('typingIndicator').classList.toggle('active', snap.val()===true);
   });
-
   createPartner3DAvatar(data);
 }
 
@@ -940,73 +1160,56 @@ function sendMessage() {
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
   if(!text || !chatId) return;
-
-  const msg = {
-    text: text,
-    sender: currentUser.uid,
-    timestamp: Date.now()
-  };
-  db.ref('chats/'+chatId).push(msg);
+  db.ref('chats/'+chatId).push({ text: text, sender: currentUser.uid, timestamp: Date.now() });
   input.value = '';
   showMisideText(text);
 }
 
 // ===== EMOJI =====
 function toggleEmojiPanel() {
-  const panel = document.getElementById('emojiPanel');
-  panel.classList.toggle('active');
+  document.getElementById('emojiPanel').classList.toggle('active');
+  document.getElementById('reactionPanel').classList.remove('active');
+  document.getElementById('gesturePanel').classList.remove('active');
 }
-
 function insertEmoji(emoji) {
   const input = document.getElementById('msgInput');
-  input.value += emoji;
-  input.focus();
+  input.value += emoji; input.focus();
   document.getElementById('emojiPanel').classList.remove('active');
 }
 
 document.addEventListener('click', e=>{
-  if(!e.target.closest('.emoji-panel') && !e.target.closest('.emoji-btn')) {
+  if(!e.target.closest('.emoji-panel') && !e.target.closest('.emoji-btn'))
     document.getElementById('emojiPanel').classList.remove('active');
-  }
+  if(!e.target.closest('.reaction-panel') && !e.target.closest('.reaction-btn'))
+    document.getElementById('reactionPanel').classList.remove('active');
+  if(!e.target.closest('.gesture-panel') && !e.target.closest('.gesture-btn'))
+    document.getElementById('gesturePanel').classList.remove('active');
 });
 
 // ===== MISIDE TEXT EFFECT =====
 function showMisideText(text) {
   const container = document.getElementById('misideContainer');
   container.innerHTML = '';
-
   const chars = text.split('');
   const spans = [];
-
   chars.forEach((char,i)=>{
     const span = document.createElement('span');
     span.className = 'miside-letter';
     span.textContent = char === ' ' ? '\u00A0' : char;
     span.style.color = `hsl(${200 + Math.random()*60}, 80%, 70%)`;
-    container.appendChild(span);
-    spans.push(span);
+    container.appendChild(span); spans.push(span);
   });
-
   spans.forEach((span,i)=>{
-    gsap.to(span, {
-      opacity:1, scale:1, y:0,
-      duration:0.3, delay:i*0.05,
-      ease:'back.out(1.7)'
-    });
+    gsap.to(span, { opacity:1, scale:1, y:0, duration:0.3, delay:i*0.05, ease:'back.out(1.7)' });
   });
-
   const totalTime = Math.max(2000, chars.length * 300);
   setTimeout(()=>{
     spans.forEach((span,i)=>{
-      gsap.to(span, {
-        opacity:0, scale:0.3, y:-50,
-        duration:0.4, delay:i*0.08,
-        ease:'power2.in',
+      gsap.to(span, { opacity:0, scale:0.3, y:-50, duration:0.4, delay:i*0.08, ease:'power2.in',
         onComplete:()=>{ if(i===spans.length-1) container.innerHTML=''; }
       });
     });
   }, totalTime);
-
   add3DTextBubble(text);
 }
 
@@ -1015,40 +1218,524 @@ function toggleMusicPanel() {
   isMusicPanelOpen = !isMusicPanelOpen;
   document.getElementById('musicPanel').classList.toggle('open', isMusicPanelOpen);
 }
-
 function playTrack(trackId) {
   if(currentTrack === trackId && currentAudio && !currentAudio.paused) {
-    currentAudio.pause();
-    currentAudio = null;
-    currentTrack = null;
+    currentAudio.pause(); currentAudio = null; currentTrack = null;
     document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
     document.getElementById('musicBtn').classList.remove('playing');
     return;
   }
-
-  if(currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
-
+  if(currentAudio) { currentAudio.pause(); currentAudio = null; }
   const audio = new Audio(MUSIC_TRACKS[trackId]);
-  audio.loop = true;
-  audio.volume = audioVolume;
+  audio.loop = true; audio.volume = audioVolume;
   audio.play().catch(e=>console.log('Audio play failed:', e));
-  currentAudio = audio;
-  currentTrack = trackId;
-
+  currentAudio = audio; currentTrack = trackId;
   document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
   document.querySelector(`.music-track[data-src="${trackId}"]`).classList.add('active');
   document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
   document.getElementById('play-'+trackId).textContent='⏸';
   document.getElementById('musicBtn').classList.add('playing');
 }
-
 function setVolume(val) {
   audioVolume = val / 100;
   if(currentAudio) currentAudio.volume = audioVolume;
+}
+
+// ===== 3D PARTICLE REACTIONS (FEATURE 1) =====
+function toggleReactionPanel() {
+  isReactionPanelOpen = !isReactionPanelOpen;
+  document.getElementById('reactionPanel').classList.toggle('active', isReactionPanelOpen);
+  document.getElementById('emojiPanel').classList.remove('active');
+  document.getElementById('gesturePanel').classList.remove('active');
+}
+
+function send3DReaction(type) {
+  if(!chatId) return;
+  db.ref('chats/'+chatId).push({
+    reactionType: type, sender: currentUser.uid, timestamp: Date.now()
+  });
+  create3DParticleReaction(type, true);
+  document.getElementById('reactionPanel').classList.remove('active');
+}
+
+function create3DParticleReaction(type, isOwn) {
+  if(!roomGroup) return;
+  const config = REACTION_SHAPES[type];
+  if(!config) return;
+
+  const group = new THREE.Group();
+  const positions = [];
+  const colors = [];
+  const velocities = [];
+  const count = config.particles;
+
+  // Generate particle positions based on shape
+  for(let i=0; i<count; i++) {
+    let x,y,z;
+    if(config.type === 'heart') {
+      const t = Math.random() * Math.PI * 2;
+      const r = Math.random() * 0.8;
+      x = r * 16 * Math.pow(Math.sin(t), 3) * 0.05;
+      y = r * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 0.05;
+      z = (Math.random()-0.5) * 0.3;
+    } else if(config.type === 'star') {
+      const angle = (i/count) * Math.PI * 2;
+      const radius = (i%2===0) ? 0.8 : 0.3;
+      x = Math.cos(angle) * radius;
+      y = Math.sin(angle) * radius;
+      z = (Math.random()-0.5) * 0.2;
+    } else if(config.type === 'fire') {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * 0.5;
+      x = Math.cos(angle) * r;
+      y = Math.random() * 1.5;
+      z = Math.sin(angle) * r;
+    } else if(config.type === 'rainbow') {
+      const angle = Math.random() * Math.PI;
+      const r = 1.0;
+      x = Math.cos(angle) * r;
+      y = Math.sin(angle) * r;
+      z = (Math.random()-0.5) * 0.3;
+    } else if(config.type === 'lightning') {
+      x = (Math.random()-0.5) * 0.3;
+      y = (Math.random()-0.5) * 2;
+      z = (Math.random()-0.5) * 0.3;
+    } else {
+      x = (Math.random()-0.5) * 1.5;
+      y = (Math.random()-0.5) * 1.5;
+      z = (Math.random()-0.5) * 1.5;
+    }
+    positions.push(x, y, z);
+
+    let color;
+    if(config.color === 'rainbow') {
+      const hue = i / count;
+      const c = new THREE.Color().setHSL(hue, 1, 0.6);
+      colors.push(c.r, c.g, c.b);
+    } else {
+      const c = new THREE.Color(config.color);
+      const variation = 0.3;
+      colors.push(
+        c.r + (Math.random()-0.5)*variation,
+        c.g + (Math.random()-0.5)*variation,
+        c.b + (Math.random()-0.5)*variation
+      );
+    }
+
+    velocities.push(
+      (Math.random()-0.5) * 0.02,
+      Math.random() * 0.03 + 0.01,
+      (Math.random()-0.5) * 0.02
+    );
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.08, vertexColors: true, transparent: true, opacity: 1,
+    blending: THREE.AdditiveBlending
+  });
+
+  const particles = new THREE.Points(geo, mat);
+  particles.position.set(
+    (Math.random()-0.5) * 6,
+    2 + Math.random() * 3,
+    (Math.random()-0.5) * 6
+  );
+
+  group.add(particles);
+
+  // Add glow sphere in center
+  const glowGeo = new THREE.SphereGeometry(0.3, 16, 16);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: config.color === 'rainbow' ? 0xffffff : config.color,
+    transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending
+  });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  group.add(glow);
+
+  // Add rotation ring
+  const ringGeo = new THREE.RingGeometry(0.5, 0.55, 32);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: config.color === 'rainbow' ? 0xffffff : config.color,
+    transparent: true, opacity: 0.3, side: THREE.DoubleSide
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI/2;
+  group.add(ring);
+
+  roomGroup.add(group);
+
+  const reactionObj = {
+    group, particles, glow, ring, velocities,
+    createdAt: Date.now(), life: 30000,
+    baseY: particles.position.y
+  };
+  particleReactions.push(reactionObj);
+
+  // Auto-remove after 30 seconds
+  setTimeout(()=>{
+    if(roomGroup) roomGroup.remove(group);
+    const idx = particleReactions.indexOf(reactionObj);
+    if(idx > -1) particleReactions.splice(idx, 1);
+  }, 30000);
+}
+
+// ===== 3D GESTURES (FEATURE 2) =====
+function toggleGesturePanel() {
+  isGesturePanelOpen = !isGesturePanelOpen;
+  document.getElementById('gesturePanel').classList.toggle('active', isGesturePanelOpen);
+  document.getElementById('emojiPanel').classList.remove('active');
+  document.getElementById('reactionPanel').classList.remove('active');
+}
+
+function sendGesture(type) {
+  if(!chatId) return;
+  db.ref('chats/'+chatId).push({
+    gestureType: type, sender: currentUser.uid, timestamp: Date.now()
+  });
+  create3DGesture(type, true);
+  document.getElementById('gesturePanel').classList.remove('active');
+}
+
+function create3DGesture(type, isOwn) {
+  if(!roomGroup || !avatar3DObjects[currentPartner.uid]) return;
+  const avatarGroup = avatar3DObjects[currentPartner.uid].mesh;
+
+  const gestureConfig = {
+    wave: { emoji: '👋', color: 0xffff00, yOffset: 3 },
+    dance: { emoji: '💃', color: 0xff00ff, yOffset: 3.5 },
+    bow: { emoji: '🙇', color: 0x00ff00, yOffset: 2.5 },
+    clap: { emoji: '👏', color: 0xffaa00, yOffset: 3 },
+    think: { emoji: '🤔', color: 0x8888ff, yOffset: 3.2 },
+    sleep: { emoji: '😴', color: 0xaaaaff, yOffset: 2.8 },
+    angry: { emoji: '😤', color: 0xff4444, yOffset: 3 },
+    love: { emoji: '😍', color: 0xff66aa, yOffset: 3.2 }
+  };
+
+  const config = gestureConfig[type];
+  if(!config) return;
+
+  // Create floating emoji
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.font = '80px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(config.emoji, 64, 64);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+
+  mesh.position.set(0, config.yOffset, -4);
+  mesh.userData = { isGesture: true, startTime: Date.now(), type: type };
+  roomGroup.add(mesh);
+
+  // Add particle burst
+  const burstCount = 30;
+  const burstPositions = [];
+  const burstColors = [];
+  for(let i=0; i<burstCount; i++) {
+    burstPositions.push(0, 0, 0);
+    const c = new THREE.Color(config.color);
+    burstColors.push(c.r, c.g, c.b);
+  }
+  const burstGeo = new THREE.BufferGeometry();
+  burstGeo.setAttribute('position', new THREE.Float32BufferAttribute(burstPositions, 3));
+  burstGeo.setAttribute('color', new THREE.Float32BufferAttribute(burstColors, 3));
+  const burstMat = new THREE.PointsMaterial({ size: 0.06, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending });
+  const burst = new THREE.Points(burstGeo, burstMat);
+  burst.position.set(0, config.yOffset, -4);
+  roomGroup.add(burst);
+
+  const gestureObj = { mesh, burst, startTime: Date.now(), duration: 4000, baseY: config.yOffset };
+  gestureAnimations.push(gestureObj);
+
+  setTimeout(()=>{
+    if(roomGroup) { roomGroup.remove(mesh); roomGroup.remove(burst); }
+    const idx = gestureAnimations.indexOf(gestureObj);
+    if(idx > -1) gestureAnimations.splice(idx, 1);
+  }, 4000);
+}
+
+// ===== 3D DRAWING (FEATURE 3) =====
+function toggleDrawPanel() {
+  isDrawPanelOpen = !isDrawPanelOpen;
+  document.getElementById('drawPanel').classList.toggle('active', isDrawPanelOpen);
+  document.getElementById('drawBtn').classList.toggle('active', isDrawPanelOpen);
+}
+
+function initDrawCanvas() {
+  const canvas = document.getElementById('drawCanvas');
+  if(!canvas) return;
+  canvas.width = canvas.parentElement.offsetWidth;
+  canvas.height = 300;
+  drawCtx = canvas.getContext('2d');
+  drawCtx.fillStyle = 'rgba(255,255,255,0.02)';
+  drawCtx.fillRect(0, 0, canvas.width, canvas.height);
+  drawCtx.strokeStyle = drawColor;
+  drawCtx.lineWidth = 3;
+  drawCtx.lineCap = 'round';
+
+  let drawing = false;
+  canvas.addEventListener('mousedown', e=>{ drawing=true; drawCtx.beginPath(); drawCtx.moveTo(e.offsetX, e.offsetY); });
+  canvas.addEventListener('mousemove', e=>{ if(drawing){ drawCtx.lineTo(e.offsetX, e.offsetY); drawCtx.stroke(); } });
+  canvas.addEventListener('mouseup', ()=>{ drawing=false; });
+  canvas.addEventListener('mouseleave', ()=>{ drawing=false; });
+  canvas.addEventListener('touchstart', e=>{
+    drawing=true; const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    drawCtx.beginPath(); drawCtx.moveTo(touch.clientX-rect.left, touch.clientY-rect.top);
+  }, {passive:true});
+  canvas.addEventListener('touchmove', e=>{
+    if(drawing){ const rect = canvas.getBoundingClientRect(); const touch = e.touches[0];
+      drawCtx.lineTo(touch.clientX-rect.left, touch.clientY-rect.top); drawCtx.stroke(); }
+  }, {passive:true});
+  canvas.addEventListener('touchend', ()=>{ drawing=false; });
+}
+
+function setDrawColor(el) {
+  drawColor = el.dataset.color;
+  drawCtx.strokeStyle = drawColor;
+  document.querySelectorAll('.draw-color').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function clearDrawCanvas() {
+  if(!drawCtx) return;
+  drawCtx.fillStyle = 'rgba(255,255,255,0.02)';
+  drawCtx.fillRect(0, 0, drawCtx.canvas.width, drawCtx.canvas.height);
+}
+
+function send3DDrawing() {
+  if(!chatId || !drawCtx) return;
+  const canvas = document.getElementById('drawCanvas');
+  const dataURL = canvas.toDataURL('image/png');
+  db.ref('chats/'+chatId).push({
+    drawingData: dataURL, sender: currentUser.uid, timestamp: Date.now()
+  });
+  create3DDrawing(dataURL, true);
+  toggleDrawPanel();
+}
+
+function create3DDrawing(dataURL, isOwn) {
+  if(!roomGroup) return;
+  const loader = new THREE.TextureLoader();
+  loader.load(dataURL, texture=>{
+    const geo = new THREE.PlaneGeometry(3, 3);
+    const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, opacity: 0.9 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      (Math.random()-0.5) * 6,
+      2 + Math.random() * 2,
+      (Math.random()-0.5) * 6
+    );
+    mesh.userData = { isDrawing: true };
+    roomGroup.add(mesh);
+    drawings3D.push({ mesh, baseY: mesh.position.y, createdAt: Date.now() });
+  });
+}
+
+// ===== 3D VOICE WAVES (FEATURE 4) =====
+function toggleVoiceRecording() {
+  if(isRecordingVoice) {
+    stopVoiceRecording();
+    return;
+  }
+  if(!chatId) return;
+  isRecordingVoice = true;
+  document.getElementById('voiceBtn').classList.add('recording');
+  document.getElementById('voiceOverlay').classList.add('active');
+
+  // Create 3D voice wave visualization
+  createVoiceWaveVisualization();
+
+  // Start timer
+  let seconds = 0;
+  document.getElementById('voiceTimer').textContent = '00:00';
+  voiceTimerInterval = setInterval(()=>{
+    seconds++;
+    const mins = Math.floor(seconds/60).toString().padStart(2,'0');
+    const secs = (seconds%60).toString().padStart(2,'0');
+    document.getElementById('voiceTimer').textContent = `${mins}:${secs}`;
+  }, 1000);
+
+  // Simulate voice data (in real app would use Web Audio API + MediaRecorder)
+  // For demo, we'll create a simulated voice wave
+  setTimeout(()=>{
+    if(isRecordingVoice) stopVoiceRecording();
+  }, 10000); // Auto stop after 10s
+}
+
+function createVoiceWaveVisualization() {
+  if(!roomGroup) return;
+  const waveGroup = new THREE.Group();
+  const bars = [];
+  const barCount = 20;
+
+  for(let i=0; i<barCount; i++) {
+    const geo = new THREE.BoxGeometry(0.15, 1, 0.15);
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(i/barCount, 0.8, 0.6),
+      emissive: new THREE.Color().setHSL(i/barCount, 0.8, 0.3),
+      emissiveIntensity: 0.5, transparent: true, opacity: 0.8
+    });
+    const bar = new THREE.Mesh(geo, mat);
+    bar.position.set((i - barCount/2) * 0.3, 2, -2);
+    bar.userData = { index: i, baseHeight: 1 };
+    waveGroup.add(bar);
+    bars.push(bar);
+  }
+
+  roomGroup.add(waveGroup);
+  voiceWaves3D.push({ group: waveGroup, bars, createdAt: Date.now(), isRecording: true });
+}
+
+function stopVoiceRecording() {
+  isRecordingVoice = false;
+  document.getElementById('voiceBtn').classList.remove('recording');
+  document.getElementById('voiceOverlay').classList.remove('active');
+  if(voiceTimerInterval) { clearInterval(voiceTimerInterval); voiceTimerInterval = null; }
+
+  // Send voice message
+  if(chatId) {
+    db.ref('chats/'+chatId).push({
+      voiceData: 'voice_placeholder', sender: currentUser.uid, timestamp: Date.now(), duration: document.getElementById('voiceTimer').textContent
+    });
+  }
+
+  // Convert recording wave to static wave
+  voiceWaves3D.forEach(wave=>{
+    wave.isRecording = false;
+    wave.staticAt = Date.now();
+  });
+}
+
+function create3DVoiceWave(voiceData, isOwn) {
+  if(!roomGroup) return;
+  const waveGroup = new THREE.Group();
+  const bars = [];
+  const barCount = 20;
+
+  for(let i=0; i<barCount; i++) {
+    const height = 0.3 + Math.random() * 1.5;
+    const geo = new THREE.BoxGeometry(0.15, height, 0.15);
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(i/barCount, 0.8, 0.6),
+      emissive: new THREE.Color().setHSL(i/barCount, 0.8, 0.3),
+      emissiveIntensity: 0.5, transparent: true, opacity: 0.8
+    });
+    const bar = new THREE.Mesh(geo, mat);
+    bar.position.set((i - barCount/2) * 0.3, height/2 + 0.5, (Math.random()-0.5) * 6);
+    waveGroup.add(bar);
+    bars.push({ mesh: bar, baseHeight: height, phase: Math.random() * Math.PI * 2 });
+  }
+
+  roomGroup.add(waveGroup);
+  voiceWaves3D.push({ group: waveGroup, bars, createdAt: Date.now(), isRecording: false, staticAt: Date.now() });
+}
+// ===== 3D STICKER THROW (FEATURE 5) =====
+function throw3DSticker(emoji) {
+  if(!roomGroup) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.font = '80px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, 64, 64);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const geo = new THREE.PlaneGeometry(1.5, 1.5);
+  const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+
+  // Start from center, throw outward
+  mesh.position.set(0, 3, 0);
+  const targetX = (Math.random()-0.5) * 8;
+  const targetZ = (Math.random()-0.5) * 8;
+  const targetY = 1 + Math.random() * 3;
+
+  roomGroup.add(mesh);
+
+  // Animate throw with physics-like motion
+  const startTime = Date.now();
+  const duration = 1500;
+  const startPos = { x: 0, y: 3, z: 0 };
+
+  const stickerObj = { mesh, startTime, duration, startPos, target: { x: targetX, y: targetY, z: targetZ }, velocity: { x: 0, y: 0.1, z: 0 }, rotationSpeed: { x: Math.random()*0.1, y: Math.random()*0.1 } };
+  stickerObjects.push(stickerObj);
+
+  // Auto-remove after 15 seconds
+  setTimeout(()=>{
+    if(roomGroup) roomGroup.remove(mesh);
+    const idx = stickerObjects.indexOf(stickerObj);
+    if(idx > -1) stickerObjects.splice(idx, 1);
+  }, 15000);
+}
+
+// ===== ENVIRONMENT CONTROLS (FEATURE 6) =====
+function setEnvironment(type) {
+  currentEnvironment = type;
+  document.querySelectorAll('.env-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('env'+type.charAt(0).toUpperCase()+type.slice(1)).classList.add('active');
+
+  if(!scene) return;
+
+  // Remove rain if exists
+  if(rainParticles) {
+    scene.remove(rainParticles);
+    rainParticles = null;
+  }
+
+  // Update fog and lights
+  if(type === 'day') {
+    scene.fog.color.setHex(0x87CEEB);
+    scene.fog.density = 0.01;
+    if(envLights.ambient) envLights.ambient.color.setHex(0x8888aa);
+    if(envLights.main) { envLights.main.color.setHex(0xffffcc); envLights.main.intensity = 1.5; }
+  } else if(type === 'night') {
+    scene.fog.color.setHex(0x0a0a0f);
+    scene.fog.density = 0.02;
+    if(envLights.ambient) envLights.ambient.color.setHex(0x404080);
+    if(envLights.main) { envLights.main.color.setHex(0x667eea); envLights.main.intensity = 1; }
+  } else if(type === 'rain') {
+    scene.fog.color.setHex(0x1a1a2e);
+    scene.fog.density = 0.03;
+    createRainParticles();
+  } else if(type === 'neon') {
+    scene.fog.color.setHex(0x0a0015);
+    scene.fog.density = 0.015;
+    if(envLights.ambient) envLights.ambient.color.setHex(0x400040);
+    if(envLights.main) { envLights.main.color.setHex(0xff00ff); envLights.main.intensity = 0.8; }
+  }
+}
+
+function createRainParticles() {
+  if(!scene) return;
+  const rainCount = 1000;
+  const rainGeo = new THREE.BufferGeometry();
+  const rainPos = new Float32Array(rainCount * 3);
+  const rainVel = new Float32Array(rainCount);
+  for(let i=0; i<rainCount; i++) {
+    rainPos[i*3] = (Math.random()-0.5) * 30;
+    rainPos[i*3+1] = Math.random() * 20;
+    rainPos[i*3+2] = (Math.random()-0.5) * 30;
+    rainVel[i] = 0.1 + Math.random() * 0.2;
+  }
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+  const rainMat = new THREE.PointsMaterial({
+    color: 0x8888ff, size: 0.03, transparent: true, opacity: 0.6
+  });
+  rainParticles = new THREE.Points(rainGeo, rainMat);
+  rainParticles.userData = { velocities: rainVel };
+  scene.add(rainParticles);
 }
 
 // ===== 3D ROOM =====
@@ -1072,8 +1759,7 @@ function init3DRoom() {
   // Floor
   const floorGeo = new THREE.PlaneGeometry(30, 30);
   const floorMat = new THREE.MeshStandardMaterial({
-    color:0x0d0d15, roughness:0.6, metalness:0.4,
-    transparent:true, opacity:0.9
+    color:0x0d0d15, roughness:0.6, metalness:0.4, transparent:true, opacity:0.9
   });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI/2;
@@ -1089,8 +1775,7 @@ function init3DRoom() {
   for(let i=1; i<=5; i++){
     const ringGeo = new THREE.RingGeometry(i*2-0.05, i*2+0.05, 64);
     const ringMat = new THREE.MeshBasicMaterial({
-      color:0x667eea, transparent:true, opacity:0.1/i,
-      side:THREE.DoubleSide
+      color:0x667eea, transparent:true, opacity:0.1/i, side:THREE.DoubleSide
     });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = -Math.PI/2;
@@ -1126,15 +1811,11 @@ function init3DRoom() {
     posArray[i*3+1] = Math.random()*15;
     posArray[i*3+2] = (Math.random()-0.5)*30;
     const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
-    colorArray[i*3] = color.r;
-    colorArray[i*3+1] = color.g;
-    colorArray[i*3+2] = color.b;
+    colorArray[i*3] = color.r; colorArray[i*3+1] = color.g; colorArray[i*3+2] = color.b;
   }
   particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray,3));
   particlesGeo.setAttribute('color', new THREE.BufferAttribute(colorArray,3));
-  const particlesMat = new THREE.PointsMaterial({
-    size:0.08, transparent:true, opacity:0.7, vertexColors:true
-  });
+  const particlesMat = new THREE.PointsMaterial({ size:0.08, transparent:true, opacity:0.7, vertexColors:true });
   const particles = new THREE.Points(particlesGeo, particlesMat);
   particles.userData = {isParticles:true};
   roomGroup.add(particles);
@@ -1153,17 +1834,11 @@ function init3DRoom() {
       transparent:true, opacity:0.6, wireframe: Math.random()>0.5
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      (Math.random()-0.5)*20,
-      1 + Math.random()*8,
-      (Math.random()-0.5)*20
-    );
+    mesh.position.set((Math.random()-0.5)*20, 1+Math.random()*8, (Math.random()-0.5)*20);
     mesh.userData = {
-      isFloatingShape:true,
-      speed: 0.2 + Math.random()*0.5,
+      isFloatingShape:true, speed: 0.2+Math.random()*0.5,
       rotSpeed: {x:Math.random()*0.02, y:Math.random()*0.02, z:Math.random()*0.02},
-      baseY: mesh.position.y,
-      phase: Math.random()*Math.PI*2
+      baseY: mesh.position.y, phase: Math.random()*Math.PI*2
     };
     roomGroup.add(mesh);
   }
@@ -1171,11 +1846,13 @@ function init3DRoom() {
   // Lights
   const ambientLight = new THREE.AmbientLight(0x404080, 0.5);
   scene.add(ambientLight);
+  envLights.ambient = ambientLight;
 
   const pointLight = new THREE.PointLight(0x667eea, 1, 20);
   pointLight.position.set(0, 8, 0);
   pointLight.castShadow = true;
   scene.add(pointLight);
+  envLights.main = pointLight;
 
   const pointLight2 = new THREE.PointLight(0xff6b6b, 0.5, 15);
   pointLight2.position.set(5, 5, 5);
@@ -1193,12 +1870,61 @@ function init3DRoom() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+  // Mouse wheel for timeline scrolling (FEATURE 7)
+  canvas.addEventListener('wheel', e=>{
+    if(!roomGroup) return;
+    e.preventDefault();
+    const delta = e.deltaY * 0.001;
+    roomGroup.children.forEach(child=>{
+      if(child.userData && (child.userData.isMessage || child.userData.isMedia || child.userData.isDrawing)) {
+        child.position.z += delta * 5;
+      }
+    });
+  }, {passive:false});
+
+  // Right-click drawing in 3D space (FEATURE 8)
+  let is3DDrawing = false;
+  let last3DDrawPos = null;
+  const draw3DPoints = [];
+
+  canvas.addEventListener('contextmenu', e=>{
+    e.preventDefault();
+    is3DDrawing = !is3DDrawing;
+    if(!is3DDrawing && draw3DPoints.length > 0) {
+      // Create 3D line from points
+      create3DLineFromPoints(draw3DPoints);
+      draw3DPoints.length = 0;
+    }
+  });
+
+  canvas.addEventListener('mousemove', e=>{
+    if(!is3DDrawing || e.buttons !== 2) return;
+    mouse.x = (e.clientX/window.innerWidth)*2-1;
+    mouse.y = -(e.clientY/window.innerHeight)*2+1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(roomGroup.children);
+    if(intersects.length > 0) {
+      const point = intersects[0].point;
+      if(!last3DDrawPos || point.distanceTo(last3DDrawPos) > 0.1) {
+        draw3DPoints.push(point.clone());
+        last3DDrawPos = point;
+        // Add visual point
+        const dotGeo = new THREE.SphereGeometry(0.03, 8, 8);
+        const dotMat = new THREE.MeshBasicMaterial({ color: parseInt(drawColor.replace('#','0x')) });
+        const dot = new THREE.Mesh(dotGeo, dotMat);
+        dot.position.copy(point);
+        roomGroup.add(dot);
+        setTimeout(()=>roomGroup.remove(dot), 5000);
+      }
+    }
+  });
+
   // Touch/mouse orbit
   let isDragging = false;
   let prevX = 0, prevY = 0;
   let rotX = 0, rotY = 0;
 
-  canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
+  canvas.addEventListener('mousedown',e=>{ if(e.button===0){isDragging=true;prevX=e.clientX;prevY=e.clientY;} });
   canvas.addEventListener('mousemove',e=>{
     if(!isDragging) return;
     const dx = e.clientX-prevX;
@@ -1213,17 +1939,12 @@ function init3DRoom() {
     prevX=e.clientX; prevY=e.clientY;
   });
   canvas.addEventListener('mouseup',()=>isDragging=false);
-  canvas.addEventListener('touchstart',e=>{
-    isDragging=true;
-    prevX=e.touches[0].clientX;
-    prevY=e.touches[0].clientY;
-  },{passive:true});
+  canvas.addEventListener('touchstart',e=>{ isDragging=true; prevX=e.touches[0].clientX; prevY=e.touches[0].clientY; },{passive:true});
   canvas.addEventListener('touchmove',e=>{
     if(!isDragging) return;
     const dx = e.touches[0].clientX-prevX;
     const dy = e.touches[0].clientY-prevY;
-    rotY += dx*0.005;
-    rotX += dy*0.005;
+    rotY += dx*0.005; rotX += dy*0.005;
     rotX = Math.max(-0.5, Math.min(0.5, rotX));
     camera.position.x = Math.sin(rotY)*8;
     camera.position.z = Math.cos(rotY)*8;
@@ -1233,10 +1954,26 @@ function init3DRoom() {
   },{passive:true});
   canvas.addEventListener('touchend',()=>isDragging=false);
 }
+
+function create3DLineFromPoints(points) {
+  if(points.length < 2 || !roomGroup) return;
+  const curve = new THREE.CatmullRomCurve3(points);
+  const tubeGeo = new THREE.TubeGeometry(curve, points.length*2, 0.02, 8, false);
+  const tubeMat = new THREE.MeshStandardMaterial({
+    color: parseInt(drawColor.replace('#','0x')),
+    emissive: parseInt(drawColor.replace('#','0x')),
+    emissiveIntensity: 0.5, transparent: true, opacity: 0.8
+  });
+  const tube = new THREE.Mesh(tubeGeo, tubeMat);
+  tube.userData = { isDrawing: true };
+  roomGroup.add(tube);
+  drawings3D.push({ mesh: tube, baseY: 0, createdAt: Date.now() });
+}
 function animate() {
   animationId = requestAnimationFrame(animate);
   const time = Date.now()*0.001;
 
+  // Float messages
   messages3D.forEach((m,i)=>{
     if(m.mesh) {
       m.mesh.position.y = m.baseY + Math.sin(time+i)*0.3;
@@ -1244,6 +1981,7 @@ function animate() {
     }
   });
 
+  // Float media
   mediaObjects.forEach((m,i)=>{
     if(m.mesh) {
       m.mesh.position.y = m.baseY + Math.sin(time*0.8+i)*0.2;
@@ -1251,6 +1989,106 @@ function animate() {
     }
   });
 
+  // Animate particle reactions
+  particleReactions.forEach(reaction=>{
+    const age = Date.now() - reaction.createdAt;
+    const lifeRatio = age / reaction.life;
+    if(lifeRatio > 1) return;
+
+    // Fade out
+    reaction.particles.material.opacity = 1 - lifeRatio;
+    reaction.glow.material.opacity = 0.1 * (1 - lifeRatio);
+    reaction.ring.material.opacity = 0.3 * (1 - lifeRatio);
+
+    // Rotate ring
+    reaction.ring.rotation.z += 0.02;
+
+    // Pulse particles
+    const positions = reaction.particles.geometry.attributes.position.array;
+    for(let i=0; i<reaction.velocities.length/3; i++) {
+      positions[i*3] += reaction.velocities[i*3] * Math.sin(time*2 + i);
+      positions[i*3+1] += reaction.velocities[i*3+1] * 0.5;
+      positions[i*3+2] += reaction.velocities[i*3+2] * Math.sin(time*2 + i);
+    }
+    reaction.particles.geometry.attributes.position.needsUpdate = true;
+
+    // Float up
+    reaction.group.position.y = reaction.baseY + Math.sin(time)*0.2;
+    reaction.group.rotation.y += 0.005;
+  });
+
+  // Animate gestures
+  gestureAnimations.forEach(gesture=>{
+    const age = Date.now() - gesture.startTime;
+    const progress = age / gesture.duration;
+    if(progress > 1) return;
+
+    // Bounce animation
+    gesture.mesh.position.y = gesture.baseY + Math.sin(progress * Math.PI * 4) * 0.5;
+    gesture.mesh.scale.setScalar(1 + Math.sin(progress * Math.PI) * 0.3);
+    gesture.mesh.material.opacity = 1 - progress;
+
+    // Burst particles
+    const burstPos = gesture.burst.geometry.attributes.position.array;
+    for(let i=0; i<burstPos.length/3; i++) {
+      burstPos[i*3] += (Math.random()-0.5) * 0.02;
+      burstPos[i*3+1] += Math.random() * 0.03;
+      burstPos[i*3+2] += (Math.random()-0.5) * 0.02;
+    }
+    gesture.burst.geometry.attributes.position.needsUpdate = true;
+    gesture.burst.material.opacity = 1 - progress;
+  });
+
+  // Animate voice waves
+  voiceWaves3D.forEach(wave=>{
+    if(wave.isRecording) {
+      // Active recording animation
+      wave.bars.forEach((bar,i)=>{
+        const height = 0.2 + Math.abs(Math.sin(time*3 + i*0.5)) * 1.5;
+        bar.mesh.scale.y = height;
+        bar.mesh.position.y = height/2 + 0.5;
+        bar.mesh.material.emissiveIntensity = 0.5 + Math.sin(time*5 + i)*0.5;
+      });
+      wave.group.rotation.y = Math.sin(time)*0.1;
+    } else {
+      // Static wave - gentle pulse
+      wave.bars.forEach((bar,i)=>{
+        const pulse = Math.sin(time*2 + bar.phase) * 0.3 + 0.7;
+        bar.mesh.scale.y = pulse;
+        bar.mesh.position.y = bar.baseHeight/2 * pulse + 0.5;
+      });
+      wave.group.rotation.y += 0.002;
+    }
+  });
+
+  // Animate stickers
+  stickerObjects.forEach(sticker=>{
+    const progress = Math.min((Date.now() - sticker.startTime) / sticker.duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3); // ease out cubic
+
+    sticker.mesh.position.x = sticker.startPos.x + (sticker.target.x - sticker.startPos.x) * ease;
+    sticker.mesh.position.y = sticker.startPos.y + (sticker.target.y - sticker.startPos.y) * ease - Math.sin(progress * Math.PI) * 2;
+    sticker.mesh.position.z = sticker.startPos.z + (sticker.target.z - sticker.startPos.z) * ease;
+    sticker.mesh.rotation.x += sticker.rotationSpeed.x;
+    sticker.mesh.rotation.y += sticker.rotationSpeed.y;
+  });
+
+  // Animate rain
+  if(rainParticles && rainParticles.userData.velocities) {
+    const positions = rainParticles.geometry.attributes.position.array;
+    const vels = rainParticles.userData.velocities;
+    for(let i=0; i<vels.length; i++) {
+      positions[i*3+1] -= vels[i];
+      if(positions[i*3+1] < 0) {
+        positions[i*3+1] = 20;
+        positions[i*3] = (Math.random()-0.5) * 30;
+        positions[i*3+2] = (Math.random()-0.5) * 30;
+      }
+    }
+    rainParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // Rotate particles
   roomGroup.children.forEach(child=>{
     if(child.userData && child.userData.isParticles) {
       child.rotation.y = time*0.05;
@@ -1266,7 +2104,6 @@ function animate() {
       child.rotation.y += child.userData.rotSpeed.y;
       child.rotation.z += child.userData.rotSpeed.z;
     }
-    // Animate partner avatar
     if(child.userData && child.userData.isPartnerAvatar) {
       child.position.y = child.userData.baseY + Math.sin(time*1.5)*0.2;
       child.rotation.y = Math.sin(time*0.5)*0.3;
@@ -1278,7 +2115,6 @@ function animate() {
 
 function add3DTextBubble(text) {
   if(!roomGroup) return;
-
   const canvas2d = document.createElement('canvas');
   const ctx = canvas2d.getContext('2d');
   canvas2d.width = 512; canvas2d.height = 128;
@@ -1288,55 +2124,42 @@ function add3DTextBubble(text) {
   ctx.font = 'bold 32px Arial';
   ctx.textAlign = 'center';
   ctx.fillText(text.substring(0,30), 256, 75);
-
   const texture = new THREE.CanvasTexture(canvas2d);
   const geo = new THREE.PlaneGeometry(4,1);
   const mat = new THREE.MeshBasicMaterial({map:texture, transparent:true, side:THREE.DoubleSide});
   const mesh = new THREE.Mesh(geo, mat);
-
-  mesh.position.set(
-    (Math.random()-0.5)*8,
-    1.5 + Math.random()*3,
-    (Math.random()-0.5)*8
-  );
+  mesh.position.set((Math.random()-0.5)*8, 1.5+Math.random()*3, (Math.random()-0.5)*8);
   mesh.lookAt(camera.position);
-
+  mesh.userData = { isMessage: true };
   roomGroup.add(mesh);
   messages3D.push({mesh, baseY:mesh.position.y});
-
   if(messages3D.length>10){
     const old = messages3D.shift();
-    if(old.mesh) {
-      roomGroup.remove(old.mesh);
-      old.mesh.geometry.dispose();
-      old.mesh.material.dispose();
-    }
+    if(old.mesh) { roomGroup.remove(old.mesh); old.mesh.geometry.dispose(); old.mesh.material.dispose(); }
   }
 }
 
 // ===== 3D PARTNER AVATAR =====
 function createPartner3DAvatar(data) {
   if(!roomGroup) return;
-
   const uid = data.uid || currentPartner.uid;
   if(avatar3DObjects[uid]) {
     if(avatar3DObjects[uid].mesh) roomGroup.remove(avatar3DObjects[uid].mesh);
     delete avatar3DObjects[uid];
   }
 
-  // Create avatar platform
+  const avatarGroup = new THREE.Group();
+
+  // Platform
   const platformGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 32);
   const platformMat = new THREE.MeshStandardMaterial({
-    color:0x667eea, emissive:0x667eea, emissiveIntensity:0.3,
-    transparent:true, opacity:0.6
+    color:0x667eea, emissive:0x667eea, emissiveIntensity:0.3, transparent:true, opacity:0.6
   });
   const platform = new THREE.Mesh(platformGeo, platformMat);
   platform.position.set(0, 0.05, -4);
-
-  // Avatar image or letter
-  const avatarGroup = new THREE.Group();
   avatarGroup.add(platform);
 
+  // Avatar image or letter
   if(data.avatar) {
     const loader = new THREE.TextureLoader();
     loader.load(data.avatar, texture=>{
@@ -1349,15 +2172,12 @@ function createPartner3DAvatar(data) {
       mesh.position.set(0, 1.2, -4);
       mesh.userData = {isPartnerAvatar:true, baseY:1.2};
       avatarGroup.add(mesh);
-    }, undefined, ()=>{
-      // Fallback to letter
-      createAvatarLetter(data, avatarGroup);
-    });
+    }, undefined, ()=>{ createAvatarLetter(data, avatarGroup); });
   } else {
     createAvatarLetter(data, avatarGroup);
   }
 
-  // Name label above avatar
+  // Name label
   const nameCanvas = document.createElement('canvas');
   const nctx = nameCanvas.getContext('2d');
   nameCanvas.width = 256; nameCanvas.height = 64;
@@ -1366,9 +2186,9 @@ function createPartner3DAvatar(data) {
   nctx.fillStyle = '#fff';
   nctx.font = 'bold 20px Arial';
   nctx.textAlign = 'center';
+  nctx.textBaseline = 'middle';
   const name = (data.displayName||data.username||'User');
-  nctx.fillText(name, 128, 40);
-
+  nctx.fillText(name, 128, 32);
   const nameTexture = new THREE.CanvasTexture(nameCanvas);
   const nameGeo = new THREE.PlaneGeometry(2, 0.5);
   const nameMat = new THREE.MeshBasicMaterial({map:nameTexture, transparent:true, side:THREE.DoubleSide});
@@ -1387,6 +2207,17 @@ function createPartner3DAvatar(data) {
   statusMesh.userData = {isPartnerAvatar:true, baseY:2.0, isStatus:true};
   avatarGroup.add(statusMesh);
 
+  // Online ring glow
+  if(isOnline) {
+    const glowGeo = new THREE.RingGeometry(0.9, 1.0, 32);
+    const glowMat = new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0.3, side:THREE.DoubleSide});
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.rotation.x = -Math.PI/2;
+    glow.position.set(0, 0.06, -4);
+    glow.userData = {isPartnerAvatar:true, isGlow:true};
+    avatarGroup.add(glow);
+  }
+
   roomGroup.add(avatarGroup);
   avatar3DObjects[uid] = {mesh:avatarGroup, data:data};
 }
@@ -1403,7 +2234,6 @@ function createAvatarLetter(data, group) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(letter, 64, 64);
-
   const texture = new THREE.CanvasTexture(canvas);
   const geo = new THREE.PlaneGeometry(1.2, 1.2);
   const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
@@ -1416,8 +2246,6 @@ function createAvatarLetter(data, group) {
 function updatePartner3DAvatar(data) {
   const uid = data.uid || currentPartner.uid;
   if(!avatar3DObjects[uid]) return;
-
-  // Update status color
   avatar3DObjects[uid].mesh.traverse(child=>{
     if(child.userData && child.userData.isStatus) {
       const isOnline = data.online === true;
@@ -1426,11 +2254,8 @@ function updatePartner3DAvatar(data) {
       child.material.emissive.setHex(statusColor);
     }
   });
-
-  // Update avatar image if changed
   if(data.avatar && data.avatar !== avatar3DObjects[uid].data.avatar) {
     avatar3DObjects[uid].data.avatar = data.avatar;
-    // Recreate avatar
     createPartner3DAvatar(data);
   }
 }
@@ -1443,18 +2268,14 @@ function triggerFile() {
 function handleFile(input) {
   const file = input.files[0];
   if(!file || !chatId) return;
-
   const isVideo = file.type.startsWith('video');
   const reader = new FileReader();
   reader.onload = function(e) {
     const base64 = e.target.result;
-    const msg = {
-      mediaData: base64,
-      mediaType: isVideo ? 'video' : 'image',
-      sender: currentUser.uid,
-      timestamp: Date.now()
-    };
-    db.ref('chats/'+chatId).push(msg);
+    db.ref('chats/'+chatId).push({
+      mediaData: base64, mediaType: isVideo?'video':'image',
+      sender: currentUser.uid, timestamp: Date.now()
+    });
     create3DMedia(base64, isVideo?'video':'image', true);
   };
   reader.readAsDataURL(file);
@@ -1463,33 +2284,24 @@ function handleFile(input) {
 
 function create3DMedia(url, type, isOwn) {
   if(!roomGroup) return;
-
   if(type === 'video') {
-    // For video, create a thumbnail using canvas
     const video = document.createElement('video');
-    video.src = url;
-    video.crossOrigin = 'anonymous';
+    video.src = url; video.crossOrigin = 'anonymous';
     video.onloadeddata = ()=>{
       const canvas = document.createElement('canvas');
       canvas.width = 256; canvas.height = 144;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, 256, 144);
       const thumbUrl = canvas.toDataURL();
-
       const loader = new THREE.TextureLoader();
       loader.load(thumbUrl, texture=>{
         const aspect = 256/144;
-        const w = 3;
-        const h = w / aspect;
+        const w = 3; const h = w / aspect;
         const geo = new THREE.PlaneGeometry(w, h);
         const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(
-          (Math.random()-0.5)*6,
-          2 + Math.random()*2,
-          (Math.random()-0.5)*6
-        );
-        mesh.userData = {url:url, type:type, isVideo:true};
+        mesh.position.set((Math.random()-0.5)*6, 2+Math.random()*2, (Math.random()-0.5)*6);
+        mesh.userData = {url:url, type:type, isMedia:true, isVideo:true};
         roomGroup.add(mesh);
         mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
       });
@@ -1499,17 +2311,12 @@ function create3DMedia(url, type, isOwn) {
     const loader = new THREE.TextureLoader();
     loader.load(url, texture=>{
       const aspect = texture.image.width / texture.image.height;
-      const w = 3;
-      const h = w / aspect;
+      const w = 3; const h = w / aspect;
       const geo = new THREE.PlaneGeometry(w, h);
       const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(
-        (Math.random()-0.5)*6,
-        2 + Math.random()*2,
-        (Math.random()-0.5)*6
-      );
-      mesh.userData = {url:url, type:type};
+      mesh.position.set((Math.random()-0.5)*6, 2+Math.random()*2, (Math.random()-0.5)*6);
+      mesh.userData = {url:url, type:type, isMedia:true};
       roomGroup.add(mesh);
       mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
     });
@@ -1537,21 +2344,17 @@ function openMedia(url, type) {
   const viewer = document.getElementById('mediaViewer');
   const container = document.getElementById('media3d');
   container.innerHTML = '';
-
   if(type==='video'){
     const vid = document.createElement('video');
-    vid.src = url; vid.controls = true; vid.autoplay = true;
-    vid.loop = true; container.appendChild(vid);
+    vid.src = url; vid.controls = true; vid.autoplay = true; vid.loop = true;
+    container.appendChild(vid);
   } else {
     const img = document.createElement('img');
     img.src = url; container.appendChild(img);
   }
-
   viewer.classList.add('active');
-
   let rotX=0, rotY=0;
   const el = container;
-
   const onMove = (e)=>{
     const clientX = e.touches?e.touches[0].clientX:e.clientX;
     const clientY = e.touches?e.touches[0].clientY:e.clientY;
@@ -1560,19 +2363,14 @@ function openMedia(url, type) {
       rotX -= (clientY - parseFloat(el.dataset.startY))*0.5;
       el.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
     }
-    el.dataset.startX = clientX;
-    el.dataset.startY = clientY;
+    el.dataset.startX = clientX; el.dataset.startY = clientY;
   };
-
   const onStart = (e)=>{
     const clientX = e.touches?e.touches[0].clientX:e.clientX;
     const clientY = e.touches?e.touches[0].clientY:e.clientY;
-    el.dataset.startX = clientX;
-    el.dataset.startY = clientY;
+    el.dataset.startX = clientX; el.dataset.startY = clientY;
   };
-
   const onEnd = ()=>{ delete el.dataset.startX; delete el.dataset.startY; };
-
   el.addEventListener('mousedown',onStart);
   el.addEventListener('mousemove',onMove);
   el.addEventListener('mouseup',onEnd);
