@@ -19,7 +19,7 @@
   <script src="https://unpkg.com/qrcode@1.4.4/build/qrcode.min.js"></script>
   <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 
-  <!-- Firebase Legacy Compat SDK (Perfect for simple HTML embeds) -->
+  <!-- Firebase Legacy Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
@@ -146,6 +146,32 @@
     const PREFIX_KEY_EXCHANGE = "🔑[VKTG_KEY_V3]:";
     const PREFIX_E2EE_TEXT = "🔒[VKTG_E2EE_V4]:";
     const PREFIX_E2EE_FILE = "🔒[VKTG_FILE_E2EE_V4]:";
+
+    // Utility to compress avatar images (to keep RTDB payload lightweight)
+    function compressAvatar(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const maxDim = 160;
+          let w = img.width;
+          let h = img.height;
+          if (w > h) {
+            if (w > maxDim) { h *= maxDim / w; w = maxDim; }
+          } else {
+            if (h > maxDim) { w *= maxDim / h; h = maxDim; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
     // Chunked Base64 converters to avoid maximum call stack size exceeded on large files
     function arrayBufferToBase64(buffer) {
@@ -457,7 +483,6 @@
             return;
           }
           try {
-            // 1. Get Base64 text (direct from DB or download if needed)
             let base64Text = fileData;
             if (!base64Text && docUrl) {
               const response = await fetch(docUrl);
@@ -468,14 +493,11 @@
               throw new Error("Empty file payload");
             }
 
-            // 2. Derive key
             const sharedBits = await computeSharedSecret(peerKeyB64, privKeyObj);
             const aesKey = await deriveRatchetMessageKey(sharedBits, parseInt(sequence), myId, partnerId);
 
-            // 3. Decode Base64 string back to encrypted ArrayBuffer
             const encryptedBuffer = base64ToArrayBuffer(base64Text);
 
-            // 4. Decrypt
             const ivBytes = base64ToArrayBuffer(iv); 
             const decryptedBytes = await window.crypto.subtle.decrypt(
               { name: "AES-GCM", iv: new Uint8Array(ivBytes) }, 
@@ -594,10 +616,11 @@
 
     // ================= MAIN CORE APP COMPONENT =================
     function App() {
-      // Identity & Connection State
-      const [userIdInput, setUserIdInput] = useState('');
-      const [userNameInput, setUserNameInput] = useState('');
-      const [avatarInput, setAvatarInput] = useState('');
+      // Auth flow State
+      const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+      const [usernameInput, setUsernameInput] = useState('');
+      const [displayNameInput, setDisplayNameInput] = useState('');
+      const [avatarBase64, setAvatarBase64] = useState('');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [myProfile, setMyProfile] = useState(null);
       const [authError, setAuthError] = useState('');
@@ -661,9 +684,9 @@
 
       // Auto Login Hook
       useEffect(() => {
-        const savedUid = localStorage.getItem('fbrtdb_uid');
-        if (savedUid) {
-          database.ref(`users/${savedUid}`).once('value').then((snapshot) => {
+        const savedUsername = localStorage.getItem('fbrtdb_username');
+        if (savedUsername) {
+          database.ref(`users/${savedUsername}`).once('value').then((snapshot) => {
             const profile = snapshot.val();
             if (profile) {
               setMyProfile(profile);
@@ -671,11 +694,12 @@
               setCustomName(profile.first_name);
               setCustomAvatar(profile.photo_100);
 
-              // Setup online trigger
-              database.ref(`users/${savedUid}/online`).set(true);
-              database.ref(`users/${savedUid}/online`).onDisconnect().set(false);
+              // Setup online trigger & lastSeen updates
+              database.ref(`users/${savedUsername}/online`).set(true);
+              database.ref(`users/${savedUsername}/online`).onDisconnect().set(false);
+              database.ref(`users/${savedUsername}/lastSeen`).onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
             } else {
-              localStorage.removeItem('fbrtdb_uid');
+              localStorage.removeItem('fbrtdb_username');
             }
           }).catch(err => {
             console.error("Auto login failed:", err);
@@ -683,7 +707,7 @@
         }
       }, []);
 
-      // Realtime conversations sync (No polling!)
+      // Realtime conversations sync
       useEffect(() => {
         if (!isLoggedIn || isVaultLocked || !myProfile) return;
 
@@ -694,12 +718,13 @@
           
           for (const partnerId of Object.keys(rawChats)) {
             const meta = rawChats[partnerId];
-            // Get updated partner profile in Realtime
             const userSnap = await database.ref(`users/${partnerId}`).once('value');
             const userProfile = userSnap.val() || { 
               id: partnerId, 
-              first_name: `Пользователь #${partnerId}`,
-              photo_100: `https://api.dicebear.com/7.x/identicon/svg?seed=${partnerId}`
+              first_name: `@${partnerId}`,
+              photo_100: `https://api.dicebear.com/7.x/identicon/svg?seed=${partnerId}`,
+              online: false,
+              lastSeen: 0
             };
             
             parsedConversations.push({
@@ -724,15 +749,13 @@
         };
       }, [isLoggedIn, isVaultLocked, myProfile?.id]);
 
-      // Realtime messages sync (No polling!)
+      // Realtime messages sync
       useEffect(() => {
         if (!isLoggedIn || isVaultLocked || !myProfile || !activePartner) return;
 
-        const chatId = myProfile.id < activePartner.id 
-          ? `${myProfile.id}_${activePartner.id}` 
-          : `${activePartner.id}_${myProfile.id}`;
+        const sortedIds = [myProfile.id, activePartner.id].sort();
+        const chatId = `${sortedIds[0]}_${sortedIds[1]}`;
 
-        // Reset local unread counter for this chat
         database.ref(`user_chats/${myProfile.id}/${activePartner.id}/unreadCount`).set(0);
 
         const messagesRef = database.ref(`chats/${chatId}/messages`);
@@ -780,7 +803,7 @@
                   isFile: true, 
                   name: atob(b64Name), 
                   mime, 
-                  fileData: item.file_data, // Stored directly in Realtime Database!
+                  fileData: item.file_data, 
                   sequence, 
                   iv 
                 };
@@ -800,8 +823,18 @@
           setMessages(decryptedMessages);
         });
 
+        // Realtime keep-alive listener for the current active partner's online state
+        const partnerRef = database.ref(`users/${activePartner.id}`);
+        const onPartnerChange = partnerRef.on('value', (snap) => {
+          const updatedPartner = snap.val();
+          if (updatedPartner) {
+            setActivePartner(updatedPartner);
+          }
+        });
+
         return () => {
           messagesRef.off('value', onMessagesChange);
+          partnerRef.off('value', onPartnerChange);
         };
       }, [isLoggedIn, isVaultLocked, myProfile?.id, activePartner?.id, peerKeys]);
 
@@ -948,44 +981,81 @@
 
       // ================= FIREBASE AUTH & USER PROFILE CONTROL =================
       const handleFirebaseConnect = async () => {
-        const uid = userIdInput.trim();
-        const nickname = userNameInput.trim();
-        if (!uid || !nickname) {
-          setAuthError("ID и Имя обязательны для заполнения!");
+        const cleanUsername = usernameInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        if (!cleanUsername) {
+          setAuthError("Введите корректный юзернейм!");
           return;
         }
 
         try {
-          const userProfileRef = database.ref(`users/${uid}`);
-          const defaultAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${uid}`;
-          const profile = {
-            id: uid,
-            first_name: nickname,
-            photo_100: avatarInput.trim() || defaultAvatar,
-            online: true,
-            lastSeen: Date.now()
-          };
+          const userSnap = await database.ref(`users/${cleanUsername}`).once('value');
+          const existingUser = userSnap.val();
 
-          await userProfileRef.set(profile);
-
-          // Monitor online status connection
-          database.ref(".info/connected").on("value", (snap) => {
-            if (snap.val() === true) {
-              userProfileRef.child("online").onDisconnect().set(false);
-              userProfileRef.child("online").set(true);
+          if (authMode === 'login') {
+            if (!existingUser) {
+              setAuthError("Такой аккаунт не существует. Пройдите Регистрацию!");
+              return;
             }
-          });
+            
+            // Set online
+            await database.ref(`users/${cleanUsername}/online`).set(true);
+            await database.ref(`users/${cleanUsername}/lastSeen`).set(Date.now());
+            database.ref(`users/${cleanUsername}/online`).onDisconnect().set(false);
+            database.ref(`users/${cleanUsername}/lastSeen`).onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
 
-          localStorage.setItem('fbrtdb_uid', uid);
-          localStorage.setItem('fbrtdb_profile', JSON.stringify(profile));
+            localStorage.setItem('fbrtdb_username', cleanUsername);
+            setMyProfile(existingUser);
+            setIsLoggedIn(true);
+            setCustomName(existingUser.first_name);
+            setCustomAvatar(existingUser.photo_100);
+            setAuthError('');
+          } else {
+            // Register mode
+            if (existingUser) {
+              setAuthError(`Юзернейм @${cleanUsername} уже занят! Выберите другой.`);
+              return;
+            }
 
-          setMyProfile(profile);
-          setIsLoggedIn(true);
-          setCustomName(profile.first_name);
-          setCustomAvatar(profile.photo_100);
-          setAuthError('');
+            const nickname = displayNameInput.trim();
+            if (!nickname) {
+              setAuthError("Имя / Никнейм обязательно для заполнения!");
+              return;
+            }
+
+            const defaultAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${cleanUsername}`;
+            const finalAvatar = avatarBase64 || defaultAvatar;
+
+            const profile = {
+              id: cleanUsername,
+              first_name: nickname,
+              photo_100: finalAvatar,
+              online: true,
+              lastSeen: Date.now()
+            };
+
+            await database.ref(`users/${cleanUsername}`).set(profile);
+            
+            database.ref(`users/${cleanUsername}/online`).onDisconnect().set(false);
+            database.ref(`users/${cleanUsername}/lastSeen`).onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+
+            localStorage.setItem('fbrtdb_username', cleanUsername);
+            setMyProfile(profile);
+            setIsLoggedIn(true);
+            setCustomName(profile.first_name);
+            setCustomAvatar(profile.photo_100);
+            setAuthError('');
+          }
         } catch (err) {
           setAuthError("Ошибка Realtime DB: " + err.message);
+        }
+      };
+
+      const handleLocalAvatarUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          compressAvatar(file, (b64) => {
+            setAvatarBase64(b64);
+          });
         }
       };
 
@@ -1031,10 +1101,7 @@
       }
 
       async function deriveRatchetMessageKey(initialSharedSecret, sequenceNum, myId, peerId) {
-        // Stringify IDs for deterministic order
-        const id1 = String(myId);
-        const id2 = String(peerId);
-        const sortedIds = [id1, id2].sort();
+        const sortedIds = [String(myId), String(peerId)].sort();
         
         const salt = new TextEncoder().encode(`ratchet-salt-${sortedIds[0]}`);
         const info = new TextEncoder().encode(`vktg-msg-chain|${sortedIds[0]}|${sortedIds[1]}|${sequenceNum}`);
@@ -1263,9 +1330,8 @@
 
       const sendKeyExchangeMessage = async (peerId) => {
         if (!myPublicJWK || !myProfile) return;
-        const chatId = myProfile.id < peerId 
-          ? `${myProfile.id}_${peerId}` 
-          : `${peerId}_${myProfile.id}`;
+        const sortedIds = [myProfile.id, peerId].sort();
+        const chatId = `${sortedIds[0]}_${sortedIds[1]}`;
 
         const newMsgRef = database.ref(`chats/${chatId}/messages`).push();
         const msgData = {
@@ -1276,7 +1342,6 @@
         };
         await newMsgRef.set(msgData);
 
-        // Update user_chats
         const chatMeta = {
           partnerId: peerId,
           lastMessage: { text: msgData.text, date: msgData.date }
@@ -1290,7 +1355,6 @@
         await database.ref(`user_chats/${peerId}/${myProfile.id}`).update(recipientMeta);
       };
 
-      // Realtime Directly Encrypted File Sender (No storage needed, direct RTDB serialization)
       const sendEncryptedFileDirectly = async (arrayBuffer, filename, mimeType) => {
         if (!activePartner || !myProfile) return;
         const partnerKeyB64 = peerKeys[activePartner.id];
@@ -1301,13 +1365,11 @@
           const sequence = (savedSeq ? parseInt(savedSeq) : 0) + 1;
           await saveSecureKey(`seq_sent_${activePartner.id}`, sequence);
 
-          // Encrypt file bytes
           const encryptedFile = await encryptDataPFS(partnerKeyB64, arrayBuffer, sequence);
           const encryptedBase64Str = arrayBufferToBase64(encryptedFile.ciphertextBuffer);
 
-          const chatId = myProfile.id < activePartner.id 
-            ? `${myProfile.id}_${activePartner.id}` 
-            : `${activePartner.id}_${myProfile.id}`;
+          const sortedIds = [myProfile.id, activePartner.id].sort();
+          const chatId = `${sortedIds[0]}_${sortedIds[1]}`;
 
           const b64Name = btoa(filename);
           const header = `${PREFIX_E2EE_FILE}${sequence}:${encryptedFile.ivB64}:${b64Name}:${mimeType}`;
@@ -1317,12 +1379,11 @@
             id: newMsgRef.key,
             from_id: myProfile.id,
             text: header,
-            file_data: encryptedBase64Str, // Write Base64 string directly into RTDB payload!
+            file_data: encryptedBase64Str, 
             date: Math.floor(Date.now() / 1000)
           };
           await newMsgRef.set(msgData);
 
-          // Update lists
           const chatMetaSender = {
             partnerId: activePartner.id,
             lastMessage: { text: header, date: msgData.date }
@@ -1356,9 +1417,8 @@
           const encrypted = await encryptPFS(partnerKeyB64, msgText);
           const payload = `${PREFIX_E2EE_TEXT}${encrypted.sequence}:${encrypted.ivB64}:${encrypted.ciphertextB64}`;
 
-          const chatId = myProfile.id < activePartner.id 
-            ? `${myProfile.id}_${activePartner.id}` 
-            : `${activePartner.id}_${myProfile.id}`;
+          const sortedIds = [myProfile.id, activePartner.id].sort();
+          const chatId = `${sortedIds[0]}_${sortedIds[1]}`;
 
           const newMsgRef = database.ref(`chats/${chatId}/messages`).push();
           const msgData = {
@@ -1485,23 +1545,33 @@
         }
       };
 
+      const handleSettingsAvatarUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          compressAvatar(file, (b64) => {
+            setCustomAvatar(b64);
+          });
+        }
+      };
+
       const handleStartNewChat = async () => {
-        const targetId = targetUserId.trim();
-        if (!targetId) {
-          alert("Пожалуйста, введите корректный ID");
+        const cleanTargetId = targetUserId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        if (!cleanTargetId) {
+          alert("Пожалуйста, введите корректный юзернейм");
+          return;
+        }
+
+        if (cleanTargetId === myProfile.id) {
+          alert("Нельзя начать чат с самим собой!");
           return;
         }
 
         try {
-          const snapshot = await database.ref(`users/${targetId}`).once('value');
+          const snapshot = await database.ref(`users/${cleanTargetId}`).once('value');
           let partner = snapshot.val();
           if (!partner) {
-            partner = {
-              id: targetId,
-              first_name: `Пользователь #${targetId}`,
-              photo_100: `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`,
-              online: false
-            };
+            alert("Пользователь с таким юзернеймом не найден!");
+            return;
           }
           setNewChatModal(false);
           setTargetUserId('');
@@ -1514,9 +1584,9 @@
       const handleLogout = () => {
         if (myProfile) {
           database.ref(`users/${myProfile.id}/online`).set(false);
+          database.ref(`users/${myProfile.id}/lastSeen`).set(Date.now());
         }
-        localStorage.removeItem('fbrtdb_uid');
-        localStorage.removeItem('fbrtdb_profile');
+        localStorage.removeItem('fbrtdb_username');
         setMyProfile(null);
         setIsLoggedIn(false);
         setDrawerOpen(false);
@@ -1554,7 +1624,10 @@
           alert("Ошибка: профиль не загружен или ключи не готовы.");
           return;
         }
-        const seed = stegoCustomSeed.trim() || String(Math.min(myProfile.id, activePartner.id)) + String(Math.max(myProfile.id, activePartner.id));
+        
+        const sortedIds = [myProfile.id, activePartner.id].sort();
+        const seed = stegoCustomSeed.trim() || sortedIds[0] + sortedIds[1];
+        
         try {
           const outPngUrl = await embedKeyInImage(stegoBaseImg, myPublicJWK, seed);
           setGeneratedStegoUrl(outPngUrl);
@@ -1584,7 +1657,10 @@
           alert("Ошибка: профиль не загружен.");
           return;
         }
-        const seed = stegoExtractSeed.trim() || String(Math.min(myProfile.id, activePartner.id)) + String(Math.max(myProfile.id, activePartner.id));
+        
+        const sortedIds = [myProfile.id, activePartner.id].sort();
+        const seed = stegoExtractSeed.trim() || sortedIds[0] + sortedIds[1];
+        
         try {
           const extractedKey = await extractKeyFromImage(stegoExtractImg, seed);
           handleImportPeerKeyDirect(extractedKey);
@@ -1595,7 +1671,7 @@
       };
 
       const filteredConversations = conversations.filter(item => {
-        const name = `${item.partner.first_name} ${item.partner.last_name || ''}`.toLowerCase();
+        const name = `${item.partner.first_name} @${item.partner.id}`.toLowerCase();
         const matchesQuery = name.includes(searchQuery.toLowerCase());
         if (activeTab === 'secret') {
           return matchesQuery && peerKeys[item.partner.id];
@@ -1647,51 +1723,80 @@
         );
       }
 
-      // 2. MAIN OAUTH WALL
+      // 2. MAIN OAUTH / REGISTRATION WALL
       if (!isLoggedIn) {
         return (
           <div className="h-screen w-full flex items-center justify-center bg-[#070a0e] p-4 text-white">
             <div className="w-full max-w-sm bg-[#0e141c] rounded-2xl p-6 border border-[#223145] shadow-2xl flex flex-col items-center">
-              <div className="w-16 h-16 bg-[#213043] rounded-2xl flex items-center justify-center mb-5 border border-[#304662] shadow-inner">
+              <div className="w-16 h-16 bg-[#213043] rounded-2xl flex items-center justify-center mb-5 border border-[#304662] shadow-inner shrink-0">
                 <Icons.Lock className="w-8 h-8 text-sky-400" />
               </div>
               
-              <h2 className="text-xl font-bold tracking-tight mb-1 text-center">Firebase Realtime Messenger</h2>
-              <p className="text-xs text-[#738294] mb-6 text-center leading-relaxed">Безопасное сквозное шифрование поверх Firebase RTDB</p>
+              <h2 className="text-xl font-bold tracking-tight mb-1 text-center">Firebase RT Secure</h2>
+              <p className="text-xs text-[#738294] mb-5 text-center leading-relaxed">Безопасный E2EE мессенджер с юзернеймами как в Telegram</p>
+
+              {/* Login / Register Tab Switcher */}
+              <div className="flex bg-[#05070a] rounded-xl p-1.5 w-full mb-5 border border-[#1b2533]">
+                <button 
+                  onClick={() => { setAuthMode('login'); setAuthError(''); }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authMode === 'login' ? 'bg-sky-600 text-white' : 'text-[#738294] hover:text-white'}`}
+                >
+                  Вход
+                </button>
+                <button 
+                  onClick={() => { setAuthMode('register'); setAuthError(''); }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authMode === 'register' ? 'bg-sky-600 text-white' : 'text-[#738294] hover:text-white'}`}
+                >
+                  Регистрация
+                </button>
+              </div>
 
               <div className="w-full space-y-4">
                 <div>
-                  <label className="block text-[10px] text-[#738294] font-semibold mb-1.5 uppercase tracking-wider">Шаг 1: Придумайте или введите ваш ID</label>
-                  <input 
-                    type="text"
-                    value={userIdInput}
-                    onChange={(e) => setUserIdInput(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Ваш уникальный ID (только цифры)"
-                    className="w-full bg-[#05070a] text-xs text-white p-3.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500 transition"
-                  />
+                  <label className="block text-[10px] text-[#738294] font-semibold mb-1 uppercase tracking-wider">Уникальный юзернейм</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-sky-400 text-xs font-semibold">@</span>
+                    <input 
+                      type="text"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      placeholder="username"
+                      className="w-full bg-[#05070a] text-xs text-white pl-7 pr-3.5 py-3 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500 transition font-mono font-bold"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] text-[#738294] font-semibold mb-1.5 uppercase tracking-wider">Шаг 2: Ваше Имя / Никнейм</label>
-                  <input 
-                    type="text"
-                    value={userNameInput}
-                    onChange={(e) => setUserNameInput(e.target.value)}
-                    placeholder="Ваше имя (например, Alice)"
-                    className="w-full bg-[#05070a] text-xs text-white p-3.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500 transition"
-                  />
-                </div>
+                {authMode === 'register' && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] text-[#738294] font-semibold mb-1 uppercase tracking-wider">Ваше Имя / Никнейм</label>
+                      <input 
+                        type="text"
+                        value={displayNameInput}
+                        onChange={(e) => setDisplayNameInput(e.target.value)}
+                        placeholder="Alice"
+                        className="w-full bg-[#05070a] text-xs text-white p-3 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500 transition"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-[10px] text-[#738294] font-semibold mb-1.5 uppercase tracking-wider">Шаг 3: Аватарка (URL, необязательно)</label>
-                  <input 
-                    type="text"
-                    value={avatarInput}
-                    onChange={(e) => setAvatarInput(e.target.value)}
-                    placeholder="Ссылка на аватарку"
-                    className="w-full bg-[#05070a] text-xs text-white p-3.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500 transition"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-[10px] text-[#738294] font-semibold mb-1.5 uppercase tracking-wider">Фото профиля (из галереи)</label>
+                      <div className="flex items-center gap-4 bg-[#05070a] p-3 rounded-xl border border-[#1b2533]">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0e141c] border border-[#223145] shrink-0">
+                          {avatarBase64 ? (
+                            <img src={avatarBase64} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-600 font-bold">No img</div>
+                          )}
+                        </div>
+                        <label className="flex-1 py-2 px-3 bg-[#1e293b] hover:bg-[#334155] border border-white/5 rounded-lg text-center cursor-pointer text-[10px] font-bold tracking-wider text-white transition">
+                          ВЫБРАТЬ ФОТО
+                          <input type="file" accept="image/*" onChange={handleLocalAvatarUpload} className="hidden" />
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <button 
@@ -1699,11 +1804,11 @@
                 className="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-xl text-xs tracking-wider flex items-center justify-center gap-2 transition duration-150 shadow-lg shadow-emerald-950/40"
               >
                 <Icons.Send />
-                ПОДКЛЮЧИТЬСЯ
+                {authMode === 'login' ? 'ВОЙТИ В СЕТЬ' : 'ЗАРЕГИСТРИРОВАТЬСЯ'}
               </button>
 
               {authError && (
-                <div className="w-full mt-4 p-3 bg-rose-950/20 border border-rose-900/40 rounded-xl text-[10px] text-rose-400 font-mono text-center leading-relaxed">
+                <div className="w-full mt-4 p-3 bg-rose-950/20 border border-rose-900/40 rounded-xl text-[10px] text-rose-400 font-sans text-center leading-relaxed">
                   {authError}
                 </div>
               )}
@@ -1726,7 +1831,7 @@
                   <button onClick={() => setDrawerOpen(true)} className="text-gray-300 hover:text-white transition">
                     <Icons.Menu />
                   </button>
-                  <span className="text-lg font-bold text-white tracking-wide">Realtime Premium</span>
+                  <span className="text-lg font-bold text-white tracking-wide">Realtime Mess</span>
                 </div>
                 <div className="text-gray-400">
                   <Icons.Search />
@@ -1773,7 +1878,7 @@
                 ) : (
                   filteredConversations.map(item => {
                     const avatar = item.partner.photo_100;
-                    const name = `${item.partner.first_name} ${item.partner.last_name || ''}`;
+                    const name = `${item.partner.first_name}`;
                     const time = item.lastMessage ? formatTimestamp(item.lastMessage.date) : '';
                     let preview = item.lastMessage ? item.lastMessage.text : '';
                     let isEnc = false;
@@ -1799,11 +1904,14 @@
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-white truncate">{name}</span>
-                            <span className="text-[10px] text-[#738294]">{time}</span>
+                            <span className="text-[10px] text-[#738294] font-semibold">@{item.id}</span>
                           </div>
-                          <p className={`text-xs ${isEnc ? 'text-emerald-400 font-semibold' : 'text-[#738294]'} truncate mt-1`}>
-                            {preview}
-                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className={`text-xs ${isEnc ? 'text-emerald-400 font-semibold' : 'text-[#738294]'} truncate flex-1 pr-4`}>
+                              {preview}
+                            </p>
+                            <span className="text-[10px] text-[#738294] shrink-0">{time}</span>
+                          </div>
                         </div>
 
                         {item.unreadCount > 0 && (
@@ -1834,7 +1942,7 @@
               {/* Header Container */}
               <div className="bg-[#0e141c] py-3.5 px-4 flex items-center justify-between border-b border-[#1b2533] shadow-md shrink-0 z-20">
                 <div className="flex items-center gap-3 min-w-0">
-                  <button onClick={() => { setActiveScreen('chats'); setIsCameraActive(false); }} className="text-gray-300 hover:text-white p-1 transition">
+                  <button onClick={() => { setActiveScreen('chats'); setIsCameraActive(false); }} className="text-gray-300 hover:text-white p-1 transition shrink-0">
                     <Icons.Back />
                   </button>
                   
@@ -1844,31 +1952,31 @@
                   </div>
 
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm text-white truncate max-w-[150px]">
-                      {activePartner.first_name || 'Загрузка...'} {activePartner.last_name || ''}
+                    <h4 className="font-bold text-sm text-white truncate max-w-[130px]">
+                      {activePartner.first_name || 'Загрузка...'}
                     </h4>
-                    <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
-                      {activePartner.online ? 'в сети' : 'был(а) недавно'}
+                    <span className="text-[9px] text-gray-400 block -mt-0.5 font-semibold">@{activePartner.id}</span>
+                    <span className={`text-[10px] font-semibold block mt-0.5 ${activePartner.online ? 'text-emerald-400' : 'text-gray-500'}`}>
+                      {activePartner.online ? 'в сети' : formatLastSeen(activePartner.lastSeen)}
                     </span>
                   </div>
                 </div>
 
                 {/* Secure Badge Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Out of Band Exchange Trigger */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button 
                     onClick={() => setOobModalOpen(true)}
                     className="p-1.5 hover:bg-white/5 rounded-full transition"
-                    title="Безопасный обмен (Вне серверов)"
+                    title="Безопасный обмен"
                   >
                     <Icons.Qr />
                   </button>
 
                   <div 
                     onClick={() => setSafetyNumberModal(true)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold cursor-pointer transition duration-150 ${peerKeys[activePartner.id] ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'}`}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-bold cursor-pointer transition duration-150 ${peerKeys[activePartner.id] ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'}`}
                   >
-                    <Icons.Lock className="w-3 h-3" />
+                    <Icons.Lock className="w-3 h-3 shrink-0" />
                     <span>{peerKeys[activePartner.id] ? 'E2EE СЕЙФ' : 'НЕТ КЛЮЧА'}</span>
                   </div>
 
@@ -1966,7 +2074,7 @@
                           <div className="flex items-center justify-end gap-1.5 text-[9px] text-white/40 pt-0.5">
                             {msg.decrypted && <Icons.Lock className="w-3 h-3 text-emerald-400" />}
                             <span>{timeStr}</span>
-                            {msg.isMe && <span className="text-emerald-400">✓✓</span>}
+                            {msg.isMe && <span className="text-emerald-400 font-bold">✓✓</span>}
                           </div>
                         </div>
                       </div>
@@ -1976,7 +2084,7 @@
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Input Box with Live audio visualizers */}
+              {/* Message Input Box */}
               <div className="p-3 bg-[#0e141c] border-t border-[#1b2533] shrink-0 space-y-2.5 z-10">
                 
                 {isRecordingAudio && (
@@ -2016,7 +2124,7 @@
                     {/* Fast access audio record button */}
                     <button 
                       onClick={isRecordingAudio ? stopAudioRecording : startAudioRecording}
-                      className="p-1 shrink-0"
+                      className="p-1 shrink-0 text-sky-400 hover:text-sky-300"
                       title="Записать аудио (.meo)"
                     >
                       <Icons.Mic />
@@ -2127,7 +2235,7 @@
                           <label className="block text-[10px] text-[#738294] uppercase tracking-wider font-semibold mb-1">Криптографический Seed (Необязательно)</label>
                           <input 
                             type="text" 
-                            placeholder={`По умолчанию: ID беседы (${activePartner ? `${Math.min(myProfile.id, activePartner.id)}|${Math.max(myProfile.id, activePartner.id)}` : 'нужен чат'})`}
+                            placeholder="По умолчанию: ID беседы"
                             value={stegoCustomSeed}
                             onChange={(e) => setStegoCustomSeed(e.target.value)}
                             className="w-full bg-[#0b0e14] text-xs text-white p-2.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-emerald-500"
@@ -2169,7 +2277,7 @@
                           <label className="block text-[10px] text-[#738294] uppercase tracking-wider font-semibold mb-1">Криптографический Seed (Необязательно)</label>
                           <input 
                             type="text" 
-                            placeholder={`По умолчанию: ID беседы (${activePartner ? `${Math.min(myProfile.id, activePartner.id)}|${Math.max(myProfile.id, activePartner.id)}` : 'нужен чат'})`}
+                            placeholder="По умолчанию: ID беседы"
                             value={stegoExtractSeed}
                             onChange={(e) => setStegoExtractSeed(e.target.value)}
                             className="w-full bg-[#0b0e14] text-xs text-white p-2.5 rounded-xl border border-[#1b2533] focus:outline-none focus:border-sky-500"
@@ -2202,14 +2310,14 @@
                 
                 {/* Drawer Header Banner */}
                 <div className="bg-[#121b26] p-5 space-y-3.5 border-b border-[#1c2a3d]">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-sky-950 border-2 border-sky-500/25">
-                    <img src={customAvatar || (myProfile && myProfile.photo_100)} className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-sky-950 border-2 border-sky-500/25 relative shrink-0">
+                    <img src={customAvatar || (myProfile && myProfile.photo_100)} className="w-full h-full object-cover animate-fade-in" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-bold text-white text-sm truncate">
-                      {customName || (myProfile && `${myProfile.first_name} ${myProfile.last_name || ''}`)}
+                      {customName || (myProfile && `${myProfile.first_name}`)}
                     </h3>
-                    <p className="text-xs text-emerald-400 font-semibold truncate mt-0.5">Realtime ID: {myProfile && myProfile.id}</p>
+                    <p className="text-xs text-emerald-400 font-semibold truncate mt-0.5">@{myProfile && myProfile.id}</p>
                   </div>
                 </div>
 
@@ -2250,8 +2358,8 @@
                   </div>
                 </div>
 
-                <div className="p-4 border-t border-[#1b2533]/80 text-center text-[10px] text-gray-500 font-medium">
-                  Realtime Messenger v3.0 Ultimate PFS
+                <div className="p-4 border-t border-[#1b2533]/80 text-center text-[10px] text-gray-500 font-medium animate-pulse">
+                  Realtime Messenger v3.5 Telegram Mode
                 </div>
 
               </div>
@@ -2272,7 +2380,7 @@
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Никнейм</label>
+                    <label className="block text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Никнейм / Имя</label>
                     <input 
                       type="text" 
                       value={customName}
@@ -2281,13 +2389,16 @@
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Кастомный аватар (URL)</label>
-                    <input 
-                      type="text" 
-                      value={customAvatar}
-                      onChange={(e) => setCustomAvatar(e.target.value)}
-                      className="w-full bg-[#05070a] text-xs text-white p-3 rounded-xl border border-[#1b2533] focus:outline-none"
-                    />
+                    <label className="block text-[10px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Сменить фото профиля (из галереи)</label>
+                    <div className="flex items-center gap-4 bg-[#05070a] p-3 rounded-xl border border-[#1b2533]">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0e141c] border border-[#223145] shrink-0">
+                        <img src={customAvatar || "https://vk.com/images/camera_100.png"} className="w-full h-full object-cover" />
+                      </div>
+                      <label className="flex-1 py-2 px-3 bg-[#1e293b] hover:bg-[#334155] border border-white/5 rounded-lg text-center cursor-pointer text-[10px] font-bold tracking-wider text-white transition">
+                        ОБНОВИТЬ ФОТО
+                        <input type="file" accept="image/*" onChange={handleSettingsAvatarUpload} className="hidden" />
+                      </label>
+                    </div>
                   </div>
                   <button 
                     onClick={handleSaveLocalProfile}
@@ -2312,18 +2423,21 @@
                 </div>
 
                 <p className="text-[11px] text-[#738294] leading-relaxed">
-                  Введите цифровой ID аккаунта собеседника, чтобы открыть прямой зашифрованный чат.
+                  Введите уникальный юзернейм собеседника, чтобы открыть прямой зашифрованный чат.
                 </p>
 
                 <div>
-                  <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-wider">ID пользователя</label>
-                  <input 
-                    type="number" 
-                    value={targetUserId}
-                    onChange={(e) => setTargetUserId(e.target.value)}
-                    placeholder="Например: 12345"
-                    className="w-full bg-[#05070a] text-xs text-white p-3.5 rounded-xl border border-[#1b2533] focus:outline-none"
-                  />
+                  <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-wider">Имя пользователя (Юзернейм)</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-sky-400 text-xs font-semibold">@</span>
+                    <input 
+                      type="text" 
+                      value={targetUserId}
+                      onChange={(e) => setTargetUserId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      placeholder="username"
+                      className="w-full bg-[#05070a] text-xs text-white pl-7 pr-3.5 py-3.5 rounded-xl border border-[#1b2533] focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 text-xs pt-2">
@@ -2413,10 +2527,30 @@
     }
 
     function formatTimestamp(timestamp) {
+      if (!timestamp) return '';
       const date = new Date(timestamp * 1000);
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       return `${hours}:${minutes}`;
+    }
+
+    function formatLastSeen(timestamp) {
+      if (!timestamp) return "был(а) недавно";
+      const date = new Date(timestamp);
+      const now = new Date();
+      const timeStr = String(date.getHours()).padStart(2, '0') + ":" + String(date.getMinutes()).padStart(2, '0');
+      
+      if (date.toDateString() === now.toDateString()) {
+        return `был(а) в сети сегодня в ${timeStr}`;
+      }
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      if (date.toDateString() === yesterday.toDateString()) {
+        return `был(а) в сети вчера в ${timeStr}`;
+      }
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      return `был(а) в сети ${day}.${month} в ${timeStr}`;
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
