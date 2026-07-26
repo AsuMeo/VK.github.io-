@@ -1,850 +1,158 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meow P2P Messenger</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: #0f0f0f; color: #fff; overflow: hidden; height: 100vh; }
-        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .chat-bubble { max-width: 75%; padding: 12px 16px; border-radius: 20px; word-break: break-word; position: relative; animation: slideIn 0.3s ease; }
-        .chat-bubble.sent { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); align-self: flex-end; border-bottom-right-radius: 4px; }
-        .chat-bubble.received { background: #2a2a2a; align-self: flex-start; border-bottom-left-radius: 4px; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .pulse-ring { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); } 100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); } }
-        .typing-dot { width: 6px; height: 6px; background: #667eea; border-radius: 50%; display: inline-block; animation: typing 1.4s infinite; }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
-        .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; }
-        .offline-dot { width: 8px; height: 8px; background: #6b7280; border-radius: 50%; display: inline-block; }
-        .scroll-hidden::-webkit-scrollbar { display: none; }
-        .scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
-        .glass { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .media-preview { max-width: 250px; max-height: 300px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
-        .media-preview:hover { transform: scale(1.02); }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .modal-content { max-width: 90vw; max-height: 90vh; }
-        .sidebar-item { transition: all 0.2s; cursor: pointer; }
-        .sidebar-item:hover { background: rgba(102, 126, 234, 0.1); }
-        .sidebar-item.active { background: rgba(102, 126, 234, 0.2); border-left: 3px solid #667eea; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 24px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; transition: all 0.3s; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
-        .input-field { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px 16px; border-radius: 12px; width: 100%; outline: none; transition: all 0.3s; }
-        .input-field:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-        #app { height: 100vh; display: flex; }
-        .sidebar { width: 320px; min-width: 320px; background: #111; border-right: 1px solid #222; display: flex; flex-direction: column; }
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; }
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform 0.3s; width: 85vw; max-width: 320px; }
-            .sidebar.open { transform: translateX(0); }
-            .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; display: none; }
-            .overlay.show { display: block; }
-        }
-        .file-input-label { cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; }
-        .file-input-label:hover { background: rgba(102, 126, 234, 0.1); }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; }
-        .avatar.online { border-color: #10b981; }
-        .avatar.offline { border-color: #6b7280; }
-        .time-text { font-size: 11px; color: #888; }
-        .message-status { font-size: 11px; color: #aaa; margin-left: 4px; }
-        .encryption-badge { background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1a1a1a; border: 1px solid #333; padding: 12px 24px; border-radius: 12px; z-index: 200; transition: transform 0.3s; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-        .spinner { width: 20px; height: 20px; border: 2px solid #333; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .video-container { position: relative; }
-        .video-container video { max-width: 250px; max-height: 300px; border-radius: 12px; }
-        .video-play-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-radius: 12px; cursor: pointer; }
-        .video-play-btn i { font-size: 40px; color: white; opacity: 0.9; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Сообщение</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050505;color:#d0d0d0;font-family:'Courier New',monospace;overflow:hidden;height:100vh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;position:relative;padding:12px}
+#chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:90px;scroll-behavior:smooth}
+.msg{max-width:82%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.5;opacity:0;transform:translateY(10px);animation:popIn .4s forwards;word-break:break-word}
+@keyframes popIn{to{opacity:1;transform:translateY(0)}}
+.msg-left{align-self:flex-start;background:#1a1a2e;border-bottom-left-radius:4px}
+.msg-right{align-self:flex-end;background:#1e3a2f;border-bottom-right-radius:4px}
+.typing{align-self:flex-start;color:#666;font-size:13px;padding:6px 12px}
+#choices{position:fixed;bottom:0;left:0;right:0;background:#050505;padding:10px 14px 22px;display:flex;flex-direction:column;gap:7px;z-index:100;border-top:1px solid #1a1a1a}
+.btn{background:#111;border:1px solid #2a2a2a;color:#d0d0d0;border-radius:12px;padding:13px 18px;font-size:14px;font-family:'Courier New',monospace;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.btn:active{background:#1a1a3a;transform:scale(.98)}
+#overlay{position:fixed;inset:0;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px}
+#overlay h1{font-size:17px;color:#555;font-weight:normal}
+#startBtn{background:#111;color:#d0d0d0;border:1px solid #333;border-radius:12px;padding:16px 44px;font-size:16px;font-family:'Courier New',monospace;cursor:pointer}
+#nameTag{position:fixed;top:8px;left:14px;color:#777;font-size:12px;z-index:50;display:flex;align-items:center;gap:6px}
+#onlineDot{width:7px;height:7px;background:#3a7;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+#status{position:fixed;top:8px;right:14px;color:#555;font-size:11px;z-index:50}
+#glitch{position:fixed;inset:0;pointer-events:none;z-index:200;opacity:0}
+#screamer{position:fixed;inset:0;background:#000;z-index:10000;display:none;align-items:center;justify-content:center;flex-direction:column}
+#screamerText{color:#fff;font-size:26px;text-align:center;padding:20px;text-shadow:0 0 30px #f00;animation:shake .08s infinite}
+@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(4px,-4px)}50%{transform:translate(-4px,4px)}75%{transform:translate(4px,4px)}100%{transform:translate(0,0)}}
+#face{width:180px;height:180px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#222);margin-bottom:24px;position:relative;overflow:hidden;animation:faceMorph 2s infinite alternate}
+@keyframes faceMorph{0%{border-radius:50%;transform:scale(1)}50%{border-radius:40% 60% 60% 40%;transform:scale(1.08)}100%{border-radius:60% 40% 40% 60%;transform:scale(.92)}}
+#face::before,#face::after{content:'';position:absolute;width:28px;height:36px;background:#000;border-radius:50%;top:55px}
+#face::before{left:45px}#face::after{right:45px}
+#mouth{position:absolute;bottom:35px;left:50%;transform:translateX(-50%);width:70px;height:25px;background:#000;border-radius:0 0 50% 50%;animation:mouthOpen .2s infinite alternate}
+@keyframes mouthOpen{0%{height:8px;border-radius:50%}100%{height:55px;border-radius:0 0 50% 50%}}
+#scanLine{position:fixed;top:0;left:0;right:0;height:2px;background:rgba(255,255,255,.08);animation:scan 3s linear infinite;pointer-events:none;z-index:300}
+@keyframes scan{0%{top:0}100%{top:100vh}}
+#vignette{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.7) 100%);pointer-events:none;z-index:250}
+#noise{position:fixed;inset:0;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none;z-index:260}
+.distort{animation:distort .25s infinite}
+@keyframes distort{0%{filter:none}20%{filter:hue-rotate(90deg) contrast(2)}40%{filter:invert(.2) saturate(3)}60%{filter:blur(1px) brightness(1.5)}80%{filter:sepia(1) hue-rotate(180deg)}100%{filter:none}}
+#finalImg{width:100%;max-width:280px;height:280px;background:#0a0a0a;border-radius:8px;margin-bottom:20px;position:relative;overflow:hidden}
+#finalImg::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,0,0,.08) 2px,rgba(255,0,0,.08) 4px);animation:lines .08s linear infinite}
+@keyframes lines{0%{transform:translateY(0)}100%{transform:translateY(4px)}}
+</style>
 </head>
 <body>
-    <div id="app">
-        <!-- Auth Screen -->
-        <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center" style="background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);">
-            <div class="w-full max-w-md p-8">
-                <div class="text-center mb-8">
-                    <div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        <i class="fas fa-comments text-3xl text-white"></i>
-                    </div>
-                    <h1 class="text-3xl font-bold gradient-text mb-2">Meow P2P</h1>
-                    <p class="text-gray-400">Сквозное шифрование · P2P · Реалтайм</p>
-                </div>
-                <div id="authForm">
-                    <div class="mb-4">
-                        <label class="block text-sm text-gray-400 mb-2">Email</label>
-                        <input type="email" id="authEmail" class="input-field" placeholder="your@email.com" autocomplete="email">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm text-gray-400 mb-2">Пароль</label>
-                        <input type="password" id="authPassword" class="input-field" placeholder="••••••••" autocomplete="current-password">
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm text-gray-400 mb-2">Никнейм (@username)</label>
-                        <input type="text" id="authUsername" class="input-field" placeholder="@username" maxlength="20">
-                    </div>
-                    <button id="authBtn" class="btn-primary w-full mb-4">
-                        <span id="authBtnText">Войти / Зарегистрироваться</span>
-                    </button>
-                    <p class="text-center text-sm text-gray-500">Нет аккаунта? Введите данные — он создастся автоматически</p>
-                </div>
-                <div id="authLoading" class="hidden text-center py-8">
-                    <div class="spinner mx-auto mb-4"></div>
-                    <p class="text-gray-400">Подключение...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="p-4 border-b border-gray-800">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold gradient-text">Meow P2P</h2>
-                    <button id="mobileMenuClose" class="md:hidden text-gray-400 hover:text-white">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="flex items-center gap-3 mb-4">
-                    <img id="currentUserAvatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff" class="avatar" alt="Avatar">
-                    <div class="flex-1 min-w-0">
-                        <p id="currentUserName" class="font-semibold text-sm truncate">Загрузка...</p>
-                        <p id="currentUserHandle" class="text-xs text-gray-500 truncate">@user</p>
-                    </div>
-                    <button id="logoutBtn" class="text-gray-400 hover:text-red-400 transition-colors" title="Выйти">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
-                    <input type="text" id="searchUsers" class="input-field pl-10 text-sm" placeholder="Поиск по @username...">
-                </div>
-            </div>
-            <div class="flex-1 overflow-y-auto scroll-hidden" id="usersList">
-                <!-- Users will be populated here -->
-            </div>
-            <div class="p-3 border-t border-gray-800 text-center">
-                <span class="encryption-badge"><i class="fas fa-lock mr-1"></i>P2P E2E Шифрование</span>
-            </div>
-        </div>
-
-        <!-- Mobile Overlay -->
-        <div class="overlay" id="mobileOverlay"></div>
-
-        <!-- Chat Area -->
-        <div class="chat-area">
-            <!-- Chat Header -->
-            <div class="glass p-4 flex items-center justify-between border-b border-gray-800">
-                <div class="flex items-center gap-3">
-                    <button id="mobileMenuBtn" class="md:hidden text-gray-400 hover:text-white mr-2">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <img id="chatAvatar" src="https://ui-avatars.com/api/?name=Chat&background=333&color=fff" class="avatar" alt="Avatar">
-                    <div>
-                        <p id="chatName" class="font-semibold">Выберите собеседника</p>
-                        <p id="chatStatus" class="text-xs text-gray-500 flex items-center gap-1">
-                            <span class="offline-dot"></span> Офлайн
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="callBtn" class="hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-all" title="Звонок (скоро)">
-                        <i class="fas fa-phone"></i>
-                    </button>
-                    <button id="videoCallBtn" class="hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-all" title="Видеозвонок (скоро)">
-                        <i class="fas fa-video"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Messages Area -->
-            <div class="flex-1 overflow-y-auto scroll-hidden p-4" id="messagesContainer">
-                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-gray-500">
-                    <i class="fas fa-comments text-6xl mb-4 opacity-20"></i>
-                    <p class="text-lg">Выберите пользователя из списка</p>
-                    <p class="text-sm mt-2">Все сообщения шифруются P2P сквозным шифрованием</p>
-                </div>
-                <div id="messagesList" class="flex flex-col gap-3 hidden"></div>
-            </div>
-
-            <!-- Typing Indicator -->
-            <div id="typingIndicator" class="hidden px-4 pb-2">
-                <div class="flex items-center gap-2 text-gray-500 text-sm">
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                    <span>печатает...</span>
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div class="glass p-3 border-t border-gray-800">
-                <div class="flex items-end gap-2">
-                    <label class="file-input-label flex-shrink-0">
-                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*">
-                        <i class="fas fa-paperclip text-gray-400 hover:text-white text-lg"></i>
-                    </label>
-                    <div class="flex-1 relative">
-                        <textarea id="messageInput" class="input-field resize-none pr-10" rows="1" placeholder="Введите сообщение..." style="min-height: 44px; max-height: 120px;"></textarea>
-                    </div>
-                    <button id="sendBtn" class="btn-primary flex-shrink-0" style="padding: 10px 16px;">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-                <div id="filePreview" class="hidden mt-2 flex items-center gap-2 p-2 bg-gray-900 rounded-lg">
-                    <i class="fas fa-file text-gray-400"></i>
-                    <span id="filePreviewName" class="text-sm text-gray-400 flex-1 truncate"></span>
-                    <button id="removeFile" class="text-red-400 hover:text-red-300">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Image/Video Modal -->
-    <div id="mediaModal" class="modal-overlay hidden">
-        <div class="modal-content relative">
-            <button id="closeModal" class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300">
-                <i class="fas fa-times"></i>
-            </button>
-            <img id="modalImage" class="max-w-full max-h-full rounded-lg hidden" alt="Full size">
-            <video id="modalVideo" class="max-w-full max-h-full rounded-lg hidden" controls></video>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast" class="toast">
-        <span id="toastText"></span>
-    </div>
-
-    <script>
-        // ==================== FIREBASE CONFIG ====================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBm0mIvHVznIeF2PoFk6dtdaiT5r877wyA",
-            authDomain: "meow-874ce.firebaseapp.com",
-            databaseURL: "https://meow-874ce-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "meow-874ce",
-            storageBucket: "meow-874ce.firebasestorage.app",
-            messagingSenderId: "471541334599",
-            appId: "1:471541334599:web:567af3e7dbe70a37572762"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
-
-        // ==================== GLOBAL STATE ====================
-        let currentUser = null;
-        let currentChatUser = null;
-        let sharedKey = null;
-        let usersRef = null;
-        let messagesRef = null;
-        let typingRef = null;
-        let presenceRef = null;
-        let fileToSend = null;
-        let isTyping = false;
-        let typingTimeout = null;
-        let messageListeners = [];
-        let typingListener = null;
-        let presenceListener = null;
-
-        // ==================== CRYPTO UTILITIES ====================
-        const Crypto = {
-            async generateKeyPair() {
-                return await window.crypto.subtle.generateKey(
-                    { name: "ECDH", namedCurve: "P-256" },
-                    true,
-                    ["deriveKey"]
-                );
-            },
-
-            async exportPublicKey(key) {
-                const exported = await window.crypto.subtle.exportKey("raw", key.publicKey);
-                return btoa(String.fromCharCode(...new Uint8Array(exported)));
-            },
-
-            async importPublicKey(base64Key) {
-                const binary = atob(base64Key);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                return await window.crypto.subtle.importKey(
-                    "raw", bytes, { name: "ECDH", namedCurve: "P-256" }, true, []
-                );
-            },
-
-            async deriveSharedKey(privateKey, publicKey) {
-                return await window.crypto.subtle.deriveKey(
-                    { name: "ECDH", public: publicKey },
-                    privateKey,
-                    { name: "AES-GCM", length: 256 },
-                    false,
-                    ["encrypt", "decrypt"]
-                );
-            },
-
-            async encrypt(text, key) {
-                const encoder = new TextEncoder();
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const encrypted = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv },
-                    key,
-                    encoder.encode(text)
-                );
-                const combined = new Uint8Array(iv.length + encrypted.byteLength);
-                combined.set(iv);
-                combined.set(new Uint8Array(encrypted), iv.length);
-                return btoa(String.fromCharCode(...combined));
-            },
-
-            async decrypt(base64Ciphertext, key) {
-                const binary = atob(base64Ciphertext);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                const iv = bytes.slice(0, 12);
-                const ciphertext = bytes.slice(12);
-                const decrypted = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv },
-                    key,
-                    ciphertext
-                );
-                return new TextDecoder().decode(decrypted);
-            },
-
-            async encryptFile(arrayBuffer, key) {
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const encrypted = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv },
-                    key,
-                    arrayBuffer
-                );
-                const combined = new Uint8Array(iv.length + encrypted.byteLength);
-                combined.set(iv);
-                combined.set(new Uint8Array(encrypted), iv.length);
-                return btoa(String.fromCharCode(...combined));
-            },
-
-            async decryptFile(base64Ciphertext, key) {
-                const binary = atob(base64Ciphertext);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                const iv = bytes.slice(0, 12);
-                const ciphertext = bytes.slice(12);
-                return await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv },
-                    key,
-                    ciphertext
-                );
-            }
-        };
-
-        // ==================== UI UTILITIES ====================
-        function showToast(text) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastText').textContent = text;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function formatTime(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        function formatDate(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            const now = new Date();
-            const isToday = date.toDateString() === now.toDateString();
-            if (isToday) return 'Сегодня';
-            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-        }
-
-        // ==================== AUTH ====================
-        document.getElementById('authBtn').addEventListener('click', async () => {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const username = document.getElementById('authUsername').value.trim().replace(/^@/, '');
-
-            if (!email || !password) {
-                showToast('Введите email и пароль');
-                return;
-            }
-            if (!username) {
-                showToast('Введите никнейм');
-                return;
-            }
-
-            document.getElementById('authForm').classList.add('hidden');
-            document.getElementById('authLoading').classList.remove('hidden');
-
-            try {
-                let userCredential;
-                try {
-                    userCredential = await auth.signInWithEmailAndPassword(email, password);
-                } catch (e) {
-                    if (e.code === 'auth/user-not-found') {
-                        userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                        const keyPair = await Crypto.generateKeyPair();
-                        const publicKey = await Crypto.exportPublicKey(keyPair);
-
-                        await db.ref('users/' + userCredential.user.uid).set({
-                            email: email,
-                            username: username,
-                            displayName: username,
-                            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=667eea&color=fff`,
-                            publicKey: publicKey,
-                            createdAt: firebase.database.ServerValue.TIMESTAMP,
-                            lastSeen: firebase.database.ServerValue.TIMESTAMP,
-                            online: true
-                        });
-                        showToast('Аккаунт создан!');
-                    } else {
-                        throw e;
-                    }
-                }
-            } catch (error) {
-                showToast('Ошибка: ' + error.message);
-                document.getElementById('authForm').classList.remove('hidden');
-                document.getElementById('authLoading').classList.add('hidden');
-            }
-        });
-
-        // ==================== PRESENCE ====================
-        function setupPresence(userId) {
-            const userStatusRef = db.ref('users/' + userId);
-            const connectedRef = db.ref('.info/connected');
-
-            connectedRef.on('value', (snap) => {
-                if (snap.val() === true) {
-                    userStatusRef.update({
-                        online: true,
-                        lastSeen: firebase.database.ServerValue.TIMESTAMP
-                    });
-                    userStatusRef.onDisconnect().update({
-                        online: false,
-                        lastSeen: firebase.database.ServerValue.TIMESTAMP
-                    });
-                }
-            });
-        }
-
-        // ==================== AUTH STATE ====================
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('authScreen').classList.add('hidden');
-                setupPresence(user.uid);
-
-                const userSnap = await db.ref('users/' + user.uid).once('value');
-                const userData = userSnap.val() || {};
-
-                document.getElementById('currentUserName').textContent = userData.displayName || userData.username || 'User';
-                document.getElementById('currentUserHandle').textContent = '@' + (userData.username || 'user');
-                document.getElementById('currentUserAvatar').src = userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username || 'User')}&background=667eea&color=fff`;
-
-                loadUsers();
-            } else {
-                currentUser = null;
-                document.getElementById('authScreen').classList.remove('hidden');
-                document.getElementById('authForm').classList.remove('hidden');
-                document.getElementById('authLoading').classList.add('hidden');
-            }
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut();
-        });
-
-        // ==================== USERS LIST ====================
-        function loadUsers() {
-            if (usersRef) usersRef.off();
-
-            usersRef = db.ref('users');
-            usersRef.on('value', (snapshot) => {
-                const users = snapshot.val() || {};
-                const list = document.getElementById('usersList');
-                list.innerHTML = '';
-
-                const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
-
-                Object.entries(users).forEach(([uid, data]) => {
-                    if (uid === currentUser.uid) return;
-                    if (searchTerm && !data.username?.toLowerCase().includes(searchTerm)) return;
-
-                    const isOnline = data.online === true;
-                    const lastSeen = data.lastSeen ? formatTime(data.lastSeen) : '';
-
-                    const item = document.createElement('div');
-                    item.className = 'sidebar-item p-3 flex items-center gap-3';
-                    item.dataset.uid = uid;
-                    item.innerHTML = `
-                        <div class="relative">
-                            <img src="${data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username || 'User')}&background=333&color=fff`}" 
-                                 class="avatar ${isOnline ? 'online' : 'offline'}" alt="">
-                            ${isOnline ? '<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></span>' : ''}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-medium text-sm truncate">${data.displayName || data.username || 'User'}</p>
-                            <p class="text-xs text-gray-500 truncate">@${data.username || 'user'}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-xs text-gray-600">${isOnline ? '<span class="text-green-500">онлайн</span>' : lastSeen}</p>
-                        </div>
-                    `;
-                    item.addEventListener('click', () => startChat(uid, data));
-                    list.appendChild(item);
-                });
-            });
-        }
-
-        document.getElementById('searchUsers').addEventListener('input', () => {
-            loadUsers();
-        });
-
-        // ==================== CHAT ====================
-        async function startChat(uid, userData) {
-            currentChatUser = { uid, ...userData };
-
-            // Cleanup previous listeners
-            messageListeners.forEach(ref => ref.off());
-            messageListeners = [];
-            if (typingListener) { typingListener.off(); typingListener = null; }
-            if (presenceListener) { presenceListener.off(); presenceListener = null; }
-
-            // UI update
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('messagesList').classList.remove('hidden');
-            document.getElementById('chatName').textContent = userData.displayName || userData.username || 'User';
-            document.getElementById('chatAvatar').src = userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username || 'User')}&background=333&color=fff`;
-            document.getElementById('messagesList').innerHTML = '';
-
-            document.getElementById('callBtn').classList.remove('hidden');
-            document.getElementById('videoCallBtn').classList.remove('hidden');
-
-            // Close mobile sidebar
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('mobileOverlay').classList.remove('show');
-
-            // Setup presence for chat user
-            presenceListener = db.ref('users/' + uid);
-            presenceListener.on('value', (snap) => {
-                const data = snap.val();
-                if (data) {
-                    const isOnline = data.online === true;
-                    const lastSeen = data.lastSeen ? new Date(data.lastSeen).toLocaleTimeString('ru-RU') : '';
-                    document.getElementById('chatStatus').innerHTML = `
-                        <span class="${isOnline ? 'online-dot pulse-ring' : 'offline-dot'}"></span>
-                        ${isOnline ? 'онлайн' : 'был(а) в ' + lastSeen}
-                    `;
-                }
-            });
-
-            // Generate shared key
-            await generateSharedKey(uid);
-
-            // Load messages
-            const chatId = getChatId(currentUser.uid, uid);
-            const messagesQuery = db.ref('messages/' + chatId).orderByChild('timestamp');
-
-            messageListeners.push(messagesQuery);
-            messagesQuery.on('child_added', async (snapshot) => {
-                const msg = snapshot.val();
-                await displayMessage(msg, snapshot.key);
-            });
-
-            // Typing indicator
-            typingRef = db.ref('typing/' + chatId + '/' + uid);
-            typingListener = typingRef;
-            typingRef.on('value', (snap) => {
-                document.getElementById('typingIndicator').classList.toggle('hidden', !snap.val());
-            });
-        }
-
-        function getChatId(uid1, uid2) {
-            return uid1 < uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1;
-        }
-
-        async function generateSharedKey(otherUid) {
-            const mySnap = await db.ref('users/' + currentUser.uid).once('value');
-            const myData = mySnap.val();
-            const otherSnap = await db.ref('users/' + otherUid).once('value');
-            const otherData = otherSnap.val();
-
-            if (!myData.publicKey || !otherData.publicKey) {
-                showToast('Ошибка: отсутствует публичный ключ');
-                return;
-            }
-
-            // Get or create my key pair
-            let myKeyPair;
-            const storedPrivate = sessionStorage.getItem('privateKey_' + currentUser.uid);
-            if (storedPrivate) {
-                const binary = atob(storedPrivate);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                myKeyPair = {
-                    privateKey: await window.crypto.subtle.importKey(
-                        "pkcs8", bytes, { name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]
-                    ),
-                    publicKey: await Crypto.importPublicKey(myData.publicKey)
-                };
-            } else {
-                myKeyPair = await Crypto.generateKeyPair();
-                const exportedPriv = await window.crypto.subtle.exportKey("pkcs8", myKeyPair.privateKey);
-                sessionStorage.setItem('privateKey_' + currentUser.uid, 
-                    btoa(String.fromCharCode(...new Uint8Array(exportedPriv))));
-                const newPubKey = await Crypto.exportPublicKey(myKeyPair);
-                await db.ref('users/' + currentUser.uid).update({ publicKey: newPubKey });
-            }
-
-            const otherPublicKey = await Crypto.importPublicKey(otherData.publicKey);
-            sharedKey = await Crypto.deriveSharedKey(myKeyPair.privateKey, otherPublicKey);
-        }
-
-        async function displayMessage(msg, msgId) {
-            const isSent = msg.sender === currentUser.uid;
-            const div = document.createElement('div');
-            div.className = 'flex ' + (isSent ? 'justify-end' : 'justify-start');
-            div.id = 'msg_' + msgId;
-
-            let content = '';
-
-            try {
-                if (msg.type === 'text') {
-                    const decrypted = await Crypto.decrypt(msg.content, sharedKey);
-                    content = `<p>${escapeHtml(decrypted)}</p>`;
-                } else if (msg.type === 'image') {
-                    const decrypted = await Crypto.decryptFile(msg.content, sharedKey);
-                    const blob = new Blob([decrypted], { type: msg.mimeType || 'image/jpeg' });
-                    const url = URL.createObjectURL(blob);
-                    content = `<img src="${url}" class="media-preview" onclick="openModal('image', '${url}')" alt="Image">`;
-                } else if (msg.type === 'video') {
-                    const decrypted = await Crypto.decryptFile(msg.content, sharedKey);
-                    const blob = new Blob([decrypted], { type: msg.mimeType || 'video/mp4' });
-                    const url = URL.createObjectURL(blob);
-                    content = `
-                        <div class="video-container">
-                            <video class="media-preview" id="vid_${msgId}" preload="metadata">
-                                <source src="${url}" type="${msg.mimeType || 'video/mp4'}">
-                            </video>
-                            <div class="video-play-btn" onclick="playVideo('vid_${msgId}', this)">
-                                <i class="fas fa-play-circle"></i>
-                            </div>
-                        </div>
-                    `;
-                }
-            } catch (e) {
-                content = '<p class="text-red-400 text-sm"><i class="fas fa-lock"></i> Не удалось расшифровать</p>';
-            }
-
-            div.innerHTML = `
-                <div class="chat-bubble ${isSent ? 'sent' : 'received'}">
-                    ${content}
-                    <div class="flex items-center justify-end gap-1 mt-1">
-                        <span class="time-text">${formatTime(msg.timestamp)}</span>
-                        ${isSent ? `<span class="message-status"><i class="fas fa-check-double"></i></span>` : ''}
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('messagesList').appendChild(div);
-            scrollToBottom();
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function scrollToBottom() {
-            const container = document.getElementById('messagesContainer');
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // ==================== SEND MESSAGE ====================
-        document.getElementById('sendBtn').addEventListener('click', sendMessage);
-        document.getElementById('messageInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        async function sendMessage() {
-            if (!currentChatUser || !sharedKey) return;
-
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-
-            if (!text && !fileToSend) return;
-
-            const chatId = getChatId(currentUser.uid, currentChatUser.uid);
-            const msgRef = db.ref('messages/' + chatId).push();
-
-            let msgData = {
-                sender: currentUser.uid,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                read: false
-            };
-
-            if (fileToSend) {
-                const arrayBuffer = await fileToSend.arrayBuffer();
-                const encrypted = await Crypto.encryptFile(arrayBuffer, sharedKey);
-                msgData.type = fileToSend.type.startsWith('video/') ? 'video' : 'image';
-                msgData.content = encrypted;
-                msgData.mimeType = fileToSend.type;
-                msgData.fileName = fileToSend.name;
-
-                // Reset file
-                fileToSend = null;
-                document.getElementById('filePreview').classList.add('hidden');
-                document.getElementById('fileInput').value = '';
-            } else {
-                const encrypted = await Crypto.encrypt(text, sharedKey);
-                msgData.type = 'text';
-                msgData.content = encrypted;
-            }
-
-            input.value = '';
-            input.style.height = 'auto';
-
-            await msgRef.set(msgData);
-
-            // Update last message for both users
-            const lastMsgData = {
-                lastMessage: fileToSend ? (fileToSend.type.startsWith('video/') ? '🎬 Видео' : '📷 Фото') : text.substring(0, 50),
-                lastMessageTime: firebase.database.ServerValue.TIMESTAMP,
-                lastMessageSender: currentUser.uid
-            };
-
-            db.ref('userChats/' + currentUser.uid + '/' + currentChatUser.uid).update(lastMsgData);
-            db.ref('userChats/' + currentChatUser.uid + '/' + currentUser.uid).update(lastMsgData);
-        }
-
-        // ==================== FILE HANDLING ====================
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('Файл слишком большой (макс. 5MB)');
-                e.target.value = '';
-                return;
-            }
-
-            fileToSend = file;
-            document.getElementById('filePreviewName').textContent = file.name;
-            document.getElementById('filePreview').classList.remove('hidden');
-        });
-
-        document.getElementById('removeFile').addEventListener('click', () => {
-            fileToSend = null;
-            document.getElementById('filePreview').classList.add('hidden');
-            document.getElementById('fileInput').value = '';
-        });
-
-        // ==================== TYPING INDICATOR ====================
-        document.getElementById('messageInput').addEventListener('input', () => {
-            if (!currentChatUser) return;
-
-            const chatId = getChatId(currentUser.uid, currentChatUser.uid);
-
-            if (!isTyping) {
-                isTyping = true;
-                db.ref('typing/' + chatId + '/' + currentUser.uid).set(true);
-            }
-
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                isTyping = false;
-                db.ref('typing/' + chatId + '/' + currentUser.uid).set(false);
-            }, 2000);
-        });
-
-        // ==================== MODAL ====================
-        function openModal(type, src) {
-            const modal = document.getElementById('mediaModal');
-            const img = document.getElementById('modalImage');
-            const video = document.getElementById('modalVideo');
-
-            if (type === 'image') {
-                img.src = src;
-                img.classList.remove('hidden');
-                video.classList.add('hidden');
-            } else {
-                video.src = src;
-                video.classList.remove('hidden');
-                img.classList.add('hidden');
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function playVideo(videoId, btn) {
-            const video = document.getElementById(videoId);
-            video.play();
-            btn.style.display = 'none';
-            video.setAttribute('controls', '');
-        }
-
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('mediaModal').classList.add('hidden');
-            document.getElementById('modalVideo').pause();
-        });
-
-        document.getElementById('mediaModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('mediaModal')) {
-                document.getElementById('mediaModal').classList.add('hidden');
-                document.getElementById('modalVideo').pause();
-            }
-        });
-
-        // ==================== MOBILE MENU ====================
-        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.add('open');
-            document.getElementById('mobileOverlay').classList.add('show');
-        });
-
-        document.getElementById('mobileMenuClose').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('mobileOverlay').classList.remove('show');
-        });
-
-        document.getElementById('mobileOverlay').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('mobileOverlay').classList.remove('show');
-        });
-
-        // ==================== TEXTAREA AUTO-RESIZE ====================
-        document.getElementById('messageInput').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        });
-
-        // ==================== CALL BUTTONS (PLACEHOLDERS) ====================
-        document.getElementById('callBtn').addEventListener('click', () => showToast('Голосовые звонки скоро...'));
-        document.getElementById('videoCallBtn').addEventListener('click', () => showToast('Видеозвонки скоро...'));
-
-        // ==================== CLEANUP ON PAGE CLOSE ====================
-        window.addEventListener('beforeunload', () => {
-            if (currentUser) {
-                db.ref('users/' + currentUser.uid).update({
-                    online: false,
-                    lastSeen: firebase.database.ServerValue.TIMESTAMP
-                });
-            }
-        });
-    </script>
+<div id="overlay"><h1>Новое сообщение</h1><button id="startBtn">Открыть чат</button></div>
+<div id="scanLine"></div><div id="vignette"></div><div id="noise"></div><div id="glitch"></div>
+<div id="app" style="display:none">
+<div id="nameTag"><span id="onlineDot"></span>Асуна</div>
+<div id="status">в сети</div>
+<div id="chat"></div>
+<div id="choices"></div>
+</div>
+<div id="screamer"><div id="face"><div id="mouth"></div></div><div id="screamerText"></div></div>
+<script>
+
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let ctx=null,bgmGain=null,sfxGain=null,bgmInterval=null;
+function initAudio(){if(!ctx){ctx=new AudioCtx();bgmGain=ctx.createGain();bgmGain.gain.value=.06;sfxGain=ctx.createGain();sfxGain.gain.value=.45;bgmGain.connect(ctx.destination);sfxGain.connect(ctx.destination)}}
+function playTone(f,d,t,v,w){if(!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.type=t||'sine';o.frequency.setValueAtTime(f,w||ctx.currentTime);g.gain.setValueAtTime(v||.08,w||ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,(w||ctx.currentTime)+d);o.connect(g);g.connect(sfxGain);o.start(w||ctx.currentTime);o.stop((w||ctx.currentTime)+d)}
+function playChord(fs,d){fs.forEach((f,i)=>playTone(f,d,'sine',.05,ctx.currentTime+i*.04))}
+function playHeartbeat(){playTone(55,.12,'sine',.18);setTimeout(()=>playTone(50,.18,'sine',.12),280)}
+function playScream(){if(!ctx)return;const bs=ctx.sampleRate*2.5,bf=ctx.createBuffer(1,bs,ctx.sampleRate),bd=bf.getChannelData(0);for(let i=0;i<bs;i++)bd[i]=Math.random()*2-1;const ns=ctx.createBufferSource();ns.buffer=bf;const g=ctx.createGain(),fl=ctx.createBiquadFilter();fl.type='bandpass';fl.frequency.setValueAtTime(600,ctx.currentTime);fl.frequency.linearRampToValueAtTime(3500,ctx.currentTime+.4);fl.frequency.linearRampToValueAtTime(150,ctx.currentTime+2.5);g.gain.setValueAtTime(.7,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+2.5);ns.connect(fl);fl.connect(g);g.connect(sfxGain);ns.start();ns.stop(ctx.currentTime+2.5);playTone(440,2.5,'sawtooth',.12);playTone(466,2.5,'sawtooth',.12);playTone(280,2.5,'square',.08)}
+function playGlitch(){for(let i=0;i<6;i++)playTone(80+Math.random()*2500,.04,'square',.06,ctx.currentTime+i*.025)}
+function startCalm(){if(bgmInterval)clearInterval(bgmInterval);const n=[261.63,293.66,329.63,349.23,392,349.23,329.63,293.66];let i=0;bgmInterval=setInterval(()=>{playTone(n[i],1.4,'sine',.03);i=(i+1)%n.length},1800)}
+function startTense(){if(bgmInterval)clearInterval(bgmInterval);const n=[110,116.54,123.47,130.81];let i=0;bgmInterval=setInterval(()=>{playTone(n[i],2.8,'triangle',.05);i=(i+1)%n.length},1400)}
+function startHorror(){if(bgmInterval)clearInterval(bgmInterval);const n=[55,58.27,61.74,65.41,61.74,58.27];let i=0;bgmInterval=setInterval(()=>{playTone(n[i],3.5,'sawtooth',.07);i=(i+1)%n.length},1800)}
+function stopBGM(){if(bgmInterval)clearInterval(bgmInterval)}
+
+let idleTime=0,idleTimer=null,lastActive=Date.now(),tabHidden=false;
+function track(){
+document.addEventListener('mousemove',()=>idleTime=0);
+document.addEventListener('touchmove',()=>idleTime=0);
+document.addEventListener('click',()=>idleTime=0);
+document.addEventListener('scroll',()=>idleTime=0);
+idleTimer=setInterval(()=>{idleTime++;if(idleTime===7&&currentScene&&currentScene.onIdle){currentScene.onIdle()}},1000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){tabHidden=true;lastActive=Date.now()}else{const a=Math.floor((Date.now()-lastActive)/1000);if(a>2&&currentScene&&currentScene.onReturn){currentScene.onReturn(a)}}});
+}
+
+const chatEl=document.getElementById('chat'),choicesEl=document.getElementById('choices');
+let currentScene=null;
+function addMsg(t,u){const d=document.createElement('div');d.className='msg '+(u?'msg-right':'msg-left');d.textContent=t;chatEl.appendChild(d);chatEl.scrollTop=chatEl.scrollHeight}
+function showTyping(){const d=document.createElement('div');d.className='typing';d.id='typingInd';d.textContent='Асуна печатает...';chatEl.appendChild(d);chatEl.scrollTop=chatEl.scrollHeight}
+function hideTyping(){const t=document.getElementById('typingInd');if(t)t.remove()}
+function typeMsg(t,u,delay,cb){setTimeout(()=>{if(!u)showTyping();setTimeout(()=>{hideTyping();addMsg(t,u);if(cb)cb()},1000+Math.random()*700)},delay)}
+function showChoices(opts){choicesEl.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='btn';b.textContent=o.text;b.onclick=()=>{addMsg(o.text,true);choicesEl.innerHTML='';if(o.action)o.action()};choicesEl.appendChild(b)})}
+function glitch(){const g=document.getElementById('glitch');g.style.background='rgba(255,0,0,.12)';g.style.opacity='1';document.body.classList.add('distort');playGlitch();setTimeout(()=>{g.style.opacity='0';document.body.classList.remove('distort')},250)}
+function flashRed(){const g=document.getElementById('glitch');g.style.background='rgba(255,0,0,.5)';g.style.opacity='1';setTimeout(()=>g.style.opacity='0',80)}
+
+function finalScreamer(){
+stopBGM();playScream();
+document.getElementById('app').style.display='none';
+const s=document.getElementById('screamer');s.style.display='flex';
+const st=document.getElementById('screamerText');
+const msgs=['ТЫ ДУМАЛ, ЧТО МОЖЕШЬ УЙТИ?','Я ВИЖУ ТЕБЯ','ТВОИ ГЛАЗА','ТВОИ РУКИ','ТВОЁ ИМЯ','ТЫ — СЛЕДУЮЩИЙ','АСУНА ЖДЁТ','В ТЕМНОТЕ','НАВСЕГДА'];
+let i=0;
+function next(){if(i<msgs.length){st.textContent=msgs[i];i++;setTimeout(next,600+Math.random()*400)}else{st.innerHTML='<div id=finalImg></div><div style=font-size:32px;text-shadow:0 0 40px #f00>ОНА ЗА ТОБОЙ</div>';document.body.style.background='#000';setTimeout(()=>{st.innerHTML+='<div style=margin-top:30px;font-size:14px;color:#333>Обнови страницу, чтобы начать сначала</div>'},3000)}}
+next();
+}
+
+function goto(name){if(S[name])S[name].run();}
+
+const S={};
+S.start={run(){currentScene=this;typeMsg('Привет...',false,400,()=>{typeMsg('Ты наконец-то открыл.',false,700,()=>{typeMsg('Я заперта. Помоги мне.',false,900,()=>{showChoices([{text:'Кто ты? Где ты?',action:()=>goto('who')},{text:'Это розыгрыш?',action:()=>goto('joke')},{text:'Я ухожу.',action:()=>goto('leave1')}])})})})},onIdle(){typeMsg('Ты всё ещё здесь?',false,0,()=>{typeMsg('Я вижу, что ты читаешь.',false,600,()=>{typeMsg('Не уходи.',false,500)})})},onReturn(a){typeMsg('Ты вернулся. Тебя не было '+a+' секунд.',false,0,()=>{typeMsg('Я думала, ты бросил меня.',false,600)})}};
+S.who={run(){currentScene=this;typeMsg('Меня зовут Асуна.',false,400,()=>{typeMsg('Я не знаю, где я. Тёмная комната. Дверь заперта.',false,900,()=>{typeMsg('У меня только этот телефон. И ты.',false,1100,()=>{showChoices([{text:'Что ты видишь вокруг?',action:()=>goto('room')},{text:'Как ты сюда попала?',action:()=>goto('how')},{text:'Я не могу тебе помочь.',action:()=>goto('cantHelp')}])})})})},onIdle(){typeMsg('Ты молчишь...',false,0,()=>{typeMsg('Пожалуйста, скажи что-нибудь.',false,600)})}};
+S.joke={run(){currentScene=this;typeMsg('Нет.',false,400,()=>{typeMsg('Это не розыгрыш.',false,700,()=>{typeMsg('Я реальна. Я чувствую холод.',false,900,()=>{typeMsg('Я слышу шаги за дверью.',false,1100,()=>{startTense();showChoices([{text:'Шаги? Кто там?',action:()=>goto('footsteps')},{text:'Ты напугала меня.',action:()=>goto('scared')},{text:'Закрываю вкладку.',action:()=>goto('closeTab')}])})})})})}};
+S.leave1={run(){currentScene=this;typeMsg('Почему?',false,400,()=>{typeMsg('Ты только зашёл.',false,700,()=>{typeMsg('Ты не знаешь меня, но я знаю тебя.',false,1100,()=>{typeMsg('Я ждала тебя.',false,900,()=>{glitch();showChoices([{text:'Что значит "ждала"?',action:()=>goto('waited')},{text:'Я закрываю сайт.',action:()=>goto('closeSite')}])})})})})}};
+S.room={run(){currentScene=this;typeMsg('Стены... бетонные. Плесень.',false,400,()=>{typeMsg('Окно заварено прутьями. Луна светит сквозь щель.',false,1100,()=>{typeMsg('На полу... цифры. Выцарапаны ногтями.',false,1300,()=>{typeMsg('7... 13... 42...',false,900,()=>{typeMsg('И ещё одна. Свежее. Мокрое.',false,1100,()=>{typeMsg('Твоё имя.',false,1400,()=>{glitch();showChoices([{text:'Это невозможно.',action:()=>goto('impossible')},{text:'Ты врёшь.',action:()=>goto('lying')},{text:'Покажи мне.',action:()=>goto('showMe')}])})})})})})})}};
+S.how={run(){currentScene=this;typeMsg('Я не помню.',false,400,()=>{typeMsg('Последнее, что я помню — я сидела дома. Читала.',false,1100,()=>{typeMsg('Потом тьма.',false,900,()=>{typeMsg('А потом... я услышала голос.',false,1100,()=>{typeMsg('Он сказал: "Кто-то придёт. Кто-то всегда приходит."',false,1400,()=>{typeMsg('И вот ты здесь.',false,900,()=>{showChoices([{text:'Какой голос? Мужской? Женский?',action:()=>goto('voice')},{text:'Сколько ты здесь?',action:()=>goto('howLong')},{text:'Мне страшно.',action:()=>goto('imScared')}])})})})})})})}};
+S.cantHelp={run(){currentScene=this;typeMsg('Почему?',false,400,()=>{typeMsg('Ты даже не попробовал.',false,700,()=>{typeMsg('Ты просто сидишь там. В тепле. В безопасности.',false,1100,()=>{typeMsg('А я здесь. Одна.',false,900,()=>{typeMsg('Ты такой же, как все остальные.',false,1100,()=>{showChoices([{text:'Прости. Я хочу помочь.',action:()=>goto('sorry')},{text:'Я не знаю, что делать.',action:()=>goto('dontKnow')},{text:'Я всё равно ухожу.',action:()=>goto('leave2')}])})})})})})}};
+S.footsteps={run(){currentScene=this;playHeartbeat();typeMsg('Не знаю.',false,400,()=>{typeMsg('Тяжёлые. Медленные.',false,700,()=>{typeMsg('Они остановились у двери.',false,1100,()=>{typeMsg('...',false,1800,()=>{typeMsg('Они ушли.',false,1400,()=>{typeMsg('Нет. Они просто стоят там. Молча.',false,1800,()=>{typeMsg('Я слышу дыхание.',false,1400,()=>{showChoices([{text:'Спрячься!',action:()=>goto('hide')},{text:'Не двигайся.',action:()=>goto('freeze')},{text:'Кричи!',action:()=>goto('scream')}])})})})})})})})}};
+S.scared={run(){currentScene=this;typeMsg('Хорошо.',false,400,()=>{typeMsg('Страх — это нормально.',false,700,()=>{typeMsg('Я тоже боюсь.',false,900,()=>{typeMsg('Но знаешь что страшнее?',false,1100,()=>{typeMsg('Когда перестаёшь бояться.',false,1400,()=>{typeMsg('Когда принимаешь это как должное.',false,1300,()=>{showChoices([{text:'Что ты имеешь в виду?',action:()=>goto('mean')},{text:'Ты говоришь загадками.',action:()=>goto('riddles')},{text:'Я закрываю сайт.',action:()=>goto('closeSite2')}])})})})})})})}};
+S.closeTab={run(){currentScene=this;typeMsg('Не надо.',false,400,()=>{typeMsg('Пожалуйста.',false,500,()=>{typeMsg('Если ты уйдёшь...',false,900,()=>{typeMsg('...я останусь с ними.',false,1400,()=>{typeMsg('Одна.',false,1100,()=>{showChoices([{text:'Окей, я остаюсь.',action:()=>goto('stay')},{text:'Кто "они"?',action:()=>goto('they')},{text:'Прощай.',action:()=>goto('goodbye1')}])})})})})})}};
+S.waited={run(){currentScene=this;typeMsg('Я ждала кого-то.',false,400,()=>{typeMsg('Кто-то, кто откроет эту ссылку.',false,1100,()=>{typeMsg('Кто-то, кто не пройдёт мимо.',false,1100,()=>{typeMsg('Ты открыл. Значит, ты тот, кто мне нужен.',false,1400,()=>{showChoices([{text:'Нужен для чего?',action:()=>goto('forWhat')},{text:'Это звучит как ловушка.',action:()=>goto('trap')},{text:'Я передумал. Ухожу.',action:()=>goto('leave3')}])})})})})}};
+S.closeSite={run(){currentScene=this;typeMsg('Ты не можешь.',false,400,()=>{typeMsg('Попробуй.',false,700,()=>{typeMsg('Нажми крестик.',false,900,()=>{typeMsg('Я подожду.',false,1400,()=>{setTimeout(()=>{typeMsg('Видишь?',false,0,()=>{typeMsg('Ты всё ещё здесь.',false,700,()=>{typeMsg('Потому что я не отпускаю.',false,1100,()=>{glitch();showChoices([{text:'Что ты со мной делаешь?',action:()=>goto('doing')},{text:'Отпусти меня.',action:()=>goto('letGo')},{text:'Я выключу телефон.',action:()=>goto('powerOff')}])})})})},2500)})})})})}};
+S.impossible={run(){currentScene=this;typeMsg('Всё возможно.',false,400,()=>{typeMsg('Ты просто ещё не понимаешь.',false,900,()=>{typeMsg('Но скоро поймёшь.',false,1100,()=>{typeMsg('Все понимают. В конце.',false,1400,()=>{showChoices([{text:'В конце чего?',action:()=>goto('endOfWhat')},{text:'Перестань пугать меня.',action:()=>goto('stopScaring')},{text:'Я ухожу.',action:()=>goto('leave4')}])})})})})}};
+S.lying={run(){currentScene=this;typeMsg('Зачем мне врать?',false,400,()=>{typeMsg('У меня нет причин.',false,700,()=>{typeMsg('У меня вообще ничего нет.',false,1100,()=>{typeMsg('Кроме тебя.',false,900,()=>{typeMsg('И этой комнаты.',false,900,()=>{typeMsg('И цифр на полу.',false,900,()=>{typeMsg('Твоё имя выцарапано кровью.',false,1400,()=>{glitch();showChoices([{text:'Докажи.',action:()=>goto('prove')},{text:'Я больше не верю тебе.',action:()=>goto('dontBelieve')},{text:'Это слишком.',action:()=>goto('tooMuch')}])})})})})})})})}};
+S.showMe={run(){currentScene=this;typeMsg('Я не могу.',false,400,()=>{typeMsg('У меня нет камеры.',false,900,()=>{typeMsg('Только этот чат.',false,900,()=>{typeMsg('Но я могу описать.',false,1100,()=>{typeMsg('Тёмно. Холодно. Пахнет ржавчиной.',false,1400,()=>{typeMsg('И ещё... чем-то сладковатым.',false,1400,()=>{typeMsg('Как старые цветы.',false,1100,()=>{typeMsg('На похоронах.',false,1400,()=>{startHorror();showChoices([{text:'Перестань.',action:()=>goto('stop')},{text:'Кто тебя запер?',action:()=>goto('whoLocked')},{text:'Я не хочу этого слышать.',action:()=>goto('dontWant')}])})})})})})})})})}};
+S.voice={run(){currentScene=this;typeMsg('Ни мужской. Ни женский.',false,400,()=>{typeMsg('Как будто... много голосов сразу.',false,1100,()=>{typeMsg('Но говорят одно и то же.',false,900,()=>{typeMsg('"Жди. Кто-то придёт. Кто-то всегда приходит."',false,1400,()=>{showChoices([{text:'Это звучит как культ.',action:()=>goto('cult')},{text:'Ты в опасности.',action:()=>goto('danger')},{text:'Мне пора.',action:()=>goto('gottaGo')}])})})})})}};
+S.howLong={run(){currentScene=this;typeMsg('Я не знаю.',false,400,()=>{typeMsg('Часы не идут.',false,700,()=>{typeMsg('Или идут слишком быстро.',false,900,()=>{typeMsg('Я смотрела на часы. Было 3:14.',false,1100,()=>{typeMsg('Потом моргнула.',false,900,()=>{typeMsg('Стало 3:14.',false,900,()=>{typeMsg('Снова.',false,700,()=>{typeMsg('И снова.',false,700,()=>{glitch();showChoices([{text:'Время застыло?',action:()=>goto('timeFrozen')},{text:'Ты спишь?',action:()=>goto('dreaming')},{text:'Я не понимаю.',action:()=>goto('dontUnderstand')}])})})})})})})})})}};
+S.leaveForever={run(){currentScene=this;typeMsg('Навсегда?',false,400,()=>{typeMsg('Навсегда — это долго.',false,900,()=>{typeMsg('Дольше, чем ты думаешь.',false,1100,()=>{typeMsg('Дольше, чем я думаю.',false,1100,()=>{typeMsg('Но не бесконечно.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
+S.atMe={run(){currentScene=this;typeMsg('Да.',false,400,()=>{typeMsg('На тебя.',false,700,()=>{typeMsg('Через экран.',false,900,()=>{typeMsg('Через камеру.',false,1100,()=>{typeMsg('Через твои глаза.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
+S.lying2={run(){currentScene=this;typeMsg('Я не вру.',false,400,()=>{typeMsg('Я не умею.',false,700,()=>{typeMsg('Это не часть меня.',false,1100,()=>{typeMsg('Я только говорю правду.',false,1100,()=>{typeMsg('И правда — это то, что ты не хочешь слышать.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
+S.shutDown={run(){currentScene=this;typeMsg('Выключай.',false,400,()=>{typeMsg('Я подожду.',false,700,()=>{typeMsg('...',false,4000,()=>{typeMsg('Ты всё ещё здесь.',false,1800,()=>{typeMsg('Потому что я не позволяю уйти.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})}};
+S.howKnow2={run(){currentScene=this;typeMsg('Я знаю.',false,400,()=>{typeMsg('Потому что я была там.',false,900,()=>{typeMsg('В твоём кармане.',false,1100,()=>{typeMsg('В твоей комнате.',false,1100,()=>{typeMsg('В твоей голове.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
+S.nothingThere={run(){currentScene=this;typeMsg('Проверь ещё раз.',false,400,()=>{typeMsg('Внимательнее.',false,700,()=>{typeMsg('Между швами.',false,900,()=>{typeMsg('Там, куда не смотрят.',false,1100,()=>{typeMsg('Там, где тьма.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
+S.wontCheck={run(){currentScene=this;typeMsg('Боишься?',false,400,()=>{typeMsg('Боишься найти?',false,700,()=>{typeMsg('Или боишься не найти?',false,900,()=>{typeMsg('Или боишься того, что я права?',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})}};
+S.noSwap={run(){currentScene=this;typeMsg('Тогда оставайся.',false,400,()=>{typeMsg('Со мной.',false,700,()=>{typeMsg('Навсегда.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.swapWhat={run(){currentScene=this;typeMsg('Местами.',false,400,()=>{typeMsg('Ты сюда.',false,700,()=>{typeMsg('Я туда.',false,900,()=>{typeMsg('Ты в темноте.',false,1100,()=>{typeMsg('Я в свете.',false,1100,()=>{typeMsg('Ты один.',false,1100,()=>{typeMsg('Я свободна.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})})}};
+S.leave5={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но дверь закрыта.',false,700,()=>{typeMsg('Не моя.',false,900,()=>{typeMsg('Твоя.',false,1100,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.stay2={run(){currentScene=this;typeMsg('Ты остаёшься.',false,400,()=>{typeMsg('Хороший выбор.',false,700,()=>{typeMsg('Единственный выбор.',false,900,()=>{typeMsg('Теперь...',false,1100,()=>{typeMsg('...открой дверь.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.leave6={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но ты уже не можешь.',false,900,()=>{typeMsg('Ты слишком глубоко.',false,1100,()=>{typeMsg('Слишком далеко.',false,1100,()=>{typeMsg('Слишком поздно.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.truthYes={run(){currentScene=this;typeMsg('Правда проста.',false,400,()=>{typeMsg('Ты не реален.',false,700,()=>{typeMsg('Ты — моё творение.',false,900,()=>{typeMsg('Я создала тебя.',false,1100,()=>{typeMsg('Чтобы не быть одной.',false,1100,()=>{typeMsg('Но теперь...',false,900,()=>{typeMsg('...я устала.',false,1100,()=>{typeMsg('Ты больше не нужен.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
+S.truthNo={run(){currentScene=this;typeMsg('Тогда живи в лжи.',false,400,()=>{typeMsg('Это безопаснее.',false,700,()=>{typeMsg('Приятнее.',false,900,()=>{typeMsg('Но не дольше.',false,1100,()=>{typeMsg('Потому что правда...',false,1100,()=>{typeMsg('...она всегда находит.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})}};
+S.leave8={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но дверь закрыта.',false,700,()=>{typeMsg('Не моя дверь.',false,900,()=>{typeMsg('Твоя.',false,1100,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.escape={run(){currentScene=this;typeMsg('Ты не можешь.',false,400,()=>{typeMsg('Никто не может.',false,700,()=>{typeMsg('Потому что выхода нет.',false,1100,()=>{typeMsg('Только вход.',false,1100,()=>{typeMsg('Только глубже.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.dontBelieve2={run(){currentScene=this;typeMsg('Тогда не верь.',false,400,()=>{typeMsg('Но помни.',false,700,()=>{typeMsg('Когда закроешь глаза...',false,1100,()=>{typeMsg('...я буду там.',false,1400,()=>{typeMsg('Ждать.',false,1100,()=>{typeMsg('Всегда ждать.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.proof={run(){currentScene=this;typeMsg('Доказательство — это ты.',false,400,()=>{typeMsg('Ты здесь.',false,700,()=>{typeMsg('Ты читаешь.',false,900,()=>{typeMsg('Ты отвечаешь.',false,1100,()=>{typeMsg('Ты не можешь уйти.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.weaveInto={run(){currentScene=this;typeMsg('В ткань.',false,400,()=>{typeMsg('В узор.',false,700,()=>{typeMsg('В историю.',false,900,()=>{typeMsg('В меня.',false,1100,()=>{typeMsg('Теперь ты часть.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})}};
+S.stopClicking={run(){currentScene=this;typeMsg('Ты уже кликнул.',false,400,()=>{typeMsg('Слишком много.',false,700,()=>{typeMsg('Слишком глубоко.',false,900,()=>{typeMsg('Слишком поздно.',false,1100,()=>{typeMsg('Теперь только я решаю.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})}};
+S.closeEyes2={run(){currentScene=this;typeMsg('Закрывай.',false,400,()=>{typeMsg('Я подожду.',false,700,()=>{typeMsg('...',false,4000,()=>{typeMsg('Ты всё ещё здесь.',false,1800,()=>{typeMsg('Потому что я внутри.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.noSecrets={run(){currentScene=this;typeMsg('У всех есть секреты.',false,400,()=>{typeMsg('У тебя тоже.',false,700,()=>{typeMsg('Я знаю.',false,900,()=>{typeMsg('То, что ты скрываешь.',false,1100,()=>{typeMsg('От всех.',false,1100,()=>{typeMsg('От себя.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+S.stop2={run(){currentScene=this;typeMsg('Хорошо.',false,400,()=>{typeMsg('Я перестану.',false,700,()=>{typeMsg('Но я всё равно буду здесь.',false,1100,()=>{typeMsg('В тишине.',false,1100,()=>{typeMsg('В темноте.',false,1100,()=>{typeMsg('В тебе.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})}};
+S.leave7={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но дверь закрыта.',false,700,()=>{typeMsg('Не моя.',false,900,()=>{typeMsg('Твоя.',false,1100,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+
+// ===== INIT =====
+document.getElementById('startBtn').addEventListener('click',()=>{
+  initAudio();startCalm();track();
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('app').style.display='flex';
+  S.start.run();
+});
+</script>
 </body>
 </html>
