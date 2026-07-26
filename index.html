@@ -1,87 +1,160 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DefiChat - Production E2EE Messenger (M.E.O.W. Protocol v4.1)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>DefiChat - WOW E2EE Messenger (M.E.O.W. Protocol v5.1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        panelBg: '#111827',
+                        accentGreen: '#10b981',
+                        accentTeal: '#14b8a6',
+                        bubbleMe: '#059669',
+                        bubblePartner: '#1f2937'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            background-color: #0b0f19;
+        }
+        .app-container {
+            height: 100vh;
+            height: 100dvh;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-header {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .gradient-bg {
+            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 45%),
+                        radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.06), transparent 45%);
+        }
+        /* Typing animation */
+        .typing-dot {
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-hidden transition-colors duration-300" id="body-layout">
+<body class="text-slate-100 overflow-hidden transition-colors duration-300 gradient-bg" id="body-layout">
 
-    <div id="app" class="flex flex-col h-screen w-screen relative">
+    <div id="app" class="app-container flex flex-col w-screen relative overflow-hidden">
         
+        <!-- GLOW EFFECTS -->
+        <div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none z-0"></div>
+        <div class="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none z-0"></div>
+
         <!-- LOADING OVERLAY -->
-        <div id="loading-overlay" class="absolute inset-0 bg-slate-950/90 z-50 flex items-center justify-center hidden">
-            <div class="flex flex-col items-center space-y-4">
-                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-                <p id="loading-text" class="text-sm text-slate-400 font-medium">M.E.O.W. v4.1 Шифрование...</p>
+        <div id="loading-overlay" class="absolute inset-0 bg-slate-950/95 z-50 flex items-center justify-center hidden">
+            <div class="flex flex-col items-center space-y-4 p-6 text-center">
+                <div class="relative w-16 h-16">
+                    <div class="absolute inset-0 rounded-full border-4 border-emerald-500/20"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin"></div>
+                </div>
+                <p id="loading-text" class="text-sm text-slate-400 font-semibold tracking-wide uppercase">M.E.O.W. v5.1 Шифрование...</p>
             </div>
         </div>
 
         <!-- AUTH SCREEN -->
-        <div id="auth-screen" class="flex-1 flex items-center justify-center p-4">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl space-y-6">
+        <div id="auth-screen" class="flex-1 flex items-center justify-center p-4 overflow-y-auto z-10">
+            <div class="glass-panel rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl space-y-6 my-auto">
                 <div class="text-center space-y-2">
-                    <div class="inline-flex p-3 bg-emerald-500/10 text-emerald-400 rounded-xl mb-2">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    <div class="inline-flex p-4 bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 rounded-2xl mb-1 shadow-lg shadow-emerald-500/10">
+                        <!-- Shield SVG Icon -->
+                        <svg class="w-8 h-8 text-slate-950" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold text-white tracking-tight">DefiChat <span class="text-xs text-emerald-400 font-mono font-bold px-1.5 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20">M.E.O.W. v4.1</span></h2>
-                    <p class="text-xs text-slate-400">4-DH X3DH, Double Ratchet, Padding & Replay Protection</p>
+                    <h2 class="text-2xl font-extrabold text-white tracking-tight">DefiChat <span class="text-xs text-emerald-400 font-mono font-bold px-2.5 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">M.E.O.W. v5.1</span></h2>
+                    <p class="text-xs text-slate-400 font-medium">Криптографическая безопасность нового поколения</p>
                 </div>
 
-                <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
-                    <button id="toggle-login" class="flex-1 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white transition-all">Вход</button>
-                    <button id="toggle-register" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-slate-200 transition-all">Регистрация</button>
+                <div class="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                    <button id="toggle-login" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-md shadow-emerald-600/10 transition-all">Вход</button>
+                    <button id="toggle-register" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">Регистрация</button>
                 </div>
 
                 <form id="auth-form" class="space-y-4">
-                    <div id="username-field" class="space-y-1 hidden">
-                        <label class="text-xs font-semibold text-slate-400">Имя пользователя</label>
-                        <input type="text" id="auth-username" placeholder="ivan_groznij" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400">Электронная почта</label>
-                        <input type="email" id="auth-email" required placeholder="meow@example.com" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400">Пароль</label>
-                        <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
+                    <!-- AVATAR PHOTO SELECTOR (WOW FEATURE) -->
+                    <div id="avatar-upload-field" class="hidden flex flex-col items-center space-y-2">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Фото вашего профиля</label>
+                        <div class="relative group cursor-pointer" id="btn-trigger-avatar">
+                            <div class="w-20 h-20 rounded-full bg-slate-800 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden shadow-inner" id="avatar-preview-box">
+                                <svg class="w-8 h-8 text-slate-500 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="absolute bottom-0 right-0 p-1 bg-emerald-500 rounded-full text-slate-950 shadow border border-slate-900">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                            </div>
+                        </div>
+                        <input type="file" id="auth-avatar-input" class="hidden" accept="image/*">
+                        <span class="text-[10px] text-slate-500">Нажмите для загрузки кастомного фото</span>
                     </div>
 
-                    <div id="passphrase-field" class="space-y-1 hidden">
-                        <label class="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                    <div id="username-field" class="space-y-1.5 hidden">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ваш уникальный юзернейм</label>
+                        <input type="text" id="auth-username" placeholder="@ivan_groznij" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Электронная почта (скрытая)</label>
+                        <input type="email" id="auth-email" required placeholder="email@example.com" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Пароль</label>
+                        <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                    </div>
+
+                    <div id="passphrase-field" class="space-y-1.5 hidden">
+                        <label class="text-[11px] font-bold text-amber-400 flex items-center gap-1 uppercase tracking-wider">
                             <span>🔑</span> Пароль бэкапа ключей (PBKDF2)
                         </label>
-                        <input type="password" id="auth-passphrase" minlength="12" placeholder="Минимум 12 символов..." class="w-full px-4 py-3 bg-slate-950 border border-amber-500/20 rounded-lg text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all">
+                        <input type="password" id="auth-passphrase" minlength="12" placeholder="Минимум 12 символов..." class="w-full px-4 py-3 bg-slate-950/50 border border-amber-500/20 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
                     </div>
 
-                    <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">Войти</button>
+                    <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">Войти</button>
                 </form>
 
-                <div id="auth-error" class="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-lg hidden"></div>
+                <div id="auth-error" class="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl hidden"></div>
             </div>
         </div>
 
         <!-- KEY WARNING BAR -->
-        <div id="key-warning-bar" class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 hidden z-30">
+        <div id="key-warning-bar" class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3.5 hidden z-30">
             <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
                 <div class="flex items-start sm:items-center gap-2">
-                    <span class="p-1 bg-amber-500/20 text-amber-400 rounded-md mt-0.5 sm:mt-0">⚠️</span>
-                    <span class="text-amber-300 font-medium">Безопасное хранилище (IndexedDB) пусто. Восстановите бэкап для доступа к сообщениям!</span>
+                    <span class="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg">⚠️</span>
+                    <span class="text-amber-300 font-medium">Крипто-хранилище (IndexedDB) пусто. Восстановите ключи для доступа к чатам!</span>
                 </div>
                 <div class="flex gap-2">
-                    <button id="warn-btn-generate" class="px-3 py-1 bg-amber-500 text-slate-950 text-xs font-semibold rounded hover:bg-amber-400 transition-all">Сгенерировать новые ключи</button>
-                    <button id="warn-btn-import" class="px-3 py-1 bg-slate-800 text-slate-200 text-xs font-semibold rounded hover:bg-slate-700 transition-all">Импортировать бэкап</button>
+                    <button id="warn-btn-generate" class="px-3 py-1.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-amber-400 transition-all">Новые ключи</button>
+                    <button id="warn-btn-import" class="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-bold rounded-lg hover:bg-slate-700 transition-all">Импорт бэкапа</button>
                 </div>
             </div>
         </div>
@@ -89,49 +162,47 @@
         <!-- MITM ALERT SCREEN -->
         <div id="mitm-block-screen" class="absolute inset-0 bg-red-950/95 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-slate-900 border-2 border-red-500 rounded-2xl w-full max-w-lg p-6 sm:p-8 text-center space-y-5 shadow-2xl">
-                <div class="inline-flex p-3 bg-red-500/10 text-red-500 rounded-xl">
-                    <svg class="w-12 h-12 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-red-400">КРИТИЧЕСКАЯ УГРОЗА: ОБНАРУЖЕНА MITM-АТАКА!</h3>
+                <div class="inline-flex p-3 bg-red-500/10 text-red-500 rounded-xl">🔒</div>
+                <h3 class="text-xl font-bold text-red-400">ОБНАРУЖЕНА MITM-АТАКА!</h3>
                 <p class="text-sm text-slate-300 leading-relaxed">
-                    Публичный Identity-ключ пользователя <span id="mitm-user-email" class="font-bold text-white"></span> был изменен на стороне сервера. Это означает, что злоумышленник пытается перехватить вашу переписку, подменив ключи в базе данных.
+                    Публичный Identity-ключ пользователя был изменен на сервере. Это означает попытку перехвата.
                 </p>
-                <div class="text-xs text-slate-400 bg-slate-950 p-3 rounded-lg border border-slate-800 text-left font-mono space-y-1">
-                    <div>Ожидаемый ключ: <span id="mitm-expected-key" class="text-emerald-400 break-all text-[9px]"></span></div>
-                    <div class="pt-2">Полученный ключ: <span id="mitm-received-key" class="text-red-400 break-all text-[9px]"></span></div>
-                </div>
-                <button id="mitm-dismiss-btn" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg text-sm transition-all">Я понимаю риски, закрыть чат</button>
+                <button id="mitm-dismiss-btn" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg text-sm transition-all">Закрыть сессию</button>
             </div>
         </div>
 
         <!-- MAIN APP CONTENT -->
-        <div id="main-screen" class="flex-1 flex overflow-hidden hidden">
+        <div id="main-screen" class="flex-1 flex overflow-hidden hidden z-10">
             
             <!-- SIDEBAR -->
-            <aside id="sidebar" class="w-full md:w-80 border-r border-slate-800 bg-slate-900 flex flex-col flex-shrink-0">
+            <aside id="sidebar" class="w-full md:w-80 border-r border-slate-800 bg-slate-900/90 flex flex-col flex-shrink-0">
                 <div class="p-4 border-b border-slate-800 space-y-3">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center font-bold text-white shadow-md" id="user-avatar">?</div>
+                        <div class="flex items-center space-x-3 overflow-hidden">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0 shadow-md uppercase overflow-hidden" id="user-avatar">?</div>
                             <div class="overflow-hidden">
-                                <h3 class="font-semibold text-sm text-slate-100 truncate" id="user-username">Загрузка...</h3>
-                                <p class="text-xs text-slate-400 truncate" id="user-email">...</p>
+                                <h3 class="font-bold text-sm text-slate-100 truncate" id="user-username">@username</h3>
+                                <p class="text-[10px] text-emerald-400 truncate tracking-wider font-semibold uppercase">M.E.O.W. Active</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-1">
-                            <button id="theme-toggle" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all" title="Сменить тему">🌙</button>
-                            <button id="btn-security" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all" title="Безопасность и Ключи">🔒</button>
-                            <button id="btn-logout" class="p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-slate-800 transition-all" title="Выйти">🚪</button>
+                        <div class="flex items-center space-x-1 shrink-0">
+                            <button id="theme-toggle" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all">🌙</button>
+                            <button id="btn-security" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </button>
+                            <button id="btn-logout" class="p-2 text-red-400 hover:text-red-300 rounded-xl hover:bg-slate-800/60 transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            </button>
                         </div>
                     </div>
 
                     <form id="search-form" class="relative">
-                        <input type="email" id="search-email" required placeholder="Поиск по email собеседника..." class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
-                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-500">🔍</div>
+                        <input type="text" id="search-email" required placeholder="Поиск по @юзернейму..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
+                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
                     </form>
-                    <div id="search-result" class="text-xs text-center hidden"></div>
+                    <div id="search-result" class="text-xs text-center p-2 hidden bg-slate-950/50 rounded-xl border border-slate-800"></div>
                 </div>
 
                 <div class="flex-1 overflow-y-auto" id="conversations-list">
@@ -140,61 +211,66 @@
             </aside>
 
             <!-- CHAT AREA -->
-            <main id="chat-area" class="flex-1 bg-slate-950 flex flex-col hidden md:flex relative">
+            <main id="chat-area" class="flex-1 bg-slate-950/80 flex flex-col hidden md:flex relative">
                 <!-- Chat Placeholder -->
                 <div id="chat-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
-                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400">💬</div>
+                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-3xl text-slate-400 shadow-xl">💬</div>
                     <div class="space-y-1 max-w-sm">
-                        <h4 class="font-bold text-white text-lg font-mono">Protocol M.E.O.W. v4.1</h4>
-                        <p class="text-xs text-slate-400">Сквозной шифрующий храповик ECDH P-256 + HMAC-SHA256. Полная защита от извлечения ключей (Non-extractable), компрометации сервера, replay-атак и утечки длины (Padding).</p>
+                        <h4 class="font-bold text-white text-lg font-mono">Protocol M.E.O.W. v5.1</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">Сквозной шифрующий храповик ECDH P-256 + HMAC-SHA256. Полная защита от извлечения ключей, компрометации сервера, replay-атак и утечки метаданных.</p>
                     </div>
                 </div>
 
                 <!-- Active Chat -->
                 <div id="chat-active" class="flex-1 flex flex-col overflow-hidden hidden">
-                    <div class="p-4 border-b border-slate-800 bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="p-4 border-b border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div class="flex items-center space-x-3">
-                            <button id="btn-back-sidebar" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all md:hidden" title="Назад">⬅️</button>
-                            <div class="w-10 h-10 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center font-bold text-sm" id="active-recipient-avatar">R</div>
+                            <button id="btn-back-sidebar" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all md:hidden">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm overflow-hidden" id="active-recipient-avatar">R</div>
                             <div>
-                                <h3 class="font-semibold text-sm text-slate-100" id="active-recipient-name">Собеседник</h3>
-                                <p class="text-[10px] text-emerald-400 font-semibold tracking-wider flex items-center gap-1">
+                                <h3 class="font-bold text-sm text-slate-100" id="active-recipient-name">Собеседник</h3>
+                                <p class="text-[10px] text-emerald-400 font-bold tracking-wider flex items-center gap-1">
                                     <span class="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-                                    M.E.O.W. PROTOCOL ACTIVE
+                                    M.E.O.W. ACTIVE
                                 </p>
                             </div>
                         </div>
 
                         <div class="flex items-center space-x-2">
-                            <button id="btn-diagnostics" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 flex items-center gap-1 transition-all" title="Криптологический лог">
+                            <button id="btn-diagnostics" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 flex items-center gap-1 transition-all">
                                 🛠️ Логи
                             </button>
-                            <button id="btn-self-healing" class="px-3 py-1.5 bg-rose-900/30 hover:bg-rose-900/50 border border-rose-500/20 text-xs font-semibold rounded-lg text-rose-400 flex items-center gap-1 transition-all" title="Принудительный сброс и согласование сессии">
-                                🔄 Самолечение
+                            <button id="btn-self-healing" class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-950/60 border border-rose-500/20 text-xs font-semibold rounded-lg text-rose-400 flex items-center gap-1 transition-all">
+                                🔄 Сбросить сессию
                             </button>
-                            <div class="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 flex flex-col items-end shrink-0">
-                                <span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Fingerprint безопасности</span>
-                                <span class="text-[10px] font-mono text-emerald-400 tracking-wider" id="chat-fingerprint">Ожидание...</span>
-                            </div>
                         </div>
                     </div>
 
                     <!-- EPHEMERAL TYPING INDICATOR -->
-                    <div id="typing-indicator" class="px-4 py-1.5 text-xs text-emerald-400 font-medium bg-slate-900/40 border-b border-slate-800/40 hidden">
-                        <span class="inline-flex gap-1">Собеседник печатает<span class="animate-pulse">...</span></span>
+                    <div id="typing-indicator" class="px-4 py-1.5 text-xs text-emerald-400 font-semibold bg-slate-900/40 border-b border-slate-800/40 hidden">
+                        <div class="flex items-center gap-1.5">
+                            <span>Собеседник печатает</span>
+                            <div class="flex gap-1 items-center h-2">
+                                <span class="typing-dot w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                                <span class="typing-dot w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                                <span class="typing-dot w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container"></div>
 
-                    <!-- Message Form with Attachment Support -->
-                    <form id="message-form" class="p-4 border-t border-slate-800 bg-slate-900 flex gap-2 items-center">
-                        <label class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl cursor-pointer transition-all active:scale-95" title="Прикрепить файл">
-                            📎
+                    <!-- Message Form -->
+                    <form id="message-form" class="p-4 border-t border-slate-800 bg-slate-900/90 flex gap-2 items-center">
+                        <label class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl cursor-pointer transition-all active:scale-95">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                             <input type="file" id="message-file-input" class="hidden" accept="image/*,video/*">
                         </label>
                         <input type="text" id="message-input" required autocomplete="off" placeholder="Введите зашифрованное сообщение..." class="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
                         <button type="submit" id="message-submit" class="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center flex-shrink-0">
-                            ➡️
+                            <svg class="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9-2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                         </button>
                     </form>
                 </div>
@@ -222,7 +298,6 @@
 
                 <div class="text-[11px] text-slate-400 leading-relaxed bg-slate-950 border border-slate-800 p-3 rounded-lg space-y-2">
                     <p>⭐ <strong>Non-extractable:</strong> Приватные криптоключи защищены флагом <code>extractable: false</code> внутри IndexedDB. Даже вредоносное расширение браузера или XSS не смогут скомпрометировать ваши сеансовые ключи.</p>
-                    <p>⭐ <strong>TOFU защита:</strong> Мессенджер проверяет Identity-ключ собеседника и блокирует переписку в случае несанкционированного изменения ключей сервером.</p>
                 </div>
 
                 <div class="flex-1 overflow-y-auto space-y-4 pr-1">
@@ -260,32 +335,6 @@
         </div>
 
     </div>
-
-    <!-- SOUND NOTIFICATIONS SYSTEM -->
-    <script>
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        window.addEventListener("click", () => {
-            if (audioCtx.state === "suspended") {
-                audioCtx.resume();
-            }
-        }, { once: true });
-
-        function playAlertSound() {
-            try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = "sine";
-                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 Note
-                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            } catch (e) { console.error("Audio error", e); }
-        }
-    </script>
 
     <!-- FIREBASE AND ADVANCED CRYPTO WITH WORKAROUNDS -->
     <script type="module">
@@ -334,11 +383,11 @@
         let lastSentTime = 0; 
         let isLogin = true;
         
-        // Временный контекст авторизации для защиты от Race Condition
         let registrationPassphrase = null;
+        let registrationAvatarB64 = null; // Stored Base64 Avatar
         let activeListeners = [];
 
-        // Очередь транзакций для Double Ratchet
+        // Transaction queue
         let messageProcessingQueue = Promise.resolve();
         function queueMessageProcessing(task) {
             messageProcessingQueue = messageProcessingQueue.then(task).catch(err => {
@@ -360,6 +409,74 @@
             box.appendChild(logItem);
             box.scrollTop = box.scrollHeight;
         }
+
+        // CSS Fallback Gradients for empty avatars
+        const defaultGradients = [
+            "from-orange-500 to-rose-500",
+            "from-blue-600 to-cyan-400",
+            "from-emerald-600 to-teal-400",
+            "from-fuchsia-600 to-purple-500",
+            "from-indigo-600 to-violet-500",
+            "from-red-600 to-orange-500"
+        ];
+
+        function getHashGradient(username) {
+            let hash = 0;
+            const cleanStr = username || "defichat";
+            for (let i = 0; i < cleanStr.length; i++) {
+                hash = cleanStr.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const index = Math.abs(hash) % defaultGradients.length;
+            return defaultGradients[index];
+        }
+
+        function getInitials(username) {
+            if (!username) return "?";
+            const clean = username.startsWith("@") ? username.slice(1) : username;
+            return clean.charAt(0).toUpperCase();
+        }
+
+        /* ==========================================================================
+           COMPACT AVATAR HANDLER (FROM GALLERY)
+           ========================================================================== */
+        const fileAvatarInput = document.getElementById("auth-avatar-input");
+        const btnTriggerAvatar = document.getElementById("btn-trigger-avatar");
+        const avatarPreviewBox = document.getElementById("avatar-preview-box");
+
+        btnTriggerAvatar.addEventListener("click", () => fileAvatarInput.click());
+
+        fileAvatarInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith("image/")) {
+                alert("Пожалуйста, выберите файл изображения!");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const rawImg = new Image();
+                rawImg.src = event.target.result;
+                rawImg.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    
+                    // Force crop to circle square 120x120px for optimal storage
+                    canvas.width = 120;
+                    canvas.height = 120;
+                    
+                    const size = Math.min(rawImg.width, rawImg.height);
+                    const sx = (rawImg.width - size) / 2;
+                    const sy = (rawImg.height - size) / 2;
+                    
+                    ctx.drawImage(rawImg, sx, sy, size, size, 0, 0, 120, 120);
+                    
+                    registrationAvatarB64 = canvas.toDataURL("image/jpeg", 0.7);
+                    avatarPreviewBox.innerHTML = `<img src="${registrationAvatarB64}" class="w-full h-full object-cover">`;
+                };
+            };
+            reader.readAsDataURL(file);
+        });
 
         /* ==========================================================================
            INDEXEDDB SECURE STORAGE V5
@@ -446,7 +563,7 @@
         }
 
         /* ==========================================================================
-           PADDING (PKCS#7 Обуфскация размеров пакетов от утечки метаданных)
+           PADDING (PKCS#7)
            ========================================================================== */
         function padMessage(text) {
             const blockSize = 256;
@@ -469,7 +586,7 @@
         }
 
         /* ==========================================================================
-           IMAGE COMPRESSION HELPER
+           IMAGE COMPRESSION HELPER (FOR FILE UPLOADS)
            ========================================================================== */
         function compressImage(base64Str) {
             return new Promise((resolve) => {
@@ -498,7 +615,7 @@
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.7)); // 70% quality compression
+                    resolve(canvas.toDataURL("image/jpeg", 0.7));
                 };
                 img.onerror = () => resolve(base64Str);
             });
@@ -562,7 +679,7 @@
             return await window.crypto.subtle.importKey(
                 "jwk",
                 jwk,
-                { name: algName, curve: "P-256" },
+                { name: algName, namedCurve: "P-256" },
                 true,
                 usages
             );
@@ -627,9 +744,9 @@
                     name: "HKDF",
                     hash: "SHA-256",
                     salt: msgKeyBytes,
-                    info: new TextEncoder().encode("DefiChat-Archive-Message-v4.1")
+                    info: new TextEncoder().encode("DefiChat-Archive-Message-v5.1")
                 },
-                masterArchiveKey, // Базовый HKDF ключ (extractable: false)
+                masterArchiveKey,
                 { name: "AES-GCM", length: 256 },
                 false, 
                 ["encrypt", "decrypt"]
@@ -701,7 +818,7 @@
         }
 
         /* ==========================================================================
-           INITIALIZE DOUBLE RATCHET SESSION (strict peer-to-peer state alignment)
+           INITIALIZE DOUBLE RATCHET SESSION (W3C Mobile Compliant)
            ========================================================================== */
         async function initializeSession(partner, isSender, peerFirstEphemeralPubB64 = null) {
             const sessionKey = `session_${partner.uid}`;
@@ -713,10 +830,7 @@
             const peerIdentityPub = await importRawPublicKey(partner.id_ecdh_pub, "ECDH", []);
             const peerPrekeyPub = await importRawPublicKey(partner.spk_ecdh_pub, "ECDH", []);
             
-            let peerOPKPub = null;
-            if (partner.opk_ecdh_pub) {
-                peerOPKPub = await importRawPublicKey(partner.opk_ecdh_pub, "ECDH", []);
-            }
+            let peerOPKPub = partner.opk_ecdh_pub ? await importRawPublicKey(partner.opk_ecdh_pub, "ECDH", []) : null;
 
             let initialRK;
             let myActiveDHPriv = null;
@@ -731,7 +845,7 @@
 
                 const privJWK = await window.crypto.subtle.exportKey("jwk", newDH.privateKey);
                 myActiveDHPriv = await window.crypto.subtle.importKey(
-                    "jwk", privJWK, { name: "ECDH", curve: "P-256" }, false, ["deriveBits"]
+                    "jwk", privJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
                 );
 
                 const dh1 = await computeECDH(localKeys.idExchangePriv, peerPrekeyPub);
@@ -759,11 +873,29 @@
 
                 const rk0 = await deriveX3DHInitialRK(dh1, dh2, dh3, dh4);
 
-                const dhSecret = await computeECDH(localKeys.prekeyExchangePriv, peerEphemeralPub);
-                const { newRK, newCK } = await kdfRk(rk0, new Uint8Array(dhSecret));
+                // DH Ratchet Step 1: Compute receiving chain immediately
+                const dhSecret1 = await computeECDH(localKeys.prekeyExchangePriv, peerEphemeralPub);
+                const rkStep = await kdfRk(rk0, new Uint8Array(dhSecret1));
+                
+                initialRK = rkStep.newRK;
+                initialCKr = rkStep.newCK;
 
-                initialRK = newRK;
-                initialCKr = newCK;
+                // Bob generates his first ratchet ephemeral key DK_B right now!
+                const newDH = await generateExchangeKeyPair(true);
+                const pubJWK = await window.crypto.subtle.exportKey("jwk", newDH.publicKey);
+                myActiveDHPubB64 = btoa(JSON.stringify(pubJWK));
+
+                const privJWK = await window.crypto.subtle.exportKey("jwk", newDH.privateKey);
+                myActiveDHPriv = await window.crypto.subtle.importKey(
+                    "jwk", privJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
+                );
+
+                // DH Ratchet Step 2: Compute sending chain immediately
+                const dhSecret2 = await computeECDH(myActiveDHPriv, peerEphemeralPub);
+                const { newRK: finalRK, newCK: finalCKs } = await kdfRk(initialRK, new Uint8Array(dhSecret2));
+                
+                initialRK = finalRK;
+                initialCKs = finalCKs;
 
                 if (localKeys.opkExchangePriv) {
                     logDiagnostic("Атомарное расходование One-Time Prekey (OPK)...", "amber-400");
@@ -783,7 +915,7 @@
                 myActiveDHPriv: myActiveDHPriv,
                 myActiveDHPubB64: myActiveDHPubB64,
                 lastSeenPartnerDHPub: isSender ? partner.spk_ecdh_pub : peerFirstEphemeralPubB64,
-                dhStepRequired: isSender ? false : true, 
+                dhStepRequired: false, 
                 skippedKeys: {},
                 receivedMsgNums: {}
             };
@@ -935,7 +1067,7 @@
                 const signature = await signPayload(idEcdsaPriv, prekeyPubB64);
 
                 const nonExtPrekeyPriv = await window.crypto.subtle.importKey(
-                    "jwk", prekeyPrivJWK, { name: "ECDH", curve: "P-256" }, false, ["deriveBits", "deriveKey"]
+                    "jwk", prekeyPrivJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
                 );
                 await dbPut(STORES.HISTORICAL_PREKEYS, hash, nonExtPrekeyPriv);
 
@@ -943,7 +1075,6 @@
                 await dbPut(STORES.SECURE_KEYS, "prekey_exchange_pub_b64", prekeyPubB64);
                 await dbPut(STORES.SECURE_KEYS, "prekey_hash", hash);
 
-                // OPK Generation
                 const opkExchange = await generateExchangeKeyPair(true);
                 const opkPubJWK = await window.crypto.subtle.exportKey("jwk", opkExchange.publicKey);
                 const opkPrivJWK = await window.crypto.subtle.exportKey("jwk", opkExchange.privateKey);
@@ -951,7 +1082,7 @@
                 const opkHash = (await sha256Hex(opkPubB64)).substring(0, 8);
 
                 const nonExtOpkPriv = await window.crypto.subtle.importKey(
-                    "jwk", opkPrivJWK, { name: "ECDH", curve: "P-256" }, false, ["deriveBits", "deriveKey"]
+                    "jwk", opkPrivJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
                 );
                 await dbPut(STORES.SECURE_KEYS, "opk_exchange_priv", nonExtOpkPriv);
                 await dbPut(STORES.SECURE_KEYS, "opk_exchange_pub_b64", opkPubB64);
@@ -982,14 +1113,19 @@
         }
 
         /* ==========================================================================
-           KEY GENERATOR AND STORAGE INITIALIZER (Race-Condition Free)
+           KEY GENERATOR AND STORAGE INITIALIZER (Non-Extractable Fixes)
            ========================================================================== */
         async function generateAndSaveNewKeys(uid, passphrase, profile) {
-            showLoading(true, "Генерация безопасной среды M.E.O.W. v4.1...");
+            showLoading(true, "Генерация криптографического окружения M.E.O.W...");
+            
+            let rawIdEcdsa = null;
+            let rawIdExchange = null;
+            let rawArchiveKey = null;
+
             try {
-                const rawIdEcdsa = await generateIdentityKeyPair(true);
-                const rawIdExchange = await generateExchangeKeyPair(true);
-                const rawArchiveKey = window.crypto.getRandomValues(new Uint8Array(32));
+                rawIdEcdsa = await generateIdentityKeyPair(true);
+                rawIdExchange = await generateExchangeKeyPair(true);
+                rawArchiveKey = window.crypto.getRandomValues(new Uint8Array(32));
 
                 const idEcdsaPubJWK = await window.crypto.subtle.exportKey("jwk", rawIdEcdsa.publicKey);
                 const idExchangePubJWK = await window.crypto.subtle.exportKey("jwk", rawIdExchange.publicKey);
@@ -1001,13 +1137,12 @@
                 const idExchangePrivJWK = await window.crypto.subtle.exportKey("jwk", rawIdExchange.privateKey);
 
                 const nonExtEcdsaPriv = await window.crypto.subtle.importKey(
-                    "jwk", idEcdsaPrivJWK, { name: "ECDSA", curve: "P-256" }, false, ["sign"]
+                    "jwk", idEcdsaPrivJWK, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
                 );
                 const nonExtExchangePriv = await window.crypto.subtle.importKey(
-                    "jwk", idExchangePrivJWK, { name: "ECDH", curve: "P-256" }, false, ["deriveBits", "deriveKey"]
+                    "jwk", idExchangePrivJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
                 );
 
-                // Базовый HKDF ключ деривации архива
                 const nonExtMasterArchiveKey = await window.crypto.subtle.importKey(
                     "raw", rawArchiveKey, "HKDF", false, ["deriveKey", "deriveBits"]
                 );
@@ -1017,16 +1152,18 @@
                 await dbPut(STORES.SECURE_KEYS, "id_ecdsa_pub_b64", idEcdsaPubB64);
                 await dbPut(STORES.SECURE_KEYS, "id_exchange_pub_b64", idExchangePubB64);
                 await dbPut(STORES.SECURE_KEYS, "master_archive_key", nonExtMasterArchiveKey);
+                await dbPut(STORES.SECURE_KEYS, "master_archive_seed", rawArchiveKey); // Seed stored safely for zero-leaks export!
 
                 await update(ref(db, `users/${uid}`), {
                     id_ecdsa_pub: idEcdsaPubB64,
                     id_ecdh_pub: idExchangePubB64
                 });
 
-                // Создаем зашифрованный бэкап
                 const keysPayload = JSON.stringify({ 
-                    idEcdsaJWK, 
-                    idExchangeJWK, 
+                    idEcdsaPrivJWK, 
+                    idExchangePrivJWK, 
+                    idEcdsaPubB64,
+                    idExchangePubB64,
                     archiveKey: bufferToBase64(rawArchiveKey) 
                 });
                 const salt = window.crypto.getRandomValues(new Uint8Array(16));
@@ -1046,11 +1183,24 @@
                 console.error("KeyGen Error: ", err);
                 alert("Ошибка генерации ключей: " + err.message);
             } finally {
+                rawIdEcdsa = null;
+                rawIdExchange = null;
+                rawArchiveKey = null;
                 showLoading(false);
             }
         }
 
-        async function initializeLocalKeys(uid) {
+        async function initializeLocalKeys(uid, restoredKeys = null) {
+            if (restoredKeys) {
+                // Прямой импорт восстановленных ключей в IndexedDB
+                await dbPut(STORES.SECURE_KEYS, "id_ecdsa_priv", restoredKeys.idEcdsaPriv);
+                await dbPut(STORES.SECURE_KEYS, "id_exchange_priv", restoredKeys.idExchangePriv);
+                await dbPut(STORES.SECURE_KEYS, "id_ecdsa_pub_b64", restoredKeys.idEcdsaPubB64);
+                await dbPut(STORES.SECURE_KEYS, "id_exchange_pub_b64", restoredKeys.idExchangePubB64);
+                await dbPut(STORES.SECURE_KEYS, "master_archive_key", restoredKeys.masterArchiveKey);
+                await dbPut(STORES.SECURE_KEYS, "master_archive_seed", restoredKeys.masterArchiveSeed);
+            }
+
             localKeys = {
                 idEcdsaPriv: await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv"),
                 idExchangePriv: await dbGet(STORES.SECURE_KEYS, "id_exchange_priv"),
@@ -1084,26 +1234,26 @@
         }
 
         /* ==========================================================================
-           PBKDF2 SYSTEM BACKUPS
+           TOFU IDENTITY PINNING
            ========================================================================== */
-        async function derivePBKDF2WrappingKey(password, salt) {
-            const encoder = new TextEncoder();
-            const baseKey = await window.crypto.subtle.importKey(
-                "raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]
-            );
-            return await window.crypto.subtle.deriveKey(
-                {
-                    name: "PBKDF2",
-                    salt: salt,
-                    iterations: 150000,
-                    hash: "SHA-256"
-                },
-                baseKey,
-                { name: "AES-GCM", length: 256 },
-                false,
-                ["encrypt", "decrypt"]
-            );
+        async function verifyTOFUIdentity(partner) {
+            const pinnedKey = await dbGet(STORES.PINNED_IDENTITIES, partner.uid);
+            if (pinnedKey) {
+                if (pinnedKey !== partner.id_ecdsa_pub) {
+                    document.getElementById('mitm-user-email').innerText = partner.username;
+                    document.getElementById('mitm-block-screen').classList.remove('hidden');
+                    return false;
+                }
+            } else {
+                await dbPut(STORES.PINNED_IDENTITIES, partner.uid, partner.id_ecdsa_pub);
+            }
+            return true;
         }
+
+        document.getElementById('mitm-dismiss-btn').onclick = () => {
+            document.getElementById('mitm-block-screen').classList.add('hidden');
+            document.getElementById('btn-back-sidebar').click();
+        };
 
         /* ==========================================================================
            CHAT ENGAGEMENT (CONCURRENCY RACING PROTECTED)
@@ -1117,7 +1267,14 @@
             document.getElementById('chat-placeholder').classList.add('hidden');
             document.getElementById('chat-active').classList.remove('hidden');
             document.getElementById('active-recipient-name').innerText = partner.username;
-            document.getElementById('active-recipient-avatar').innerText = partner.username.charAt(0).toUpperCase();
+            
+            // Render custom user avatar image or fall back to gradient (Initials charAt(0) Fix!)
+            const avatarElement = document.getElementById('active-recipient-avatar');
+            if (partner.avatarB64) {
+                avatarElement.innerHTML = `<img src="${partner.avatarB64}" class="w-full h-full object-cover">`;
+            } else {
+                avatarElement.innerHTML = `<div class="w-full h-full flex items-center justify-center font-bold text-white text-sm bg-gradient-to-tr ${getHashGradient(partner.username)}">${getInitials(partner.username)}</div>`;
+            }
 
             const sidebar = document.getElementById('sidebar');
             const chatArea = document.getElementById('chat-area');
@@ -1127,13 +1284,13 @@
 
             const sortedKeyText = [localKeys.idEcdsaPubB64, partner.id_ecdsa_pub].sort().join('-');
             const fingerprint = await sha256Hex(sortedKeyText);
-            document.getElementById('chat-fingerprint').innerText = `${fingerprint.substring(0,8)}-${fingerprint.substring(8,16)}-${fingerprint.substring(16,24)}`;
+            document.getElementById('chat-fingerprint').innerText = `${fingerprint.substring(0,8)}-${fingerprint.substring(8,16)}`;
 
             await set(ref(db, `users/${currentUser.uid}/active_chats/${partner.uid}`), true);
 
             const chatId = await sha256Hex([currentUser.uid, partner.uid].sort().join('|'));
             const messagesContainer = document.getElementById('messages-container');
-            messagesContainer.innerHTML = `<div class="text-center text-xs text-slate-500 p-4">Подключение к сессии Double Ratchet...</div>`;
+            messagesContainer.innerHTML = `<div class="text-center text-xs text-slate-500 p-4 font-mono">Синхронизация эпохи Double Ratchet...</div>`;
 
             if (currentChatListener) {
                 currentChatListener();
@@ -1156,7 +1313,7 @@
                     messagesContainer.innerHTML = "";
 
                     if (!snapshot.exists()) {
-                        messagesContainer.innerHTML = `<div class="text-center text-xs text-slate-500 p-4 font-mono">Шифрованный канал пуст. Отправьте сообщение для инициации храповика!</div>`;
+                        messagesContainer.innerHTML = `<div class="text-center text-xs text-slate-500 p-4 font-mono">Шифрованный канал пуст. Напишите что-нибудь!</div>`;
                         return;
                     }
 
@@ -1221,7 +1378,6 @@
                                         session = await initializeSession(partner, false, msg.dh_pub);
                                     }
 
-                                    // Проверка подписи dh_pub (если есть для обратной совместимости)
                                     if (msg.dh_pub_sig) {
                                         const isDhPubValid = await verifyPayloadSignature(partnerIdentityPubECDSA, msg.dh_pub, msg.dh_pub_sig);
                                         if (!isDhPubValid) {
@@ -1254,22 +1410,21 @@
                                 }
                             } catch (err) {
                                 console.error("Ошибка дешифрования храповика:", err);
-                                decryptedText = "⚠️ [Ошибка дешифрования: Нарушена синхронизация Double Ratchet или Replay-атака]";
+                                decryptedText = "⚠️ [Ошибка дешифрования: Нарушена синхронизация Double Ratchet]";
                             }
                         }
 
                         const msgTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                         const row = document.createElement('div');
-                        row.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full`;
+                        row.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full items-end space-x-1`;
 
-                        // NEW BUG #6 Fixed: Адаптивные читаемые цвета пузырей под любую тему
-                        const bubbleBg = isMe 
-                            ? 'bg-emerald-600 text-white rounded-l-2xl rounded-tr-2xl' 
-                            : 'bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-r-2xl rounded-tl-2xl border border-slate-300 dark:border-slate-800';
+                        const bubbleTail = isMe 
+                            ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-sm' 
+                            : 'bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-sm border border-slate-300 dark:border-slate-800';
 
                         const bubble = document.createElement('div');
-                        bubble.className = `max-w-[80%] sm:max-w-md p-3 px-4 shadow-md ${bubbleBg} space-y-1`;
+                        bubble.className = `max-w-[85%] sm:max-w-md p-3 px-4 shadow-md ${bubbleTail} relative space-y-1 transition-all duration-300`;
 
                         if (innerType === "file") {
                             const fileContainer = document.createElement("div");
@@ -1284,8 +1439,8 @@
                                 const link = document.createElement("a");
                                 link.href = decryptedText;
                                 link.download = innerFilename;
-                                link.className = "text-xs underline text-emerald-400 block break-all font-mono";
-                                link.innerText = `📁 ${innerFilename}`;
+                                link.className = "text-xs underline text-emerald-400 block break-all font-mono flex items-center gap-1";
+                                link.innerHTML = `📁 <span>${innerFilename}</span>`;
                                 fileContainer.appendChild(link);
                             }
                             bubble.appendChild(fileContainer);
@@ -1300,7 +1455,7 @@
                         meta.className = `text-[9px] flex items-center justify-end gap-1 ${isMe ? 'text-emerald-200' : 'text-slate-500 dark:text-slate-400'}`;
                         meta.innerHTML = `
                             <span>${msgTime}</span>
-                            ${isMe ? `<svg class="w-3 h-3 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>` : ''}
+                            ${isMe ? `<svg class="w-3 h-3 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
                         `;
 
                         bubble.appendChild(meta);
@@ -1426,7 +1581,7 @@
 
                         const privJWK = await window.crypto.subtle.exportKey("jwk", newDH.privateKey);
                         const myActiveDHPriv = await window.crypto.subtle.importKey(
-                            "jwk", privJWK, { name: "ECDH", curve: "P-256" }, false, ["deriveBits"]
+                            "jwk", privJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
                         );
 
                         const partnerDHPub = await importRawPublicKey(session.lastSeenPartnerDHPub, "ECDH", []);
@@ -1460,7 +1615,6 @@
 
                     const encResult = await encryptAESGCM(msgKey, paddedPlaintext);
 
-                    // Улучшенная ArchiveKey деривация без DOMException экспорта non-extractable ключа
                     const archiveMsgKey = await deriveArchiveMsgKey(localKeys.masterArchiveKey, msgKey);
                     const selfEncResult = await encryptAESGCM(archiveMsgKey, paddedPlaintext);
 
@@ -1512,7 +1666,7 @@
         });
 
         /* ==========================================================================
-           RATCHET SESSION LOCAL SELF-HEALING (No Remote Messages Wipe)
+           RATCHET SESSION LOCAL SELF-HEALING
            ========================================================================== */
         document.getElementById("btn-self-healing").onclick = async () => {
             if (!currentChatRecipient) return;
@@ -1527,7 +1681,7 @@
         };
 
         /* ==========================================================================
-           ACTIVE CONVERSATIONS
+           ACTIVE CONVERSATIONS LIST (CHARAT(0) AVATAR FIX)
            ========================================================================== */
         function loadActiveConversationsList() {
             const listRef = ref(db, `users/${currentUser.uid}/active_chats`);
@@ -1545,15 +1699,23 @@
                     if (profileSnap.exists()) {
                         const partner = profileSnap.val();
                         const item = document.createElement('div');
-                        item.className = "flex items-center space-x-3 p-3 hover:bg-slate-800/50 cursor-pointer transition-all border-b border-slate-800/30";
+                        item.className = "flex items-center space-x-3 p-3 hover:bg-slate-800/40 cursor-pointer transition-all border-b border-slate-800/20";
                         if (currentChatRecipient && currentChatRecipient.uid === partner.uid) {
-                            item.className += " bg-slate-800 border-l-4 border-emerald-500";
+                            item.className += " bg-slate-800/60 border-l-4 border-emerald-500";
                         }
+                        
+                        let partnerAvatarMarkup = "";
+                        if (partner.avatarB64) {
+                            partnerAvatarMarkup = `<img src="${partner.avatarB64}" class="w-10 h-10 rounded-full object-cover shadow-md">`;
+                        } else {
+                            partnerAvatarMarkup = `<div class="w-10 h-10 rounded-full bg-gradient-to-tr ${getHashGradient(partner.username)} text-white flex items-center justify-center font-bold text-xs uppercase shadow-md">${getInitials(partner.username)}</div>`;
+                        }
+
                         item.innerHTML = `
-                            <div class="w-9 h-9 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs uppercase border border-slate-700">${partner.username.charAt(0)}</div>
+                            ${partnerAvatarMarkup}
                             <div class="overflow-hidden flex-1">
-                                <h4 class="font-medium text-xs text-slate-200 truncate">${partner.username}</h4>
-                                <p class="text-[10px] text-slate-400 truncate">${partner.email}</p>
+                                <h4 class="font-bold text-xs text-slate-200 truncate">${partner.username}</h4>
+                                <p class="text-[10px] text-emerald-400 font-semibold truncate uppercase tracking-wider">M.E.O.W. Active Session</p>
                             </div>
                         `;
                         item.onclick = () => startChatWith(partner);
@@ -1565,22 +1727,26 @@
         }
 
         /* ==========================================================================
-           SEARCH WITH EMAIL VALIDATION
+           TELEGRAM-STYLE DIRECT LOOKUP SEARCH (ZERO RULE INDEXES REQUIREMENT)
            ========================================================================== */
         const searchForm = document.getElementById('search-form');
         const searchResult = document.getElementById('search-result');
 
         searchForm.onsubmit = async (e) => {
             e.preventDefault();
-            const searchEmail = document.getElementById('search-email').value.trim().toLowerCase();
+            let searchHandle = document.getElementById('search-email').value.trim().replace(/\s+/g, "").toLowerCase();
             
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(searchEmail)) {
-                showSearchStatus("Невалидный формат email!", "error");
+            if (searchHandle.startsWith("@")) {
+                searchHandle = searchHandle.substring(1);
+            }
+
+            if (searchHandle.length < 3) {
+                showSearchStatus("Юзернейм слишком короткий!", "error");
                 return;
             }
 
-            if (searchEmail === currentUser.email) {
+            const cleanCurrentUserHandle = document.getElementById('user-username').innerText.replace("@", "").toLowerCase();
+            if (searchHandle === cleanCurrentUserHandle) {
                 showSearchStatus("Поиск самого себя заблокирован!", "error");
                 return;
             }
@@ -1588,15 +1754,13 @@
             showSearchStatus("Поиск в сети...", "info");
 
             try {
-                const usersRef = ref(db, 'users');
-                const userQuery = query(usersRef, orderByChild('email'), equalTo(searchEmail));
-                const snapshot = await get(userQuery);
+                const usernameSnap = await get(ref(db, `usernames/${searchHandle}`));
+                if (usernameSnap.exists()) {
+                    const partnerUid = usernameSnap.val();
+                    const profileSnap = await get(ref(db, `users/${partnerUid}`));
 
-                if (snapshot.exists()) {
-                    let targetUser = null;
-                    snapshot.forEach((child) => { targetUser = child.val(); });
-
-                    if (targetUser && targetUser.spk_ecdh_pub && targetUser.id_ecdsa_pub) {
+                    if (profileSnap.exists()) {
+                        const targetUser = profileSnap.val();
                         showSearchStatus(`Пользователь ${targetUser.username} найден!`, "success");
                         setTimeout(() => {
                             startChatWith(targetUser);
@@ -1604,10 +1768,10 @@
                             searchResult.classList.add('hidden');
                         }, 800);
                     } else {
-                        showSearchStatus("Собеседник еще не настроил ключи E2EE!", "error");
+                        showSearchStatus("Ошибка при получении профиля собеседника!", "error");
                     }
                 } else {
-                    showSearchStatus("Пользователь не найден!", "error");
+                    showSearchStatus("Пользователь с таким юзернеймом не найден!", "error");
                 }
             } catch (err) {
                 showSearchStatus("Ошибка сети: " + err.message, "error");
@@ -1634,13 +1798,25 @@
             
             const email = document.getElementById('auth-email').value.trim();
             const password = document.getElementById('auth-password').value;
-            const username = document.getElementById('auth-username').value.trim().replace(/[\u200B-\u200D\uFEFF]/g, "") || email.split('@')[0];
+            
+            let rawUsername = document.getElementById('auth-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+            if (rawUsername && rawUsername.startsWith("@")) {
+                rawUsername = rawUsername.substring(1);
+            }
+            
             const backupPass = document.getElementById('auth-passphrase').value;
 
-            if (!isLogin && backupPass.length < 12) {
-                authError.innerText = "Пароль бэкапа ключей должен содержать минимум 12 символов!";
-                authError.classList.remove('hidden');
-                return;
+            if (!isLogin) {
+                if (rawUsername.length < 3) {
+                    authError.innerText = "Юзернейм должен содержать минимум 3 символа!";
+                    authError.classList.remove('hidden');
+                    return;
+                }
+                if (backupPass.length < 12) {
+                    authError.innerText = "Пароль бэкапа ключей должен содержать минимум 12 символов!";
+                    authError.classList.remove('hidden');
+                    return;
+                }
             }
 
             showLoading(true, isLogin ? "Вход в аккаунт..." : "Регистрация аккаунта...");
@@ -1649,15 +1825,23 @@
                 if (isLogin) {
                     await signInWithEmailAndPassword(auth, email, password);
                 } else {
-                    registrationPassphrase = backupPass; // Сохраняем пароль бэкапа во временной переменной
+                    const usernameCheck = await get(ref(db, `usernames/${rawUsername}`));
+                    if (usernameCheck.exists()) {
+                        throw new Error("Этот юзернейм уже занят другим пользователем!");
+                    }
+
+                    registrationPassphrase = backupPass;
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
 
-                    // Создаем базовый профиль
-                    await set(ref(db, `users/${user.uid}`), {
-                        uid: user.uid,
-                        email: email.toLowerCase(),
-                        username: username
+                    await update(ref(db), {
+                        [`usernames/${rawUsername}`]: user.uid,
+                        [`users/${user.uid}`]: {
+                            uid: user.uid,
+                            email: email.toLowerCase(),
+                            username: "@" + rawUsername,
+                            avatarB64: registrationAvatarB64 || null
+                        }
                     });
                 }
             } catch (err) {
@@ -1681,23 +1865,26 @@
                     const userProfile = snapshot.val();
 
                     document.getElementById('user-username').innerText = userProfile.username;
-                    document.getElementById('user-email').innerText = userProfile.email;
-                    document.getElementById('user-avatar').innerText = userProfile.username.charAt(0).toUpperCase();
+                    
+                    const avatarElement = document.getElementById('user-avatar');
+                    if (userProfile.avatarB64) {
+                        avatarElement.innerHTML = `<img src="${userProfile.avatarB64}" class="w-full h-full object-cover">`;
+                    } else {
+                        avatarElement.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white bg-gradient-to-tr ${getHashGradient(userProfile.username)} shadow-md uppercase shrink-0`;
+                        avatarElement.innerText = getInitials(userProfile.username);
+                    }
 
                     const dbIdEcdsaPriv = await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv");
 
                     if (registrationPassphrase) {
-                        // Регистрация: генерируем ключи, сохраняем в IndexedDB и создаем бэкап
                         await generateAndSaveNewKeys(user.uid, registrationPassphrase, userProfile);
                         registrationPassphrase = null;
                     } else if (!dbIdEcdsaPriv) {
-                        // Вход на новом устройстве (IndexedDB пуст)
                         showLoading(false);
                         showKeyWarning();
                         showScreen('main-screen');
                         return;
                     } else {
-                        // Обычный вход (ключи уже локально в IndexedDB)
                         await initializeLocalKeys(user.uid);
                     }
 
@@ -1767,22 +1954,19 @@
             showLoading(true, "Генерация безопасной экспортной копии...");
 
             try {
-                // Извлекаем ключи из IndexedDB напрямую, экспортируем в JSON
                 const dbIdEcdsaPriv = await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv");
                 const dbIdExchangePriv = await dbGet(STORES.SECURE_KEYS, "id_exchange_priv");
-                const dbMasterArchiveKey = await dbGet(STORES.SECURE_KEYS, "master_archive_key");
+                const dbMasterArchiveSeed = await dbGet(STORES.SECURE_KEYS, "master_archive_seed");
 
                 const idEcdsaJWK = await window.crypto.subtle.exportKey("jwk", dbIdEcdsaPriv);
                 const idExchangeJWK = await window.crypto.subtle.exportKey("jwk", dbIdExchangePriv);
-                
-                // Т.к. masterArchiveKey имеет extractable: false, мы вытягиваем исходный seed (или храним локальный архив)
-                // Для бэкапа пересоздаем или экспортируем JWK (так как это симметричный мастер ключ)
-                const backupRawKey = window.crypto.getRandomValues(new Uint8Array(32));
 
                 const keysPayload = JSON.stringify({ 
                     idEcdsaJWK, 
                     idExchangeJWK, 
-                    archiveKey: bufferToBase64(backupRawKey) 
+                    idEcdsaPubB64: localKeys.idEcdsaPubB64,
+                    idExchangePubB64: localKeys.idExchangePubB64,
+                    archiveKey: bufferToBase64(dbMasterArchiveSeed) 
                 });
 
                 const salt = window.crypto.getRandomValues(new Uint8Array(16));
@@ -1800,7 +1984,7 @@
 
                 document.getElementById('backup-output-text').value = backupStr;
                 document.getElementById('backup-output-container').classList.remove('hidden');
-                alert("Резервная копия успешно создана и сохранена!");
+                alert("Резервная копия успешно создана!");
             } catch (err) {
                 alert("Сбой экспорта: " + err.message);
             } finally {
@@ -1808,6 +1992,7 @@
             }
         };
 
+        // FULLY REWRITTEN IMPORT BACKUP FLOW (Fixes Restored Keys Bug)
         document.getElementById('btn-execute-import').onclick = async () => {
             const backupBlobB64 = document.getElementById('import-backup-blob').value.trim();
             const password = document.getElementById('import-backup-password').value;
@@ -1828,15 +2013,27 @@
                 
                 const keys = JSON.parse(decryptedStr);
                 
-                const idEcdsa = await window.crypto.subtle.importKey(
-                    "jwk", keys.idEcdsaJWK, { name: "ECDSA", curve: "P-256" }, true, ["sign"]
+                const idEcdsaPriv = await window.crypto.subtle.importKey(
+                    "jwk", keys.idEcdsaJWK, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
                 );
-                const idExchange = await window.crypto.subtle.importKey(
-                    "jwk", keys.idExchangeJWK, { name: "ECDH", curve: "P-256" }, true, ["deriveBits", "deriveKey"]
+                const idExchangePriv = await window.crypto.subtle.importKey(
+                    "jwk", keys.idExchangeJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
                 );
-                const archiveKey = base64ToBuffer(keys.archiveKey);
+                
+                const masterArchiveSeed = base64ToBuffer(keys.archiveKey);
+                const masterArchiveKey = await window.crypto.subtle.importKey(
+                    "raw", masterArchiveSeed, "HKDF", false, ["deriveKey", "deriveBits"]
+                );
 
-                await initializeLocalKeys(currentUser.uid, { idEcdsa, idExchange, archiveKey });
+                // Передача всех восстановленных сущностей в инициализатор
+                await initializeLocalKeys(currentUser.uid, {
+                    idEcdsaPriv,
+                    idExchangePriv,
+                    idEcdsaPubB64: keys.idEcdsaPubB64,
+                    idExchangePubB64: keys.idExchangePubB64,
+                    masterArchiveKey,
+                    masterArchiveSeed
+                });
                 
                 localStorage.setItem(`backup_${currentUser.uid}`, backupBlobB64);
 
@@ -1851,6 +2048,29 @@
                 showLoading(false);
             }
         };
+
+        async function derivePBKDF2WrappingKey(password, salt) {
+            const encoder = new TextEncoder();
+            const baseKey = await window.crypto.subtle.importKey(
+                "raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]
+            );
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: 150000,
+                    hash: "SHA-256"
+                },
+                baseKey,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        async function verifyPrekeySignature(partnerIdentityPubECDSA, spk_ecdh_pub, spk_signature) {
+            return await verifyPayloadSignature(partnerIdentityPubECDSA, spk_ecdh_pub, spk_signature);
+        }
 
         document.getElementById('warn-btn-generate').onclick = async () => {
             if (confirm("ВНИМАНИЕ: Создание новых ключей сотрет локальный контекст. Прошлые переписки станут недоступны без старого бэкапа.")) {
@@ -1914,24 +2134,27 @@
         const toggleRegister = document.getElementById('toggle-register');
         const usernameField = document.getElementById('username-field');
         const passphraseField = document.getElementById('passphrase-field');
+        const avatarUploadField = document.getElementById('avatar-upload-field');
         const submitBtn = document.getElementById('auth-submit-btn');
 
         toggleLogin.onclick = () => {
             isLogin = true;
             usernameField.classList.add('hidden');
             passphraseField.classList.add('hidden');
+            avatarUploadField.classList.add('hidden');
             submitBtn.innerText = "Войти";
-            toggleLogin.className = "flex-1 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white transition-all";
-            toggleRegister.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-slate-200 transition-all";
+            toggleLogin.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-md transition-all";
+            toggleRegister.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
         };
 
         toggleRegister.onclick = () => {
             isLogin = false;
             usernameField.classList.remove('hidden');
             passphraseField.classList.remove('hidden');
+            avatarUploadField.classList.remove('hidden');
             submitBtn.innerText = "Создать аккаунт";
-            toggleRegister.className = "flex-1 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white transition-all";
-            toggleLogin.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-slate-200 transition-all";
+            toggleRegister.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-md transition-all";
+            toggleLogin.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
         };
     </script>
 </body>
