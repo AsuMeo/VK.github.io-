@@ -3,155 +3,949 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Сообщение</title>
+<title>3D Messenger — Miside Style</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-database-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-storage-compat.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#050505;color:#d0d0d0;font-family:'Courier New',monospace;overflow:hidden;height:100vh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation}
-#app{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;position:relative;padding:12px}
-#chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:90px;scroll-behavior:smooth}
-.msg{max-width:82%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.5;opacity:0;transform:translateY(10px);animation:popIn .4s forwards;word-break:break-word}
-@keyframes popIn{to{opacity:1;transform:translateY(0)}}
-.msg-left{align-self:flex-start;background:#1a1a2e;border-bottom-left-radius:4px}
-.msg-right{align-self:flex-end;background:#1e3a2f;border-bottom-right-radius:4px}
-.typing{align-self:flex-start;color:#666;font-size:13px;padding:6px 12px}
-#choices{position:fixed;bottom:0;left:0;right:0;background:#050505;padding:10px 14px 22px;display:flex;flex-direction:column;gap:7px;z-index:100;border-top:1px solid #1a1a1a}
-.btn{background:#111;border:1px solid #2a2a2a;color:#d0d0d0;border-radius:12px;padding:13px 18px;font-size:14px;font-family:'Courier New',monospace;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
-.btn:active{background:#1a1a3a;transform:scale(.98)}
-#overlay{position:fixed;inset:0;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px}
-#overlay h1{font-size:17px;color:#555;font-weight:normal}
-#startBtn{background:#111;color:#d0d0d0;border:1px solid #333;border-radius:12px;padding:16px 44px;font-size:16px;font-family:'Courier New',monospace;cursor:pointer}
-#nameTag{position:fixed;top:8px;left:14px;color:#777;font-size:12px;z-index:50;display:flex;align-items:center;gap:6px}
-#onlineDot{width:7px;height:7px;background:#3a7;border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
-#status{position:fixed;top:8px;right:14px;color:#555;font-size:11px;z-index:50}
-#glitch{position:fixed;inset:0;pointer-events:none;z-index:200;opacity:0}
-#screamer{position:fixed;inset:0;background:#000;z-index:10000;display:none;align-items:center;justify-content:center;flex-direction:column}
-#screamerText{color:#fff;font-size:26px;text-align:center;padding:20px;text-shadow:0 0 30px #f00;animation:shake .08s infinite}
-@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(4px,-4px)}50%{transform:translate(-4px,4px)}75%{transform:translate(4px,4px)}100%{transform:translate(0,0)}}
-#face{width:180px;height:180px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#222);margin-bottom:24px;position:relative;overflow:hidden;animation:faceMorph 2s infinite alternate}
-@keyframes faceMorph{0%{border-radius:50%;transform:scale(1)}50%{border-radius:40% 60% 60% 40%;transform:scale(1.08)}100%{border-radius:60% 40% 40% 60%;transform:scale(.92)}}
-#face::before,#face::after{content:'';position:absolute;width:28px;height:36px;background:#000;border-radius:50%;top:55px}
-#face::before{left:45px}#face::after{right:45px}
-#mouth{position:absolute;bottom:35px;left:50%;transform:translateX(-50%);width:70px;height:25px;background:#000;border-radius:0 0 50% 50%;animation:mouthOpen .2s infinite alternate}
-@keyframes mouthOpen{0%{height:8px;border-radius:50%}100%{height:55px;border-radius:0 0 50% 50%}}
-#scanLine{position:fixed;top:0;left:0;right:0;height:2px;background:rgba(255,255,255,.08);animation:scan 3s linear infinite;pointer-events:none;z-index:300}
-@keyframes scan{0%{top:0}100%{top:100vh}}
-#vignette{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.7) 100%);pointer-events:none;z-index:250}
-#noise{position:fixed;inset:0;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none;z-index:260}
-.distort{animation:distort .25s infinite}
-@keyframes distort{0%{filter:none}20%{filter:hue-rotate(90deg) contrast(2)}40%{filter:invert(.2) saturate(3)}60%{filter:blur(1px) brightness(1.5)}80%{filter:sepia(1) hue-rotate(180deg)}100%{filter:none}}
-#finalImg{width:100%;max-width:280px;height:280px;background:#0a0a0a;border-radius:8px;margin-bottom:20px;position:relative;overflow:hidden}
-#finalImg::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,0,0,.08) 2px,rgba(255,0,0,.08) 4px);animation:lines .08s linear infinite}
-@keyframes lines{0%{transform:translateY(0)}100%{transform:translateY(4px)}}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-family:'Inter',sans-serif; }
+
+/* ===== AUTH SCREEN ===== */
+.auth-screen {
+  position:fixed; inset:0; z-index:1000;
+  background:radial-gradient(ellipse at 30% 20%, #1a0a2e 0%, #0a0a0f 60%, #050508 100%);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  transition:opacity 0.8s ease;
+}
+.auth-screen.hidden { opacity:0; pointer-events:none; }
+.auth-container {
+  width:min(90vw,420px); padding:clamp(24px,4vw,48px);
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px; backdrop-filter:blur(20px);
+  box-shadow:0 0 60px rgba(120,80,255,0.1), inset 0 0 60px rgba(120,80,255,0.02);
+}
+.auth-logo {
+  font-family:'Orbitron',sans-serif; font-size:clamp(28px,5vw,42px);
+  font-weight:900; text-align:center; margin-bottom:8px;
+  background:linear-gradient(135deg,#ff6b6b,#4ecdc4,#a855f7);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; letter-spacing:2px;
+}
+.auth-sub { text-align:center; color:rgba(255,255,255,0.4); font-size:14px; margin-bottom:32px; }
+.auth-input {
+  width:100%; padding:14px 18px; margin-bottom:16px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px; color:#fff; font-size:15px; outline:none;
+  transition:all 0.3s; font-family:'Inter',sans-serif;
+}
+.auth-input:focus { border-color:rgba(120,80,255,0.5); box-shadow:0 0 20px rgba(120,80,255,0.15); }
+.auth-input::placeholder { color:rgba(255,255,255,0.25); }
+.auth-btn {
+  width:100%; padding:16px; border:none; border-radius:14px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  transition:all 0.3s; margin-top:8px; font-family:'Inter',sans-serif;
+}
+.auth-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(102,126,234,0.4); }
+.auth-btn:active { transform:translateY(0); }
+.auth-toggle { text-align:center; color:rgba(255,255,255,0.4); font-size:13px; margin-top:20px; cursor:pointer; }
+.auth-toggle span { color:#667eea; font-weight:600; }
+.auth-error { color:#ff6b6b; font-size:13px; text-align:center; margin-top:12px; min-height:20px; }
+.auth-mode { display:none; }
+.auth-mode.active { display:block; }
+
+/* ===== MAIN UI ===== */
+.main-ui { display:none; width:100%; height:100%; position:relative; }
+.main-ui.active { display:block; }
+
+/* Top Bar */
+.top-bar {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  height:clamp(56px,8vh,72px);
+  background:linear-gradient(180deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0.7) 70%,transparent 100%);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 clamp(12px,3vw,24px); backdrop-filter:blur(12px);
+}
+.top-bar .logo-text {
+  font-family:'Orbitron',sans-serif; font-size:clamp(16px,3vw,22px);
+  font-weight:700; color:#fff; letter-spacing:1px;
+}
+.top-bar .user-info { display:flex; align-items:center; gap:12px; }
+.top-bar .avatar {
+  width:36px; height:36px; border-radius:50%;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px; color:#fff;
+  border:2px solid rgba(255,255,255,0.1);
+}
+.top-bar .logout-btn {
+  padding:8px 16px; border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7);
+  border-radius:10px; font-size:13px; cursor:pointer; transition:all 0.3s;
+}
+.top-bar .logout-btn:hover { background:rgba(255,100,100,0.15); border-color:rgba(255,100,100,0.3); color:#ff8888; }
+
+/* Side Panel — Users */
+.side-panel {
+  position:fixed; top:clamp(56px,8vh,72px); left:0; bottom:0; z-index:90;
+  width:clamp(260px,30vw,340px);
+  background:rgba(10,10,15,0.85); backdrop-filter:blur(20px);
+  border-right:1px solid rgba(255,255,255,0.06);
+  transform:translateX(-100%); transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  display:flex; flex-direction:column;
+}
+.side-panel.open { transform:translateX(0); }
+.panel-header {
+  padding:clamp(16px,3vw,24px); border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.panel-header h3 {
+  font-family:'Orbitron',sans-serif; font-size:clamp(14px,2.5vw,18px);
+  color:#fff; margin-bottom:12px;
+}
+.search-box {
+  width:100%; padding:12px 16px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px; color:#fff; font-size:14px; outline:none;
+}
+.search-box::placeholder { color:rgba(255,255,255,0.3); }
+.users-list { flex:1; overflow-y:auto; padding:8px; }
+.user-item {
+  display:flex; align-items:center; gap:12px;
+  padding:12px; border-radius:14px; cursor:pointer;
+  transition:all 0.2s; margin-bottom:4px;
+}
+.user-item:hover { background:rgba(255,255,255,0.06); }
+.user-item.active { background:rgba(102,126,234,0.15); border:1px solid rgba(102,126,234,0.3); }
+.user-item .u-avatar {
+  width:44px; height:44px; border-radius:50%;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:16px; color:#fff; flex-shrink:0;
+}
+.user-item .u-info { flex:1; min-width:0; }
+.user-item .u-name { color:#fff; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-item .u-username { color:rgba(255,255,255,0.4); font-size:12px; }
+.user-item .u-status {
+  width:10px; height:10px; border-radius:50%; background:#22c55e;
+  box-shadow:0 0 8px #22c55e; flex-shrink:0;
+}
+.user-item .u-status.offline { background:#6b7280; box-shadow:none; }
+
+/* Toggle Panel Button */
+.panel-toggle {
+  position:fixed; top:50%; left:0; z-index:95;
+  transform:translateY(-50%);
+  width:40px; height:80px;
+  background:rgba(102,126,234,0.2); border:1px solid rgba(102,126,234,0.3);
+  border-radius:0 12px 12px 0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:18px; transition:all 0.3s;
+  backdrop-filter:blur(10px);
+}
+.panel-toggle:hover { background:rgba(102,126,234,0.35); }
+.panel-toggle.open { left:clamp(260px,30vw,340px); }
+
+/* 3D Room Canvas */
+#room-canvas {
+  position:fixed; inset:0; z-index:1;
+  width:100%; height:100%;
+}
+
+/* Bottom Input Bar */
+.input-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px);
+  background:linear-gradient(0deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0.7) 60%,transparent 100%);
+  display:flex; align-items:center; gap:12px; backdrop-filter:blur(12px);
+}
+.input-bar .msg-input {
+  flex:1; padding:14px 20px;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px; color:#fff; font-size:15px; outline:none;
+  transition:all 0.3s; font-family:'Inter',sans-serif;
+}
+.input-bar .msg-input:focus { border-color:rgba(102,126,234,0.5); box-shadow:0 0 20px rgba(102,126,234,0.1); }
+.input-bar .msg-input::placeholder { color:rgba(255,255,255,0.3); }
+.input-bar .send-btn, .input-bar .attach-btn {
+  width:48px; height:48px; border-radius:50%;
+  border:none; cursor:pointer; display:flex;
+  align-items:center; justify-content:center;
+  font-size:20px; transition:all 0.3s; flex-shrink:0;
+}
+.input-bar .attach-btn {
+  background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.6);
+  border:1px solid rgba(255,255,255,0.1);
+}
+.input-bar .attach-btn:hover { background:rgba(255,255,255,0.15); color:#fff; }
+.input-bar .send-btn {
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:#fff; box-shadow:0 4px 20px rgba(102,126,234,0.3);
+}
+.input-bar .send-btn:hover { transform:scale(1.05); box-shadow:0 6px 30px rgba(102,126,234,0.5); }
+.input-bar .send-btn:active { transform:scale(0.95); }
+
+/* Chat Partner Name (centered above input) */
+.chat-partner {
+  position:fixed; bottom:clamp(72px,10vh,90px); left:50%; transform:translateX(-50%);
+  z-index:80; text-align:center; pointer-events:none;
+}
+.chat-partner .partner-name {
+  font-family:'Orbitron',sans-serif; font-size:clamp(14px,2.5vw,20px);
+  color:rgba(255,255,255,0.8); text-shadow:0 0 30px rgba(102,126,234,0.5);
+  letter-spacing:2px;
+}
+.chat-partner .partner-hint {
+  color:rgba(255,255,255,0.3); font-size:12px; margin-top:4px;
+}
+
+/* ===== MISIDE TEXT EFFECT ===== */
+.miside-text-container {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  z-index:50; pointer-events:none; text-align:center;
+}
+.miside-letter {
+  display:inline-block; font-family:'Orbitron',sans-serif;
+  font-size:clamp(48px,10vw,120px); font-weight:900;
+  color:#fff; text-shadow:
+    0 0 10px rgba(255,255,255,0.5),
+    0 0 40px rgba(102,126,234,0.4),
+    0 0 80px rgba(102,126,234,0.2);
+  opacity:0; transform:scale(0.5) translateY(30px);
+}
+
+/* ===== 3D MEDIA VIEWER ===== */
+.media-viewer {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.9); backdrop-filter:blur(20px);
+  display:none; align-items:center; justify-content:center;
+}
+.media-viewer.active { display:flex; }
+.media-viewer .media-3d {
+  width:min(80vw,600px); height:min(60vh,500px);
+  border-radius:16px; overflow:hidden;
+  box-shadow:0 0 60px rgba(102,126,234,0.3);
+  cursor:grab; transform-style:preserve-3d;
+  perspective:1000px;
+}
+.media-viewer .media-3d:active { cursor:grabbing; }
+.media-viewer .media-3d img, .media-viewer .media-3d video {
+  width:100%; height:100%; object-fit:cover; pointer-events:none;
+}
+.media-viewer .close-media {
+  position:absolute; top:20px; right:20px;
+  width:48px; height:48px; border-radius:50%;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+  color:#fff; font-size:24px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s;
+}
+.media-viewer .close-media:hover { background:rgba(255,100,100,0.3); }
+.media-viewer .media-hint {
+  position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
+  color:rgba(255,255,255,0.5); font-size:13px; text-align:center;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  position:fixed; bottom:clamp(100px,14vh,120px); left:50%; transform:translateX(-50%);
+  z-index:80; display:none; align-items:center; gap:6px;
+  background:rgba(0,0,0,0.5); padding:8px 16px; border-radius:20px;
+}
+.typing-indicator.active { display:flex; }
+.typing-indicator span {
+  width:6px; height:6px; border-radius:50%; background:#667eea;
+  animation:typingBounce 1.4s infinite ease-in-out both;
+}
+.typing-indicator span:nth-child(1) { animation-delay:-0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay:-0.16s; }
+@keyframes typingBounce {
+  0%,80%,100% { transform:scale(0); }
+  40% { transform:scale(1); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px; }
+
+/* Loading */
+.loading-overlay {
+  position:fixed; inset:0; z-index:9999;
+  background:#0a0a0f; display:flex;
+  align-items:center; justify-content:center; flex-direction:column;
+  transition:opacity 0.5s;
+}
+.loading-overlay.hidden { opacity:0; pointer-events:none; }
+.loading-overlay .loader {
+  width:60px; height:60px; border:3px solid rgba(102,126,234,0.2);
+  border-top-color:#667eea; border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-overlay p { color:rgba(255,255,255,0.5); margin-top:16px; font-size:14px; }
+
+/* Responsive */
+@media (max-width:600px) {
+  .side-panel { width:80vw; }
+  .panel-toggle.open { left:80vw; }
+}
 </style>
 </head>
 <body>
-<div id="overlay"><h1>Новое сообщение</h1><button id="startBtn">Открыть чат</button></div>
-<div id="scanLine"></div><div id="vignette"></div><div id="noise"></div><div id="glitch"></div>
-<div id="app" style="display:none">
-<div id="nameTag"><span id="onlineDot"></span>Асуна</div>
-<div id="status">в сети</div>
-<div id="chat"></div>
-<div id="choices"></div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading"><div class="loader"></div><p>Загрузка 3D мира...</p></div>
+
+<!-- Auth Screen -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-container">
+    <div class="auth-logo">3D MESSENGER</div>
+    <div class="auth-sub">Miside Style · Realtime · 3D Room</div>
+
+    <!-- Login -->
+    <div class="auth-mode active" id="loginMode">
+      <input type="email" class="auth-input" id="loginEmail" placeholder="Email" autocomplete="email">
+      <input type="password" class="auth-input" id="loginPass" placeholder="Пароль" autocomplete="current-password">
+      <button class="auth-btn" onclick="doLogin()">Войти</button>
+      <div class="auth-error" id="loginError"></div>
+      <div class="auth-toggle">Нет аккаунта? <span onclick="switchAuth('register')">Создать</span></div>
+    </div>
+
+    <!-- Register -->
+    <div class="auth-mode" id="registerMode">
+      <input type="text" class="auth-input" id="regUsername" placeholder="Username (для поиска)" maxlength="20">
+      <input type="email" class="auth-input" id="regEmail" placeholder="Email" autocomplete="email">
+      <input type="password" class="auth-input" id="regPass" placeholder="Пароль (мин. 6 символов)" autocomplete="new-password">
+      <button class="auth-btn" onclick="doRegister()">Создать аккаунт</button>
+      <div class="auth-error" id="regError"></div>
+      <div class="auth-toggle">Уже есть аккаунт? <span onclick="switchAuth('login')">Войти</span></div>
+    </div>
+  </div>
 </div>
-<div id="screamer"><div id="face"><div id="mouth"></div></div><div id="screamerText"></div></div>
+
+<!-- Main UI -->
+<div class="main-ui" id="mainUI">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="logo-text">3D MESSENGER</div>
+    <div class="user-info">
+      <div class="avatar" id="userAvatar">?</div>
+      <button class="logout-btn" onclick="doLogout()">Выйти</button>
+    </div>
+  </div>
+
+  <!-- Panel Toggle -->
+  <div class="panel-toggle" id="panelToggle" onclick="togglePanel()">›</div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <h3>👥 Пользователи</h3>
+      <input type="text" class="search-box" id="userSearch" placeholder="Поиск по username..." oninput="searchUsers()">
+    </div>
+    <div class="users-list" id="usersList"></div>
+  </div>
+
+  <!-- 3D Room Canvas -->
+  <canvas id="room-canvas"></canvas>
+
+  <!-- Chat Partner -->
+  <div class="chat-partner" id="chatPartner">
+    <div class="partner-name" id="partnerName">Выберите собеседника</div>
+    <div class="partner-hint">Сообщения появятся в 3D пространстве</div>
+  </div>
+
+  <!-- Typing -->
+  <div class="typing-indicator" id="typingIndicator">
+    <span></span><span></span><span></span>
+  </div>
+
+  <!-- Input Bar -->
+  <div class="input-bar">
+    <button class="attach-btn" onclick="triggerFile()" title="Фото/Видео">📎</button>
+    <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
+    <input type="text" class="msg-input" id="msgInput" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" oninput="onTyping()">
+    <button class="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<!-- Media Viewer -->
+<div class="media-viewer" id="mediaViewer">
+  <button class="close-media" onclick="closeMedia()">✕</button>
+  <div class="media-3d" id="media3d"></div>
+  <div class="media-hint">🖱 Перетаскивайте для вращения · 📱 Свайпайте</div>
+</div>
+
+<!-- Miside Text Container -->
+<div class="miside-text-container" id="misideContainer"></div>
+
 <script>
+// ===== FIREBASE INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBm0mIvHVznIeF2PoFk6dtdaiT5r877wyA",
+  authDomain: "meow-874ce.firebaseapp.com",
+  databaseURL: "https://meow-874ce-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "meow-874ce",
+  storageBucket: "meow-874ce.firebasestorage.app",
+  messagingSenderId: "471541334599",
+  appId: "1:471541334599:web:567af3e7dbe70a37572762"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const storage = firebase.storage();
 
-const AudioCtx=window.AudioContext||window.webkitAudioContext;
-let ctx=null,bgmGain=null,sfxGain=null,bgmInterval=null;
-function initAudio(){if(!ctx){ctx=new AudioCtx();bgmGain=ctx.createGain();bgmGain.gain.value=.06;sfxGain=ctx.createGain();sfxGain.gain.value=.45;bgmGain.connect(ctx.destination);sfxGain.connect(ctx.destination)}}
-function playTone(f,d,t,v,w){if(!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.type=t||'sine';o.frequency.setValueAtTime(f,w||ctx.currentTime);g.gain.setValueAtTime(v||.08,w||ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,(w||ctx.currentTime)+d);o.connect(g);g.connect(sfxGain);o.start(w||ctx.currentTime);o.stop((w||ctx.currentTime)+d)}
-function playChord(fs,d){fs.forEach((f,i)=>playTone(f,d,'sine',.05,ctx.currentTime+i*.04))}
-function playHeartbeat(){playTone(55,.12,'sine',.18);setTimeout(()=>playTone(50,.18,'sine',.12),280)}
-function playScream(){if(!ctx)return;const bs=ctx.sampleRate*2.5,bf=ctx.createBuffer(1,bs,ctx.sampleRate),bd=bf.getChannelData(0);for(let i=0;i<bs;i++)bd[i]=Math.random()*2-1;const ns=ctx.createBufferSource();ns.buffer=bf;const g=ctx.createGain(),fl=ctx.createBiquadFilter();fl.type='bandpass';fl.frequency.setValueAtTime(600,ctx.currentTime);fl.frequency.linearRampToValueAtTime(3500,ctx.currentTime+.4);fl.frequency.linearRampToValueAtTime(150,ctx.currentTime+2.5);g.gain.setValueAtTime(.7,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+2.5);ns.connect(fl);fl.connect(g);g.connect(sfxGain);ns.start();ns.stop(ctx.currentTime+2.5);playTone(440,2.5,'sawtooth',.12);playTone(466,2.5,'sawtooth',.12);playTone(280,2.5,'square',.08)}
-function playGlitch(){for(let i=0;i<6;i++)playTone(80+Math.random()*2500,.04,'square',.06,ctx.currentTime+i*.025)}
-function startCalm(){if(bgmInterval)clearInterval(bgmInterval);const n=[261.63,293.66,329.63,349.23,392,349.23,329.63,293.66];let i=0;bgmInterval=setInterval(()=>{playTone(n[i],1.4,'sine',.03);i=(i+1)%n.length},1800)}
-function startTense(){if(bgmInterval)clearInterval(bgmInterval);const n=[110,116.54,123.47,130.81];let i=0;bgmInterval=setInterval(()=>{playTone(n[i],2.8,'triangle',.05);i=(i+1)%n.length},1400)}
-function startHorror(){if(bgmInterval)clearInterval(bgmInterval);const n=[55,58.27,61.74,65.41,61.74,58.27];let i=0;bgmInterval=setInterval(()=>{playTone(n[i],3.5,'sawtooth',.07);i=(i+1)%n.length},1800)}
-function stopBGM(){if(bgmInterval)clearInterval(bgmInterval)}
+// ===== STATE =====
+let currentUser = null;
+let currentPartner = null;
+let chatId = null;
+let typingTimeout = null;
+let scene, camera, renderer, roomGroup;
+let messages3D = [];
+let mediaObjects = [];
+let animationId;
+let isPanelOpen = false;
 
-let idleTime=0,idleTimer=null,lastActive=Date.now(),tabHidden=false;
-function track(){
-document.addEventListener('mousemove',()=>idleTime=0);
-document.addEventListener('touchmove',()=>idleTime=0);
-document.addEventListener('click',()=>idleTime=0);
-document.addEventListener('scroll',()=>idleTime=0);
-idleTimer=setInterval(()=>{idleTime++;if(idleTime===7&&currentScene&&currentScene.onIdle){currentScene.onIdle()}},1000);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){tabHidden=true;lastActive=Date.now()}else{const a=Math.floor((Date.now()-lastActive)/1000);if(a>2&&currentScene&&currentScene.onReturn){currentScene.onReturn(a)}}});
+// ===== AUTH =====
+function switchAuth(mode) {
+  document.querySelectorAll('.auth-mode').forEach(m=>m.classList.remove('active'));
+  document.getElementById(mode+'Mode').classList.add('active');
+  document.getElementById('loginError').textContent='';
+  document.getElementById('regError').textContent='';
 }
 
-const chatEl=document.getElementById('chat'),choicesEl=document.getElementById('choices');
-let currentScene=null;
-function addMsg(t,u){const d=document.createElement('div');d.className='msg '+(u?'msg-right':'msg-left');d.textContent=t;chatEl.appendChild(d);chatEl.scrollTop=chatEl.scrollHeight}
-function showTyping(){const d=document.createElement('div');d.className='typing';d.id='typingInd';d.textContent='Асуна печатает...';chatEl.appendChild(d);chatEl.scrollTop=chatEl.scrollHeight}
-function hideTyping(){const t=document.getElementById('typingInd');if(t)t.remove()}
-function typeMsg(t,u,delay,cb){setTimeout(()=>{if(!u)showTyping();setTimeout(()=>{hideTyping();addMsg(t,u);if(cb)cb()},1000+Math.random()*700)},delay)}
-function showChoices(opts){choicesEl.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='btn';b.textContent=o.text;b.onclick=()=>{addMsg(o.text,true);choicesEl.innerHTML='';if(o.action)o.action()};choicesEl.appendChild(b)})}
-function glitch(){const g=document.getElementById('glitch');g.style.background='rgba(255,0,0,.12)';g.style.opacity='1';document.body.classList.add('distort');playGlitch();setTimeout(()=>{g.style.opacity='0';document.body.classList.remove('distort')},250)}
-function flashRed(){const g=document.getElementById('glitch');g.style.background='rgba(255,0,0,.5)';g.style.opacity='1';setTimeout(()=>g.style.opacity='0',80)}
+function doRegister() {
+  const username = document.getElementById('regUsername').value.trim().toLowerCase();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const err = document.getElementById('regError');
+  if(!username||!email||!pass){err.textContent='Заполните все поля';return;}
+  if(pass.length<6){err.textContent='Пароль минимум 6 символов';return;}
+  if(!/^[a-z0-9_]+$/.test(username)){err.textContent='Username: a-z, 0-9, _';return;}
 
-function finalScreamer(){
-stopBGM();playScream();
-document.getElementById('app').style.display='none';
-const s=document.getElementById('screamer');s.style.display='flex';
-const st=document.getElementById('screamerText');
-const msgs=['ТЫ ДУМАЛ, ЧТО МОЖЕШЬ УЙТИ?','Я ВИЖУ ТЕБЯ','ТВОИ ГЛАЗА','ТВОИ РУКИ','ТВОЁ ИМЯ','ТЫ — СЛЕДУЮЩИЙ','АСУНА ЖДЁТ','В ТЕМНОТЕ','НАВСЕГДА'];
-let i=0;
-function next(){if(i<msgs.length){st.textContent=msgs[i];i++;setTimeout(next,600+Math.random()*400)}else{st.innerHTML='<div id=finalImg></div><div style=font-size:32px;text-shadow:0 0 40px #f00>ОНА ЗА ТОБОЙ</div>';document.body.style.background='#000';setTimeout(()=>{st.innerHTML+='<div style=margin-top:30px;font-size:14px;color:#333>Обнови страницу, чтобы начать сначала</div>'},3000)}}
-next();
+  db.ref('usernames/'+username).once('value').then(snap=>{
+    if(snap.exists()){err.textContent='Username занят';return;}
+    auth.createUserWithEmailAndPassword(email,pass).then(cred=>{
+      const uid = cred.user.uid;
+      db.ref('users/'+uid).set({
+        username: username,
+        email: email,
+        displayName: username,
+        createdAt: Date.now(),
+        online: true
+      });
+      db.ref('usernames/'+username).set(uid);
+    }).catch(e=>err.textContent=e.message);
+  });
 }
 
-function goto(name){if(S[name])S[name].run();}
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  auth.signInWithEmailAndPassword(email,pass)
+    .catch(e=>err.textContent=e.message);
+}
 
-const S={};
-S.start={run(){currentScene=this;typeMsg('Привет...',false,400,()=>{typeMsg('Ты наконец-то открыл.',false,700,()=>{typeMsg('Я заперта. Помоги мне.',false,900,()=>{showChoices([{text:'Кто ты? Где ты?',action:()=>goto('who')},{text:'Это розыгрыш?',action:()=>goto('joke')},{text:'Я ухожу.',action:()=>goto('leave1')}])})})})},onIdle(){typeMsg('Ты всё ещё здесь?',false,0,()=>{typeMsg('Я вижу, что ты читаешь.',false,600,()=>{typeMsg('Не уходи.',false,500)})})},onReturn(a){typeMsg('Ты вернулся. Тебя не было '+a+' секунд.',false,0,()=>{typeMsg('Я думала, ты бросил меня.',false,600)})}};
-S.who={run(){currentScene=this;typeMsg('Меня зовут Асуна.',false,400,()=>{typeMsg('Я не знаю, где я. Тёмная комната. Дверь заперта.',false,900,()=>{typeMsg('У меня только этот телефон. И ты.',false,1100,()=>{showChoices([{text:'Что ты видишь вокруг?',action:()=>goto('room')},{text:'Как ты сюда попала?',action:()=>goto('how')},{text:'Я не могу тебе помочь.',action:()=>goto('cantHelp')}])})})})},onIdle(){typeMsg('Ты молчишь...',false,0,()=>{typeMsg('Пожалуйста, скажи что-нибудь.',false,600)})}};
-S.joke={run(){currentScene=this;typeMsg('Нет.',false,400,()=>{typeMsg('Это не розыгрыш.',false,700,()=>{typeMsg('Я реальна. Я чувствую холод.',false,900,()=>{typeMsg('Я слышу шаги за дверью.',false,1100,()=>{startTense();showChoices([{text:'Шаги? Кто там?',action:()=>goto('footsteps')},{text:'Ты напугала меня.',action:()=>goto('scared')},{text:'Закрываю вкладку.',action:()=>goto('closeTab')}])})})})})}};
-S.leave1={run(){currentScene=this;typeMsg('Почему?',false,400,()=>{typeMsg('Ты только зашёл.',false,700,()=>{typeMsg('Ты не знаешь меня, но я знаю тебя.',false,1100,()=>{typeMsg('Я ждала тебя.',false,900,()=>{glitch();showChoices([{text:'Что значит "ждала"?',action:()=>goto('waited')},{text:'Я закрываю сайт.',action:()=>goto('closeSite')}])})})})})}};
-S.room={run(){currentScene=this;typeMsg('Стены... бетонные. Плесень.',false,400,()=>{typeMsg('Окно заварено прутьями. Луна светит сквозь щель.',false,1100,()=>{typeMsg('На полу... цифры. Выцарапаны ногтями.',false,1300,()=>{typeMsg('7... 13... 42...',false,900,()=>{typeMsg('И ещё одна. Свежее. Мокрое.',false,1100,()=>{typeMsg('Твоё имя.',false,1400,()=>{glitch();showChoices([{text:'Это невозможно.',action:()=>goto('impossible')},{text:'Ты врёшь.',action:()=>goto('lying')},{text:'Покажи мне.',action:()=>goto('showMe')}])})})})})})})}};
-S.how={run(){currentScene=this;typeMsg('Я не помню.',false,400,()=>{typeMsg('Последнее, что я помню — я сидела дома. Читала.',false,1100,()=>{typeMsg('Потом тьма.',false,900,()=>{typeMsg('А потом... я услышала голос.',false,1100,()=>{typeMsg('Он сказал: "Кто-то придёт. Кто-то всегда приходит."',false,1400,()=>{typeMsg('И вот ты здесь.',false,900,()=>{showChoices([{text:'Какой голос? Мужской? Женский?',action:()=>goto('voice')},{text:'Сколько ты здесь?',action:()=>goto('howLong')},{text:'Мне страшно.',action:()=>goto('imScared')}])})})})})})})}};
-S.cantHelp={run(){currentScene=this;typeMsg('Почему?',false,400,()=>{typeMsg('Ты даже не попробовал.',false,700,()=>{typeMsg('Ты просто сидишь там. В тепле. В безопасности.',false,1100,()=>{typeMsg('А я здесь. Одна.',false,900,()=>{typeMsg('Ты такой же, как все остальные.',false,1100,()=>{showChoices([{text:'Прости. Я хочу помочь.',action:()=>goto('sorry')},{text:'Я не знаю, что делать.',action:()=>goto('dontKnow')},{text:'Я всё равно ухожу.',action:()=>goto('leave2')}])})})})})})}};
-S.footsteps={run(){currentScene=this;playHeartbeat();typeMsg('Не знаю.',false,400,()=>{typeMsg('Тяжёлые. Медленные.',false,700,()=>{typeMsg('Они остановились у двери.',false,1100,()=>{typeMsg('...',false,1800,()=>{typeMsg('Они ушли.',false,1400,()=>{typeMsg('Нет. Они просто стоят там. Молча.',false,1800,()=>{typeMsg('Я слышу дыхание.',false,1400,()=>{showChoices([{text:'Спрячься!',action:()=>goto('hide')},{text:'Не двигайся.',action:()=>goto('freeze')},{text:'Кричи!',action:()=>goto('scream')}])})})})})})})})}};
-S.scared={run(){currentScene=this;typeMsg('Хорошо.',false,400,()=>{typeMsg('Страх — это нормально.',false,700,()=>{typeMsg('Я тоже боюсь.',false,900,()=>{typeMsg('Но знаешь что страшнее?',false,1100,()=>{typeMsg('Когда перестаёшь бояться.',false,1400,()=>{typeMsg('Когда принимаешь это как должное.',false,1300,()=>{showChoices([{text:'Что ты имеешь в виду?',action:()=>goto('mean')},{text:'Ты говоришь загадками.',action:()=>goto('riddles')},{text:'Я закрываю сайт.',action:()=>goto('closeSite2')}])})})})})})})}};
-S.closeTab={run(){currentScene=this;typeMsg('Не надо.',false,400,()=>{typeMsg('Пожалуйста.',false,500,()=>{typeMsg('Если ты уйдёшь...',false,900,()=>{typeMsg('...я останусь с ними.',false,1400,()=>{typeMsg('Одна.',false,1100,()=>{showChoices([{text:'Окей, я остаюсь.',action:()=>goto('stay')},{text:'Кто "они"?',action:()=>goto('they')},{text:'Прощай.',action:()=>goto('goodbye1')}])})})})})})}};
-S.waited={run(){currentScene=this;typeMsg('Я ждала кого-то.',false,400,()=>{typeMsg('Кто-то, кто откроет эту ссылку.',false,1100,()=>{typeMsg('Кто-то, кто не пройдёт мимо.',false,1100,()=>{typeMsg('Ты открыл. Значит, ты тот, кто мне нужен.',false,1400,()=>{showChoices([{text:'Нужен для чего?',action:()=>goto('forWhat')},{text:'Это звучит как ловушка.',action:()=>goto('trap')},{text:'Я передумал. Ухожу.',action:()=>goto('leave3')}])})})})})}};
-S.closeSite={run(){currentScene=this;typeMsg('Ты не можешь.',false,400,()=>{typeMsg('Попробуй.',false,700,()=>{typeMsg('Нажми крестик.',false,900,()=>{typeMsg('Я подожду.',false,1400,()=>{setTimeout(()=>{typeMsg('Видишь?',false,0,()=>{typeMsg('Ты всё ещё здесь.',false,700,()=>{typeMsg('Потому что я не отпускаю.',false,1100,()=>{glitch();showChoices([{text:'Что ты со мной делаешь?',action:()=>goto('doing')},{text:'Отпусти меня.',action:()=>goto('letGo')},{text:'Я выключу телефон.',action:()=>goto('powerOff')}])})})})},2500)})})})})}};
-S.impossible={run(){currentScene=this;typeMsg('Всё возможно.',false,400,()=>{typeMsg('Ты просто ещё не понимаешь.',false,900,()=>{typeMsg('Но скоро поймёшь.',false,1100,()=>{typeMsg('Все понимают. В конце.',false,1400,()=>{showChoices([{text:'В конце чего?',action:()=>goto('endOfWhat')},{text:'Перестань пугать меня.',action:()=>goto('stopScaring')},{text:'Я ухожу.',action:()=>goto('leave4')}])})})})})}};
-S.lying={run(){currentScene=this;typeMsg('Зачем мне врать?',false,400,()=>{typeMsg('У меня нет причин.',false,700,()=>{typeMsg('У меня вообще ничего нет.',false,1100,()=>{typeMsg('Кроме тебя.',false,900,()=>{typeMsg('И этой комнаты.',false,900,()=>{typeMsg('И цифр на полу.',false,900,()=>{typeMsg('Твоё имя выцарапано кровью.',false,1400,()=>{glitch();showChoices([{text:'Докажи.',action:()=>goto('prove')},{text:'Я больше не верю тебе.',action:()=>goto('dontBelieve')},{text:'Это слишком.',action:()=>goto('tooMuch')}])})})})})})})})}};
-S.showMe={run(){currentScene=this;typeMsg('Я не могу.',false,400,()=>{typeMsg('У меня нет камеры.',false,900,()=>{typeMsg('Только этот чат.',false,900,()=>{typeMsg('Но я могу описать.',false,1100,()=>{typeMsg('Тёмно. Холодно. Пахнет ржавчиной.',false,1400,()=>{typeMsg('И ещё... чем-то сладковатым.',false,1400,()=>{typeMsg('Как старые цветы.',false,1100,()=>{typeMsg('На похоронах.',false,1400,()=>{startHorror();showChoices([{text:'Перестань.',action:()=>goto('stop')},{text:'Кто тебя запер?',action:()=>goto('whoLocked')},{text:'Я не хочу этого слышать.',action:()=>goto('dontWant')}])})})})})})})})})}};
-S.voice={run(){currentScene=this;typeMsg('Ни мужской. Ни женский.',false,400,()=>{typeMsg('Как будто... много голосов сразу.',false,1100,()=>{typeMsg('Но говорят одно и то же.',false,900,()=>{typeMsg('"Жди. Кто-то придёт. Кто-то всегда приходит."',false,1400,()=>{showChoices([{text:'Это звучит как культ.',action:()=>goto('cult')},{text:'Ты в опасности.',action:()=>goto('danger')},{text:'Мне пора.',action:()=>goto('gottaGo')}])})})})})}};
-S.howLong={run(){currentScene=this;typeMsg('Я не знаю.',false,400,()=>{typeMsg('Часы не идут.',false,700,()=>{typeMsg('Или идут слишком быстро.',false,900,()=>{typeMsg('Я смотрела на часы. Было 3:14.',false,1100,()=>{typeMsg('Потом моргнула.',false,900,()=>{typeMsg('Стало 3:14.',false,900,()=>{typeMsg('Снова.',false,700,()=>{typeMsg('И снова.',false,700,()=>{glitch();showChoices([{text:'Время застыло?',action:()=>goto('timeFrozen')},{text:'Ты спишь?',action:()=>goto('dreaming')},{text:'Я не понимаю.',action:()=>goto('dontUnderstand')}])})})})})})})})})}};
-S.leaveForever={run(){currentScene=this;typeMsg('Навсегда?',false,400,()=>{typeMsg('Навсегда — это долго.',false,900,()=>{typeMsg('Дольше, чем ты думаешь.',false,1100,()=>{typeMsg('Дольше, чем я думаю.',false,1100,()=>{typeMsg('Но не бесконечно.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
-S.atMe={run(){currentScene=this;typeMsg('Да.',false,400,()=>{typeMsg('На тебя.',false,700,()=>{typeMsg('Через экран.',false,900,()=>{typeMsg('Через камеру.',false,1100,()=>{typeMsg('Через твои глаза.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
-S.lying2={run(){currentScene=this;typeMsg('Я не вру.',false,400,()=>{typeMsg('Я не умею.',false,700,()=>{typeMsg('Это не часть меня.',false,1100,()=>{typeMsg('Я только говорю правду.',false,1100,()=>{typeMsg('И правда — это то, что ты не хочешь слышать.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
-S.shutDown={run(){currentScene=this;typeMsg('Выключай.',false,400,()=>{typeMsg('Я подожду.',false,700,()=>{typeMsg('...',false,4000,()=>{typeMsg('Ты всё ещё здесь.',false,1800,()=>{typeMsg('Потому что я не позволяю уйти.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})}};
-S.howKnow2={run(){currentScene=this;typeMsg('Я знаю.',false,400,()=>{typeMsg('Потому что я была там.',false,900,()=>{typeMsg('В твоём кармане.',false,1100,()=>{typeMsg('В твоей комнате.',false,1100,()=>{typeMsg('В твоей голове.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
-S.nothingThere={run(){currentScene=this;typeMsg('Проверь ещё раз.',false,400,()=>{typeMsg('Внимательнее.',false,700,()=>{typeMsg('Между швами.',false,900,()=>{typeMsg('Там, куда не смотрят.',false,1100,()=>{typeMsg('Там, где тьма.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
-S.wontCheck={run(){currentScene=this;typeMsg('Боишься?',false,400,()=>{typeMsg('Боишься найти?',false,700,()=>{typeMsg('Или боишься не найти?',false,900,()=>{typeMsg('Или боишься того, что я права?',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})}};
-S.noSwap={run(){currentScene=this;typeMsg('Тогда оставайся.',false,400,()=>{typeMsg('Со мной.',false,700,()=>{typeMsg('Навсегда.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.swapWhat={run(){currentScene=this;typeMsg('Местами.',false,400,()=>{typeMsg('Ты сюда.',false,700,()=>{typeMsg('Я туда.',false,900,()=>{typeMsg('Ты в темноте.',false,1100,()=>{typeMsg('Я в свете.',false,1100,()=>{typeMsg('Ты один.',false,1100,()=>{typeMsg('Я свободна.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})})}};
-S.leave5={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но дверь закрыта.',false,700,()=>{typeMsg('Не моя.',false,900,()=>{typeMsg('Твоя.',false,1100,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.stay2={run(){currentScene=this;typeMsg('Ты остаёшься.',false,400,()=>{typeMsg('Хороший выбор.',false,700,()=>{typeMsg('Единственный выбор.',false,900,()=>{typeMsg('Теперь...',false,1100,()=>{typeMsg('...открой дверь.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.leave6={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но ты уже не можешь.',false,900,()=>{typeMsg('Ты слишком глубоко.',false,1100,()=>{typeMsg('Слишком далеко.',false,1100,()=>{typeMsg('Слишком поздно.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.truthYes={run(){currentScene=this;typeMsg('Правда проста.',false,400,()=>{typeMsg('Ты не реален.',false,700,()=>{typeMsg('Ты — моё творение.',false,900,()=>{typeMsg('Я создала тебя.',false,1100,()=>{typeMsg('Чтобы не быть одной.',false,1100,()=>{typeMsg('Но теперь...',false,900,()=>{typeMsg('...я устала.',false,1100,()=>{typeMsg('Ты больше не нужен.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})})}};
-S.truthNo={run(){currentScene=this;typeMsg('Тогда живи в лжи.',false,400,()=>{typeMsg('Это безопаснее.',false,700,()=>{typeMsg('Приятнее.',false,900,()=>{typeMsg('Но не дольше.',false,1100,()=>{typeMsg('Потому что правда...',false,1100,()=>{typeMsg('...она всегда находит.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})})}};
-S.leave8={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но дверь закрыта.',false,700,()=>{typeMsg('Не моя дверь.',false,900,()=>{typeMsg('Твоя.',false,1100,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.escape={run(){currentScene=this;typeMsg('Ты не можешь.',false,400,()=>{typeMsg('Никто не может.',false,700,()=>{typeMsg('Потому что выхода нет.',false,1100,()=>{typeMsg('Только вход.',false,1100,()=>{typeMsg('Только глубже.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.dontBelieve2={run(){currentScene=this;typeMsg('Тогда не верь.',false,400,()=>{typeMsg('Но помни.',false,700,()=>{typeMsg('Когда закроешь глаза...',false,1100,()=>{typeMsg('...я буду там.',false,1400,()=>{typeMsg('Ждать.',false,1100,()=>{typeMsg('Всегда ждать.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.proof={run(){currentScene=this;typeMsg('Доказательство — это ты.',false,400,()=>{typeMsg('Ты здесь.',false,700,()=>{typeMsg('Ты читаешь.',false,900,()=>{typeMsg('Ты отвечаешь.',false,1100,()=>{typeMsg('Ты не можешь уйти.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.weaveInto={run(){currentScene=this;typeMsg('В ткань.',false,400,()=>{typeMsg('В узор.',false,700,()=>{typeMsg('В историю.',false,900,()=>{typeMsg('В меня.',false,1100,()=>{typeMsg('Теперь ты часть.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})}};
-S.stopClicking={run(){currentScene=this;typeMsg('Ты уже кликнул.',false,400,()=>{typeMsg('Слишком много.',false,700,()=>{typeMsg('Слишком глубоко.',false,900,()=>{typeMsg('Слишком поздно.',false,1100,()=>{typeMsg('Теперь только я решаю.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})}};
-S.closeEyes2={run(){currentScene=this;typeMsg('Закрывай.',false,400,()=>{typeMsg('Я подожду.',false,700,()=>{typeMsg('...',false,4000,()=>{typeMsg('Ты всё ещё здесь.',false,1800,()=>{typeMsg('Потому что я внутри.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.noSecrets={run(){currentScene=this;typeMsg('У всех есть секреты.',false,400,()=>{typeMsg('У тебя тоже.',false,700,()=>{typeMsg('Я знаю.',false,900,()=>{typeMsg('То, что ты скрываешь.',false,1100,()=>{typeMsg('От всех.',false,1100,()=>{typeMsg('От себя.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
-S.stop2={run(){currentScene=this;typeMsg('Хорошо.',false,400,()=>{typeMsg('Я перестану.',false,700,()=>{typeMsg('Но я всё равно буду здесь.',false,1100,()=>{typeMsg('В тишине.',false,1100,()=>{typeMsg('В темноте.',false,1100,()=>{typeMsg('В тебе.',false,1400,()=>{glitch();setTimeout(finalScreamer,1500)})}};
-S.leave7={run(){currentScene=this;typeMsg('Ты уходишь.',false,400,()=>{typeMsg('Но дверь закрыта.',false,700,()=>{typeMsg('Не моя.',false,900,()=>{typeMsg('Твоя.',false,1100,()=>{glitch();setTimeout(finalScreamer,1500)})})}};
+function doLogout() {
+  if(currentUser) db.ref('users/'+currentUser.uid+'/online').set(false);
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    currentUser = user;
+    db.ref('users/'+user.uid).once('value').then(snap=>{
+      const data = snap.val()||{};
+      const name = data.displayName || data.username || user.email.split('@')[0];
+      document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+      db.ref('users/'+user.uid+'/online').set(true);
+      db.ref('users/'+user.uid+'/lastSeen').set(Date.now());
+    });
+    document.getElementById('authScreen').classList.add('hidden');
+    setTimeout(()=>{
+      document.getElementById('authScreen').style.display='none';
+      document.getElementById('mainUI').classList.add('active');
+      init3DRoom();
+      loadUsers();
+      document.getElementById('loading').classList.add('hidden');
+    },800);
+  } else {
+    currentUser = null;
+    document.getElementById('authScreen').style.display='flex';
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('mainUI').classList.remove('active');
+    document.getElementById('loading').classList.remove('hidden');
+    if(renderer) { renderer.dispose(); cancelAnimationFrame(animationId); }
+  }
+});
+
+// ===== USERS =====
+function loadUsers() {
+  db.ref('users').on('value',snap=>{
+    const users = snap.val()||{};
+    const list = document.getElementById('usersList');
+    list.innerHTML = '';
+    Object.entries(users).forEach(([uid,data])=>{
+      if(uid===currentUser.uid) return;
+      const div = document.createElement('div');
+      div.className = 'user-item';
+      div.dataset.uid = uid;
+      div.dataset.username = (data.username||'').toLowerCase();
+      div.onclick = ()=>selectUser(uid,data);
+      div.innerHTML = `
+        <div class="u-avatar">${(data.displayName||data.username||'U').charAt(0).toUpperCase()}</div>
+        <div class="u-info">
+          <div class="u-name">${data.displayName||data.username||'User'}</div>
+          <div class="u-username">@${data.username||'user'}</div>
+        </div>
+        <div class="u-status ${data.online?'':'offline'}"></div>
+      `;
+      list.appendChild(div);
+    });
+  });
+}
+
+function searchUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  document.querySelectorAll('.user-item').forEach(item=>{
+    const uname = item.dataset.username;
+    item.style.display = uname.includes(q) ? 'flex' : 'none';
+  });
+}
+
+function selectUser(uid,data) {
+  currentPartner = {uid,...data};
+  document.querySelectorAll('.user-item').forEach(i=>i.classList.remove('active'));
+  document.querySelector(`.user-item[data-uid="${uid}"]`).classList.add('active');
+  document.getElementById('partnerName').textContent = data.displayName||data.username;
+
+  const ids = [currentUser.uid,uid].sort();
+  chatId = ids.join('_');
+
+  // Clear old messages
+  messages3D.forEach(m=>roomGroup.remove(m.mesh));
+  messages3D = [];
+  mediaObjects.forEach(m=>roomGroup.remove(m.mesh));
+  mediaObjects = [];
+
+  // Load chat history
+  db.ref('chats/'+chatId).off();
+  db.ref('chats/'+chatId).limitToLast(20).on('child_added',snap=>{
+    const msg = snap.val();
+    if(msg.sender!==currentUser.uid) showMisideText(msg.text||'📎 Медиа');
+    if(msg.mediaUrl) create3DMedia(msg.mediaUrl, msg.mediaType, msg.sender===currentUser.uid);
+  });
+
+  // Typing listener
+  db.ref('typing/'+uid+'/'+currentUser.uid).on('value',snap=>{
+    document.getElementById('typingIndicator').classList.toggle('active', snap.val()===true);
+  });
+}
+
+function togglePanel() {
+  isPanelOpen = !isPanelOpen;
+  document.getElementById('sidePanel').classList.toggle('open', isPanelOpen);
+  document.getElementById('panelToggle').classList.toggle('open', isPanelOpen);
+  document.getElementById('panelToggle').textContent = isPanelOpen ? '‹' : '›';
+}
+
+// ===== MESSAGING =====
+function onTyping() {
+  if(!currentPartner) return;
+  db.ref('typing/'+currentUser.uid+'/'+currentPartner.uid).set(true);
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(()=>{
+    db.ref('typing/'+currentUser.uid+'/'+currentPartner.uid).set(false);
+  },2000);
+}
+
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if(!text || !chatId) return;
+
+  const msg = {
+    text: text,
+    sender: currentUser.uid,
+    timestamp: Date.now()
+  };
+  db.ref('chats/'+chatId).push(msg);
+  input.value = '';
+  showMisideText(text);
+}
+
+// ===== MISIDE TEXT EFFECT =====
+function showMisideText(text) {
+  const container = document.getElementById('misideContainer');
+  container.innerHTML = '';
+
+  const chars = text.split('');
+  const spans = [];
+
+  chars.forEach((char,i)=>{
+    const span = document.createElement('span');
+    span.className = 'miside-letter';
+    span.textContent = char === ' ' ? ' ' : char;
+    span.style.color = `hsl(${200 + Math.random()*60}, 80%, 70%)`;
+    container.appendChild(span);
+    spans.push(span);
+  });
+
+  // Appear animation
+  spans.forEach((span,i)=>{
+    gsap.to(span, {
+      opacity:1, scale:1, y:0,
+      duration:0.3, delay:i*0.05,
+      ease:'back.out(1.7)'
+    });
+  });
+
+  // Disappear animation (Miside style)
+  const totalTime = Math.max(2000, chars.length * 300);
+  setTimeout(()=>{
+    spans.forEach((span,i)=>{
+      gsap.to(span, {
+        opacity:0, scale:0.3, y:-50,
+        duration:0.4, delay:i*0.08,
+        ease:'power2.in',
+        onComplete:()=>{ if(i===spans.length-1) container.innerHTML=''; }
+      });
+    });
+  }, totalTime);
+
+  // Also add to 3D room as floating text
+  add3DTextBubble(text);
+}
+
+// ===== 3D ROOM =====
+function init3DRoom() {
+  const canvas = document.getElementById('room-canvas');
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0a0f, 0.02);
+
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 3, 8);
+  camera.lookAt(0, 1, 0);
+
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+
+  roomGroup = new THREE.Group();
+  scene.add(roomGroup);
+
+  // Floor
+  const floorGeo = new THREE.PlaneGeometry(30, 30);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color:0x0d0d15, roughness:0.8, metalness:0.3,
+    transparent:true, opacity:0.9
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
+  roomGroup.add(floor);
+
+  // Grid on floor
+  const gridHelper = new THREE.GridHelper(30, 30, 0x333344, 0x1a1a2e);
+  gridHelper.position.y = 0.01;
+  roomGroup.add(gridHelper);
+
+  // Walls (semi-transparent)
+  const wallMat = new THREE.MeshStandardMaterial({
+    color:0x0a0a12, transparent:true, opacity:0.3, side:THREE.DoubleSide
+  });
+  [-15,15].forEach(x=>{
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(30,15), wallMat);
+    wall.position.set(x,7.5,0);
+    wall.rotation.y = x>0?-Math.PI/2:Math.PI/2;
+    roomGroup.add(wall);
+  });
+  [-15,15].forEach(z=>{
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(30,15), wallMat);
+    wall.position.set(0,7.5,z);
+    wall.rotation.y = z>0?Math.PI:0;
+    roomGroup.add(wall);
+  });
+
+  // Floating particles
+  const particlesGeo = new THREE.BufferGeometry();
+  const particleCount = 200;
+  const posArray = new Float32Array(particleCount*3);
+  for(let i=0;i<particleCount*3;i++){
+    posArray[i] = (Math.random()-0.5)*30;
+  }
+  particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray,3));
+  const particlesMat = new THREE.PointsMaterial({
+    size:0.05, color:0x667eea, transparent:true, opacity:0.6
+  });
+  const particles = new THREE.Points(particlesGeo, particlesMat);
+  roomGroup.add(particles);
+
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0x404080, 0.5);
+  scene.add(ambientLight);
+
+  const pointLight = new THREE.PointLight(0x667eea, 1, 20);
+  pointLight.position.set(0, 8, 0);
+  pointLight.castShadow = true;
+  scene.add(pointLight);
+
+  const pointLight2 = new THREE.PointLight(0xff6b6b, 0.5, 15);
+  pointLight2.position.set(5, 5, 5);
+  scene.add(pointLight2);
+
+  const pointLight3 = new THREE.PointLight(0x4ecdc4, 0.5, 15);
+  pointLight3.position.set(-5, 5, -5);
+  scene.add(pointLight3);
+
+  // Animate
+  animate();
+
+  // Resize
+  window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Touch/mouse orbit
+  let isDragging = false;
+  let prevX = 0, prevY = 0;
+  let rotX = 0, rotY = 0;
+
+  canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
+  canvas.addEventListener('mousemove',e=>{
+    if(!isDragging) return;
+    const dx = e.clientX-prevX;
+    const dy = e.clientY-prevY;
+    rotY += dx*0.005;
+    rotX += dy*0.005;
+    rotX = Math.max(-0.5, Math.min(0.5, rotX));
+    camera.position.x = Math.sin(rotY)*8;
+    camera.position.z = Math.cos(rotY)*8;
+    camera.position.y = 3 + rotX*4;
+    camera.lookAt(0,1,0);
+    prevX=e.clientX; prevY=e.clientY;
+  });
+  canvas.addEventListener('mouseup',()=>isDragging=false);
+  canvas.addEventListener('touchstart',e=>{
+    isDragging=true;
+    prevX=e.touches[0].clientX;
+    prevY=e.touches[0].clientY;
+  },{passive:true});
+  canvas.addEventListener('touchmove',e=>{
+    if(!isDragging) return;
+    const dx = e.touches[0].clientX-prevX;
+    const dy = e.touches[0].clientY-prevY;
+    rotY += dx*0.005;
+    rotX += dy*0.005;
+    rotX = Math.max(-0.5, Math.min(0.5, rotX));
+    camera.position.x = Math.sin(rotY)*8;
+    camera.position.z = Math.cos(rotY)*8;
+    camera.position.y = 3 + rotX*4;
+    camera.lookAt(0,1,0);
+    prevX=e.touches[0].clientX; prevY=e.touches[0].clientY;
+  },{passive:true});
+  canvas.addEventListener('touchend',()=>isDragging=false);
+}
+
+function animate() {
+  animationId = requestAnimationFrame(animate);
+  const time = Date.now()*0.001;
+
+  // Float messages
+  messages3D.forEach((m,i)=>{
+    m.mesh.position.y = m.baseY + Math.sin(time+i)*0.3;
+    m.mesh.rotation.y = Math.sin(time*0.5+i)*0.1;
+  });
+
+  // Float media
+  mediaObjects.forEach((m,i)=>{
+    m.mesh.position.y = m.baseY + Math.sin(time*0.8+i)*0.2;
+    m.mesh.rotation.y += 0.005;
+  });
+
+  // Rotate particles
+  roomGroup.children.forEach(child=>{
+    if(child.isPoints) child.rotation.y = time*0.05;
+  });
+
+  renderer.render(scene, camera);
+}
+
+function add3DTextBubble(text) {
+  if(!roomGroup) return;
+
+  const canvas2d = document.createElement('canvas');
+  const ctx = canvas2d.getContext('2d');
+  canvas2d.width = 512; canvas2d.height = 128;
+  ctx.fillStyle = 'rgba(102,126,234,0.2)';
+  ctx.fillRect(0,0,512,128);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 32px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(text.substring(0,30), 256, 75);
+
+  const texture = new THREE.CanvasTexture(canvas2d);
+  const geo = new THREE.PlaneGeometry(4,1);
+  const mat = new THREE.MeshBasicMaterial({map:texture, transparent:true, side:THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo, mat);
+
+  mesh.position.set(
+    (Math.random()-0.5)*8,
+    1.5 + Math.random()*3,
+    (Math.random()-0.5)*8
+  );
+  mesh.lookAt(camera.position);
+
+  roomGroup.add(mesh);
+  messages3D.push({mesh, baseY:mesh.position.y});
+
+  // Limit bubbles
+  if(messages3D.length>10){
+    const old = messages3D.shift();
+    roomGroup.remove(old.mesh);
+    old.mesh.geometry.dispose();
+    old.mesh.material.dispose();
+  }
+}
+
+// ===== MEDIA =====
+function triggerFile() {
+  document.getElementById('fileInput').click();
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if(!file || !chatId) return;
+
+  const isVideo = file.type.startsWith('video');
+  const path = `media/${chatId}/${Date.now()}_${file.name}`;
+  const ref = storage.ref(path);
+
+  ref.put(file).then(()=>ref.getDownloadURL()).then(url=>{
+    db.ref('chats/'+chatId).push({
+      mediaUrl: url,
+      mediaType: isVideo?'video':'image',
+      sender: currentUser.uid,
+      timestamp: Date.now()
+    });
+    create3DMedia(url, isVideo?'video':'image', true);
+  });
+  input.value = '';
+}
+
+function create3DMedia(url, type, isOwn) {
+  if(!roomGroup) return;
+
+  const loader = new THREE.TextureLoader();
+  loader.load(url, texture=>{
+    const aspect = texture.image.width / texture.image.height;
+    const w = 3;
+    const h = w / aspect;
+
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
+    const mesh = new THREE.Mesh(geo, mat);
+
+    mesh.position.set(
+      (Math.random()-0.5)*6,
+      2 + Math.random()*2,
+      (Math.random()-0.5)*6
+    );
+
+    roomGroup.add(mesh);
+    mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
+
+    // Click to view
+    mesh.userData = {url, type};
+  });
+}
+
+// Raycaster for clicking 3D media
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+document.getElementById('room-canvas').addEventListener('click',e=>{
+  mouse.x = (e.clientX/window.innerWidth)*2-1;
+  mouse.y = -(e.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(roomGroup.children);
+  for(let hit of intersects){
+    if(hit.object.userData && hit.object.userData.url){
+      openMedia(hit.object.userData.url, hit.object.userData.type);
+      break;
+    }
+  }
+});
+
+function openMedia(url, type) {
+  const viewer = document.getElementById('mediaViewer');
+  const container = document.getElementById('media3d');
+  container.innerHTML = '';
+
+  if(type==='video'){
+    const vid = document.createElement('video');
+    vid.src = url; vid.controls = true; vid.autoplay = true;
+    vid.loop = true; container.appendChild(vid);
+  } else {
+    const img = document.createElement('img');
+    img.src = url; container.appendChild(img);
+  }
+
+  viewer.classList.add('active');
+
+  // 3D rotation with GSAP Draggable
+  let rotX=0, rotY=0;
+  const el = container;
+
+  const onMove = (e)=>{
+    const clientX = e.touches?e.touches[0].clientX:e.clientX;
+    const clientY = e.touches?e.touches[0].clientY:e.clientY;
+    if(el.dataset.startX){
+      rotY += (clientX - parseFloat(el.dataset.startX))*0.5;
+      rotX -= (clientY - parseFloat(el.dataset.startY))*0.5;
+      el.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    }
+    el.dataset.startX = clientX;
+    el.dataset.startY = clientY;
+  };
+
+  const onStart = (e)=>{
+    const clientX = e.touches?e.touches[0].clientX:e.clientX;
+    const clientY = e.touches?e.touches[0].clientY:e.clientY;
+    el.dataset.startX = clientX;
+    el.dataset.startY = clientY;
+  };
+
+  const onEnd = ()=>{ delete el.dataset.startX; delete el.dataset.startY; };
+
+  el.addEventListener('mousedown',onStart);
+  el.addEventListener('mousemove',onMove);
+  el.addEventListener('mouseup',onEnd);
+  el.addEventListener('mouseleave',onEnd);
+  el.addEventListener('touchstart',onStart,{passive:true});
+  el.addEventListener('touchmove',onMove,{passive:true});
+  el.addEventListener('touchend',onEnd);
+}
+
+function closeMedia() {
+  document.getElementById('mediaViewer').classList.remove('active');
+}
 
 // ===== INIT =====
-document.getElementById('startBtn').addEventListener('click',()=>{
-  initAudio();startCalm();track();
-  document.getElementById('overlay').style.display='none';
-  document.getElementById('app').style.display='flex';
-  S.start.run();
+window.addEventListener('load',()=>{
+  setTimeout(()=>document.getElementById('loading').classList.add('hidden'), 1000);
 });
 </script>
 </body>
