@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>3D Messenger — Miside Style</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3D Messenger</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
@@ -12,51 +12,50 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-family:'Inter',sans-serif; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
 
 /* ===== AUTH SCREEN ===== */
 .auth-screen {
   position:fixed; inset:0; z-index:1000;
   background:radial-gradient(ellipse at 30% 20%, #1a0a2e 0%, #0a0a0f 60%, #050508 100%);
   display:flex; align-items:center; justify-content:center; flex-direction:column;
-  transition:opacity 0.8s ease;
+  transition:opacity 0.8s ease; padding:16px;
 }
 .auth-screen.hidden { opacity:0; pointer-events:none; }
 .auth-container {
-  width:min(90vw,420px); padding:clamp(24px,4vw,48px);
+  width:100%; max-width:380px; padding:28px 20px;
   background:rgba(255,255,255,0.03);
   border:1px solid rgba(255,255,255,0.08);
-  border-radius:24px; backdrop-filter:blur(20px);
-  box-shadow:0 0 60px rgba(120,80,255,0.1), inset 0 0 60px rgba(120,80,255,0.02);
+  border-radius:20px; backdrop-filter:blur(20px);
 }
 .auth-logo {
-  font-family:'Orbitron',sans-serif; font-size:clamp(28px,5vw,42px);
-  font-weight:900; text-align:center; margin-bottom:8px;
+  font-family:'Orbitron',sans-serif; font-size:28px;
+  font-weight:900; text-align:center; margin-bottom:6px;
   background:linear-gradient(135deg,#ff6b6b,#4ecdc4,#a855f7);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
   background-clip:text; letter-spacing:2px;
 }
-.auth-sub { text-align:center; color:rgba(255,255,255,0.4); font-size:14px; margin-bottom:32px; }
+.auth-sub { text-align:center; color:rgba(255,255,255,0.4); font-size:13px; margin-bottom:24px; }
 .auth-input {
-  width:100%; padding:14px 18px; margin-bottom:16px;
+  width:100%; padding:14px 16px; margin-bottom:12px;
   background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-  border-radius:14px; color:#fff; font-size:15px; outline:none;
+  border-radius:12px; color:#fff; font-size:15px; outline:none;
   transition:all 0.3s; font-family:'Inter',sans-serif;
+  -webkit-appearance:none;
 }
 .auth-input:focus { border-color:rgba(120,80,255,0.5); box-shadow:0 0 20px rgba(120,80,255,0.15); }
 .auth-input::placeholder { color:rgba(255,255,255,0.25); }
 .auth-btn {
-  width:100%; padding:16px; border:none; border-radius:14px;
+  width:100%; padding:14px; border:none; border-radius:12px;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  color:#fff; font-size:16px; font-weight:600; cursor:pointer;
-  transition:all 0.3s; margin-top:8px; font-family:'Inter',sans-serif;
+  color:#fff; font-size:15px; font-weight:600; cursor:pointer;
+  transition:all 0.3s; margin-top:6px; font-family:'Inter',sans-serif;
 }
-.auth-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(102,126,234,0.4); }
-.auth-btn:active { transform:translateY(0); }
-.auth-toggle { text-align:center; color:rgba(255,255,255,0.4); font-size:13px; margin-top:20px; cursor:pointer; }
+.auth-btn:hover { transform:translateY(-1px); }
+.auth-toggle { text-align:center; color:rgba(255,255,255,0.4); font-size:12px; margin-top:16px; cursor:pointer; }
 .auth-toggle span { color:#667eea; font-weight:600; }
-.auth-error { color:#ff6b6b; font-size:13px; text-align:center; margin-top:12px; min-height:20px; }
+.auth-error { color:#ff6b6b; font-size:12px; text-align:center; margin-top:10px; min-height:18px; }
 .auth-mode { display:none; }
 .auth-mode.active { display:block; }
 
@@ -67,268 +66,137 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 /* Top Bar */
 .top-bar {
   position:fixed; top:0; left:0; right:0; z-index:100;
-  height:clamp(56px,8vh,72px);
+  height:52px; padding:env(safe-area-inset-top) 12px 0 12px;
   background:linear-gradient(180deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0.7) 70%,transparent 100%);
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 clamp(12px,3vw,24px); backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
 }
 .top-bar .logo-text {
-  font-family:'Orbitron',sans-serif; font-size:clamp(16px,3vw,22px);
+  font-family:'Orbitron',sans-serif; font-size:16px;
   font-weight:700; color:#fff; letter-spacing:1px;
 }
-.top-bar .user-info { display:flex; align-items:center; gap:12px; }
+.top-bar .user-info { display:flex; align-items:center; gap:10px; }
 .top-bar .avatar {
-  width:36px; height:36px; border-radius:50%;
+  width:34px; height:34px; border-radius:50%;
   background:linear-gradient(135deg,#667eea,#764ba2);
   display:flex; align-items:center; justify-content:center;
-  font-weight:700; font-size:14px; color:#fff;
+  font-weight:700; font-size:13px; color:#fff;
   border:2px solid rgba(255,255,255,0.1);
-  overflow:hidden; cursor:pointer;
+  overflow:hidden; cursor:pointer; flex-shrink:0;
 }
 .top-bar .avatar img { width:100%; height:100%; object-fit:cover; }
 .top-bar .logout-btn {
-  padding:8px 16px; border:1px solid rgba(255,255,255,0.15);
+  padding:6px 12px; border:1px solid rgba(255,255,255,0.15);
   background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7);
-  border-radius:10px; font-size:13px; cursor:pointer; transition:all 0.3s;
+  border-radius:8px; font-size:12px; cursor:pointer;
 }
-.top-bar .logout-btn:hover { background:rgba(255,100,100,0.15); border-color:rgba(255,100,100,0.3); color:#ff8888; }
 
 /* Side Panel */
 .side-panel {
-  position:fixed; top:clamp(56px,8vh,72px); left:0; bottom:0; z-index:90;
-  width:clamp(280px,32vw,360px);
-  background:rgba(10,10,15,0.85); backdrop-filter:blur(20px);
+  position:fixed; top:52px; left:0; bottom:0; z-index:90;
+  width:80vw; max-width:320px;
+  background:rgba(10,10,15,0.9); backdrop-filter:blur(20px);
   border-right:1px solid rgba(255,255,255,0.06);
-  transform:translateX(-100%); transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  transform:translateX(-100%); transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
   display:flex; flex-direction:column;
 }
 .side-panel.open { transform:translateX(0); }
 .panel-header {
-  padding:clamp(16px,3vw,24px); border-bottom:1px solid rgba(255,255,255,0.06);
+  padding:16px; border-bottom:1px solid rgba(255,255,255,0.06);
 }
 .panel-header h3 {
-  font-family:'Orbitron',sans-serif; font-size:clamp(14px,2.5vw,18px);
-  color:#fff; margin-bottom:12px;
+  font-family:'Orbitron',sans-serif; font-size:15px;
+  color:#fff; margin-bottom:10px;
 }
 .search-box {
-  width:100%; padding:12px 16px;
+  width:100%; padding:10px 14px;
   background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-  border-radius:12px; color:#fff; font-size:14px; outline:none;
+  border-radius:10px; color:#fff; font-size:14px; outline:none;
+  -webkit-appearance:none;
 }
 .search-box::placeholder { color:rgba(255,255,255,0.3); }
-.users-list { flex:1; overflow-y:auto; padding:8px; }
+.users-list { flex:1; overflow-y:auto; padding:6px; -webkit-overflow-scrolling:touch; }
 .user-item {
-  display:flex; align-items:center; gap:12px;
-  padding:12px; border-radius:14px; cursor:pointer;
-  transition:all 0.2s; margin-bottom:4px;
+  display:flex; align-items:center; gap:10px;
+  padding:10px; border-radius:12px; cursor:pointer;
+  transition:all 0.2s; margin-bottom:3px;
 }
-.user-item:hover { background:rgba(255,255,255,0.06); }
+.user-item:hover, .user-item:active { background:rgba(255,255,255,0.06); }
 .user-item.active { background:rgba(102,126,234,0.15); border:1px solid rgba(102,126,234,0.3); }
 .user-item .u-avatar {
-  width:44px; height:44px; border-radius:50%;
+  width:40px; height:40px; border-radius:50%;
   background:linear-gradient(135deg,#667eea,#764ba2);
   display:flex; align-items:center; justify-content:center;
-  font-weight:700; font-size:16px; color:#fff; flex-shrink:0;
+  font-weight:700; font-size:15px; color:#fff; flex-shrink:0;
   overflow:hidden;
 }
 .user-item .u-avatar img { width:100%; height:100%; object-fit:cover; }
 .user-item .u-info { flex:1; min-width:0; }
-.user-item .u-name { color:#fff; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.user-item .u-username { color:rgba(255,255,255,0.4); font-size:12px; }
+.user-item .u-name { color:#fff; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-item .u-username { color:rgba(255,255,255,0.4); font-size:11px; }
 .user-item .u-status-wrap {
   display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0;
 }
 .user-item .u-status {
-  width:10px; height:10px; border-radius:50%; background:#22c55e;
-  box-shadow:0 0 8px #22c55e; flex-shrink:0;
+  width:8px; height:8px; border-radius:50%; background:#22c55e;
+  box-shadow:0 0 6px #22c55e; flex-shrink:0;
 }
 .user-item .u-status.offline { background:#6b7280; box-shadow:none; }
 .user-item .u-last-seen {
-  font-size:10px; color:rgba(255,255,255,0.3); white-space:nowrap;
+  font-size:9px; color:rgba(255,255,255,0.35); white-space:nowrap;
 }
 
 /* Toggle Panel Button */
 .panel-toggle {
   position:fixed; top:50%; left:0; z-index:95;
   transform:translateY(-50%);
-  width:40px; height:80px;
+  width:32px; height:60px;
   background:rgba(102,126,234,0.2); border:1px solid rgba(102,126,234,0.3);
-  border-radius:0 12px 12px 0; cursor:pointer;
+  border-radius:0 10px 10px 0; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  color:#fff; font-size:18px; transition:all 0.3s;
+  color:#fff; font-size:16px;
   backdrop-filter:blur(10px);
 }
-.panel-toggle:hover { background:rgba(102,126,234,0.35); }
-.panel-toggle.open { left:clamp(280px,32vw,360px); }
+.panel-toggle.open { left:80vw; }
 
 /* 3D Room Canvas */
-#room-canvas { position:fixed; inset:0; z-index:1; width:100%; height:100%; }
-
-/* Bottom Input Bar */
-.input-bar {
-  position:fixed; bottom:0; left:0; right:0; z-index:100;
-  padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px);
-  background:linear-gradient(0deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0.7) 60%,transparent 100%);
-  display:flex; align-items:center; gap:8px; backdrop-filter:blur(12px);
-}
-.input-bar .msg-input {
-  flex:1; padding:14px 20px;
-  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
-  border-radius:16px; color:#fff; font-size:15px; outline:none;
-  transition:all 0.3s; font-family:'Inter',sans-serif;
-}
-.input-bar .msg-input:focus { border-color:rgba(102,126,234,0.5); box-shadow:0 0 20px rgba(102,126,234,0.1); }
-.input-bar .msg-input::placeholder { color:rgba(255,255,255,0.3); }
-.input-bar .send-btn, .input-bar .attach-btn, .input-bar .emoji-btn, .input-bar .music-btn,
-.input-bar .reaction-btn, .input-bar .draw-btn, .input-bar .voice-btn, .input-bar .gesture-btn {
-  width:42px; height:42px; border-radius:50%;
-  border:none; cursor:pointer; display:flex;
-  align-items:center; justify-content:center;
-  font-size:18px; transition:all 0.3s; flex-shrink:0;
-}
-.input-bar .attach-btn {
-  background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.6);
-  border:1px solid rgba(255,255,255,0.1);
-}
-.input-bar .attach-btn:hover { background:rgba(255,255,255,0.15); color:#fff; }
-.input-bar .send-btn {
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  color:#fff; box-shadow:0 4px 20px rgba(102,126,234,0.3);
-}
-.input-bar .send-btn:hover { transform:scale(1.05); box-shadow:0 6px 30px rgba(102,126,234,0.5); }
-.input-bar .send-btn:active { transform:scale(0.95); }
-.input-bar .emoji-btn {
-  background:rgba(255,200,0,0.1); color:#ffd700;
-  border:1px solid rgba(255,200,0,0.2); font-size:20px;
-}
-.input-bar .emoji-btn:hover { background:rgba(255,200,0,0.2); }
-.input-bar .music-btn {
-  background:rgba(0,255,150,0.1); color:#00ff96;
-  border:1px solid rgba(0,255,150,0.2); font-size:18px;
-}
-.input-bar .music-btn:hover { background:rgba(0,255,150,0.2); }
-.input-bar .music-btn.playing {
-  background:rgba(0,255,150,0.3);
-  animation:pulseMusic 1s infinite;
-}
-.input-bar .reaction-btn {
-  background:rgba(255,100,100,0.1); color:#ff6b6b;
-  border:1px solid rgba(255,100,100,0.2); font-size:18px;
-}
-.input-bar .reaction-btn:hover { background:rgba(255,100,100,0.2); transform:scale(1.1); }
-.input-bar .draw-btn {
-  background:rgba(100,200,255,0.1); color:#64c8ff;
-  border:1px solid rgba(100,200,255,0.2); font-size:18px;
-}
-.input-bar .draw-btn:hover { background:rgba(100,200,255,0.2); }
-.input-bar .draw-btn.active {
-  background:rgba(100,200,255,0.4); box-shadow:0 0 15px rgba(100,200,255,0.4);
-}
-.input-bar .voice-btn {
-  background:rgba(255,100,200,0.1); color:#ff64c8;
-  border:1px solid rgba(255,100,200,0.2); font-size:18px;
-}
-.input-bar .voice-btn:hover { background:rgba(255,100,200,0.2); }
-.input-bar .voice-btn.recording {
-  background:rgba(255,100,200,0.4);
-  animation:pulseRecord 0.8s infinite;
-}
-@keyframes pulseRecord {
-  0%,100% { box-shadow:0 0 5px rgba(255,100,200,0.3); }
-  50% { box-shadow:0 0 20px rgba(255,100,200,0.7); }
-}
-.input-bar .gesture-btn {
-  background:rgba(200,100,255,0.1); color:#c864ff;
-  border:1px solid rgba(200,100,255,0.2); font-size:18px;
-}
-.input-bar .gesture-btn:hover { background:rgba(200,100,255,0.2); }
-@keyframes pulseMusic {
-  0%,100% { box-shadow:0 0 5px rgba(0,255,150,0.3); }
-  50% { box-shadow:0 0 20px rgba(0,255,150,0.6); }
-}
+#room-canvas { position:fixed; inset:0; z-index:1; width:100%; height:100%; touch-action:none; }
 
 /* Chat Partner */
 .chat-partner {
-  position:fixed; bottom:clamp(72px,10vh,90px); left:50%; transform:translateX(-50%);
-  z-index:80; text-align:center; pointer-events:none;
+  position:fixed; bottom:76px; left:50%; transform:translateX(-50%);
+  z-index:80; text-align:center; pointer-events:none; width:90%;
 }
 .chat-partner .partner-name {
-  font-family:'Orbitron',sans-serif; font-size:clamp(14px,2.5vw,20px);
-  color:rgba(255,255,255,0.8); text-shadow:0 0 30px rgba(102,126,234,0.5);
-  letter-spacing:2px;
+  font-family:'Orbitron',sans-serif; font-size:15px;
+  color:rgba(255,255,255,0.85); text-shadow:0 0 20px rgba(102,126,234,0.5);
+  letter-spacing:1px;
 }
 .chat-partner .partner-hint {
-  color:rgba(255,255,255,0.3); font-size:12px; margin-top:4px;
+  color:rgba(255,255,255,0.3); font-size:11px; margin-top:3px;
 }
 .chat-partner .partner-status {
-  display:flex; align-items:center; justify-content:center; gap:6px;
-  margin-top:6px;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  margin-top:4px;
 }
 .chat-partner .partner-status-dot {
-  width:8px; height:8px; border-radius:50%;
+  width:7px; height:7px; border-radius:50%;
 }
-.chat-partner .partner-status-dot.online { background:#22c55e; box-shadow:0 0 8px #22c55e; }
+.chat-partner .partner-status-dot.online { background:#22c55e; box-shadow:0 0 6px #22c55e; }
 .chat-partner .partner-status-dot.offline { background:#6b7280; }
 .chat-partner .partner-status-text {
-  color:rgba(255,255,255,0.4); font-size:12px;
+  color:rgba(255,255,255,0.4); font-size:11px;
 }
 
-/* ===== MISIDE TEXT EFFECT ===== */
-.miside-text-container {
-  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-  z-index:50; pointer-events:none; text-align:center;
-}
-.miside-letter {
-  display:inline-block; font-family:'Orbitron',sans-serif;
-  font-size:clamp(48px,10vw,120px); font-weight:900;
-  color:#fff; text-shadow:
-    0 0 10px rgba(255,255,255,0.5),
-    0 0 40px rgba(102,126,234,0.4),
-    0 0 80px rgba(102,126,234,0.2);
-  opacity:0; transform:scale(0.5) translateY(30px);
-}
-
-/* ===== 3D MEDIA VIEWER ===== */
-.media-viewer {
-  position:fixed; inset:0; z-index:200;
-  background:rgba(0,0,0,0.9); backdrop-filter:blur(20px);
-  display:none; align-items:center; justify-content:center;
-}
-.media-viewer.active { display:flex; }
-.media-viewer .media-3d {
-  width:min(80vw,600px); height:min(60vh,500px);
-  border-radius:16px; overflow:hidden;
-  box-shadow:0 0 60px rgba(102,126,234,0.3);
-  cursor:grab; transform-style:preserve-3d;
-  perspective:1000px;
-}
-.media-viewer .media-3d:active { cursor:grabbing; }
-.media-viewer .media-3d img, .media-viewer .media-3d video {
-  width:100%; height:100%; object-fit:cover; pointer-events:none;
-}
-.media-viewer .close-media {
-  position:absolute; top:20px; right:20px;
-  width:48px; height:48px; border-radius:50%;
-  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
-  color:#fff; font-size:24px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:all 0.3s;
-}
-.media-viewer .close-media:hover { background:rgba(255,100,100,0.3); }
-.media-viewer .media-hint {
-  position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
-  color:rgba(255,255,255,0.5); font-size:13px; text-align:center;
-}
-
-/* Typing indicator */
+/* Typing */
 .typing-indicator {
-  position:fixed; bottom:clamp(100px,14vh,120px); left:50%; transform:translateX(-50%);
-  z-index:80; display:none; align-items:center; gap:6px;
-  background:rgba(0,0,0,0.5); padding:8px 16px; border-radius:20px;
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  z-index:80; display:none; align-items:center; gap:5px;
+  background:rgba(0,0,0,0.5); padding:6px 14px; border-radius:16px;
 }
 .typing-indicator.active { display:flex; }
 .typing-indicator span {
-  width:6px; height:6px; border-radius:50%; background:#667eea;
+  width:5px; height:5px; border-radius:50%; background:#667eea;
   animation:typingBounce 1.4s infinite ease-in-out both;
 }
 .typing-indicator span:nth-child(1) { animation-delay:-0.32s; }
@@ -338,274 +206,270 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   40% { transform:scale(1); }
 }
 
+/* ===== BOTTOM INPUT BAR ===== */
+.input-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom)) 10px;
+  background:linear-gradient(0deg,rgba(10,10,15,0.98) 0%,rgba(10,10,15,0.85) 60%,transparent 100%);
+  display:flex; align-items:center; gap:6px;
+  backdrop-filter:blur(12px);
+}
+.input-bar .msg-input {
+  flex:1; padding:12px 16px;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px; color:#fff; font-size:15px; outline:none;
+  font-family:'Inter',sans-serif; min-width:0;
+  -webkit-appearance:none;
+}
+.input-bar .msg-input:focus { border-color:rgba(102,126,234,0.5); }
+.input-bar .msg-input::placeholder { color:rgba(255,255,255,0.3); }
+.input-bar .action-btn {
+  width:40px; height:40px; border-radius:50%;
+  border:none; cursor:pointer; display:flex;
+  align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+  -webkit-appearance:none;
+}
+.input-bar .send-btn {
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:#fff; box-shadow:0 2px 12px rgba(102,126,234,0.3);
+}
+.input-bar .send-btn:active { transform:scale(0.92); }
+.input-bar .icon-btn {
+  background:rgba(255,255,255,0.06);
+  color:rgba(255,255,255,0.6);
+  border:1px solid rgba(255,255,255,0.08);
+}
+.input-bar .icon-btn:active { transform:scale(0.92); background:rgba(255,255,255,0.1); }
+.input-bar .music-btn.playing {
+  background:rgba(0,255,150,0.15); color:#00ff96;
+  border-color:rgba(0,255,150,0.3);
+  animation:pulseMusic 1.2s infinite;
+}
+@keyframes pulseMusic {
+  0%,100% { box-shadow:0 0 5px rgba(0,255,150,0.2); }
+  50% { box-shadow:0 0 15px rgba(0,255,150,0.5); }
+}
+
+/* ===== GESTURE PANEL (с эмодзи внутри) ===== */
+.gesture-panel {
+  position:fixed; bottom:68px; left:50%; transform:translateX(-50%) translateY(20px);
+  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
+  padding:14px; display:none; opacity:0;
+  transition:all 0.3s; max-width:340px; width:90vw;
+}
+.gesture-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
+.gesture-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.gesture-item {
+  padding:10px 4px; border-radius:12px;
+  background:rgba(255,255,255,0.04);
+  text-align:center; cursor:pointer;
+  transition:all 0.2s; border:1px solid transparent;
+}
+.gesture-item:active { background:rgba(200,100,255,0.15); border-color:rgba(200,100,255,0.3); transform:scale(0.95); }
+.gesture-item .gesture-emoji { font-size:24px; display:block; margin-bottom:3px; }
+.gesture-item .gesture-name { font-size:10px; color:rgba(255,255,255,0.5); }
+
+/* Emoji section inside gesture panel */
+.gesture-emoji-section {
+  margin-top:12px; padding-top:12px;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.gesture-emoji-section-title {
+  color:rgba(255,255,255,0.4); font-size:11px; text-align:center; margin-bottom:8px;
+}
+.gesture-emoji-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; }
+.gesture-emoji-grid span { font-size:20px; text-align:center; padding:4px; border-radius:6px; cursor:pointer; transition:all 0.15s; }
+.gesture-emoji-grid span:active { background:rgba(255,255,255,0.1); transform:scale(1.2); }
+
+/* ===== DRAW PANEL ===== */
+.draw-panel {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9);
+  z-index:250; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
+  padding:16px; display:none; opacity:0;
+  transition:all 0.3s; width:min(92vw,420px);
+}
+.draw-panel.active { display:block; opacity:1; transform:translate(-50%,-50%) scale(1); }
+.draw-panel h3 { color:#fff; font-family:'Orbitron',sans-serif; font-size:14px; margin-bottom:10px; text-align:center; }
+.draw-canvas-wrap {
+  width:100%; height:240px; background:rgba(255,255,255,0.03);
+  border-radius:10px; border:1px solid rgba(255,255,255,0.1);
+  position:relative; overflow:hidden; touch-action:none;
+}
+.draw-canvas-wrap canvas { width:100%; height:100%; touch-action:none; }
+.draw-colors {
+  display:flex; gap:6px; margin-top:10px; justify-content:center;
+}
+.draw-color {
+  width:24px; height:24px; border-radius:50%; cursor:pointer;
+  border:2px solid transparent; transition:all 0.2s;
+}
+.draw-color.active { border-color:#fff; transform:scale(1.15); }
+.draw-actions {
+  display:flex; gap:6px; margin-top:10px;
+}
+.draw-actions button {
+  flex:1; padding:10px; border:none; border-radius:10px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:#fff; font-size:13px; cursor:pointer;
+}
+.draw-actions button.secondary {
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7);
+}
+
 /* ===== MUSIC PANEL ===== */
 .music-panel {
   position:fixed; top:50%; right:0; transform:translateY(-50%) translateX(100%);
-  z-index:150; width:280px;
+  z-index:150; width:min(85vw,300px);
   background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
   border-left:1px solid rgba(255,255,255,0.08);
   border-radius:16px 0 0 16px;
-  padding:20px;
-  transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  padding:16px;
+  transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
 }
 .music-panel.open { transform:translateY(-50%) translateX(0); }
 .music-panel h3 {
-  font-family:'Orbitron',sans-serif; font-size:16px; color:#fff;
-  margin-bottom:16px; text-align:center;
+  font-family:'Orbitron',sans-serif; font-size:14px; color:#fff;
+  margin-bottom:14px; text-align:center;
 }
 .music-track {
-  display:flex; align-items:center; gap:12px;
-  padding:12px; border-radius:12px;
+  display:flex; align-items:center; gap:10px;
+  padding:10px; border-radius:10px;
   background:rgba(255,255,255,0.03);
-  margin-bottom:8px; cursor:pointer;
-  transition:all 0.3s;
-  border:1px solid transparent;
+  margin-bottom:6px; cursor:pointer;
+  transition:all 0.3s; border:1px solid transparent;
 }
-.music-track:hover { background:rgba(255,255,255,0.06); border-color:rgba(102,126,234,0.3); }
-.music-track.active { background:rgba(102,126,234,0.15); border-color:rgba(102,126,234,0.5); }
-.music-track .track-icon { font-size:24px; }
+.music-track:active { background:rgba(102,126,234,0.15); border-color:rgba(102,126,234,0.3); }
+.music-track.active { background:rgba(102,126,234,0.2); border-color:rgba(102,126,234,0.5); }
+.music-track .track-icon { font-size:22px; }
 .music-track .track-info { flex:1; }
-.music-track .track-name { color:#fff; font-size:13px; font-weight:600; }
-.music-track .track-desc { color:rgba(255,255,255,0.4); font-size:11px; }
-.music-track .track-play { color:#00ff96; font-size:18px; }
+.music-track .track-name { color:#fff; font-size:12px; font-weight:600; }
+.music-track .track-desc { color:rgba(255,255,255,0.4); font-size:10px; }
+.music-track .track-play { color:#00ff96; font-size:16px; }
 .music-close {
-  position:absolute; top:10px; right:10px;
-  width:32px; height:32px; border-radius:50%;
+  position:absolute; top:8px; right:8px;
+  width:28px; height:28px; border-radius:50%;
   background:rgba(255,255,255,0.1); border:none;
-  color:#fff; font-size:18px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:16px; cursor:pointer;
 }
-.music-close:hover { background:rgba(255,100,100,0.3); }
-.music-volume {
-  margin-top:16px;
+.music-download {
+  margin-left:auto; padding:4px 8px; border-radius:6px;
+  background:rgba(0,255,150,0.1); color:#00ff96;
+  border:1px solid rgba(0,255,150,0.2); font-size:10px;
+  cursor:pointer; text-decoration:none;
 }
-.music-volume label {
-  color:rgba(255,255,255,0.5); font-size:12px;
-  display:block; margin-bottom:8px;
-}
+.music-volume { margin-top:12px; }
+.music-volume label { color:rgba(255,255,255,0.5); font-size:11px; display:block; margin-bottom:6px; }
 .music-volume input[type="range"] {
-  width:100%; -webkit-appearance:none;
-  height:4px; border-radius:2px;
-  background:rgba(255,255,255,0.1);
-  outline:none;
+  width:100%; -webkit-appearance:none; height:3px; border-radius:2px;
+  background:rgba(255,255,255,0.1); outline:none;
 }
 .music-volume input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance:none; width:16px; height:16px;
-  border-radius:50%; background:#00ff96;
-  cursor:pointer; box-shadow:0 0 10px rgba(0,255,150,0.5);
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:#00ff96; cursor:pointer;
 }
+
+/* ===== ENVIRONMENT CONTROLS ===== */
+.env-controls {
+  position:fixed; top:60px; left:10px; z-index:70;
+  display:flex; flex-direction:column; gap:6px;
+}
+.env-btn {
+  width:36px; height:36px; border-radius:10px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  color:#fff; font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s;
+}
+.env-btn:active { transform:scale(0.9); }
+.env-btn.active { background:rgba(102,126,234,0.3); border-color:rgba(102,126,234,0.5); }
 
 /* ===== PROFILE MODAL ===== */
 .profile-modal {
   position:fixed; inset:0; z-index:300;
   background:rgba(0,0,0,0.8); backdrop-filter:blur(20px);
   display:none; align-items:center; justify-content:center;
+  padding:16px;
 }
 .profile-modal.active { display:flex; }
 .profile-card {
-  width:min(90vw,400px);
+  width:100%; max-width:360px;
   background:rgba(10,10,15,0.95);
   border:1px solid rgba(255,255,255,0.08);
-  border-radius:24px; padding:32px;
+  border-radius:20px; padding:28px;
   text-align:center; position:relative;
 }
 .profile-card .profile-avatar {
-  width:100px; height:100px; border-radius:50%;
+  width:90px; height:90px; border-radius:50%;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  margin:0 auto 16px;
+  margin:0 auto 14px;
   display:flex; align-items:center; justify-content:center;
-  font-size:40px; color:#fff;
-  overflow:hidden; border:3px solid rgba(102,126,234,0.5);
-  box-shadow:0 0 30px rgba(102,126,234,0.3);
+  font-size:36px; color:#fff;
+  overflow:hidden; border:3px solid rgba(102,126,234,0.4);
+  box-shadow:0 0 25px rgba(102,126,234,0.2);
   cursor:pointer; position:relative;
 }
-.profile-card .profile-avatar img {
-  width:100%; height:100%; object-fit:cover;
-}
+.profile-card .profile-avatar img { width:100%; height:100%; object-fit:cover; }
 .profile-card .profile-avatar .avatar-overlay {
-  position:absolute; inset:0;
-  background:rgba(0,0,0,0.5);
+  position:absolute; inset:0; background:rgba(0,0,0,0.5);
   display:flex; align-items:center; justify-content:center;
-  opacity:0; transition:opacity 0.3s;
-  font-size:14px; color:#fff;
+  opacity:0; transition:opacity 0.3s; font-size:13px; color:#fff;
 }
-.profile-card .profile-avatar:hover .avatar-overlay { opacity:1; }
-.profile-card .profile-name { color:#fff; font-size:20px; font-weight:700; margin-bottom:4px; }
-.profile-card .profile-username { color:rgba(255,255,255,0.4); font-size:14px; margin-bottom:20px; }
+.profile-card .profile-avatar:active .avatar-overlay { opacity:1; }
+.profile-card .profile-name { color:#fff; font-size:18px; font-weight:700; margin-bottom:3px; }
+.profile-card .profile-username { color:rgba(255,255,255,0.4); font-size:13px; margin-bottom:16px; }
 .profile-card .profile-btn {
-  width:100%; padding:14px; border:none; border-radius:14px;
+  width:100%; padding:12px; border:none; border-radius:12px;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  color:#fff; font-size:15px; font-weight:600; cursor:pointer;
-  transition:all 0.3s; margin-bottom:10px;
+  color:#fff; font-size:14px; font-weight:600; cursor:pointer;
+  margin-bottom:8px;
 }
-.profile-card .profile-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(102,126,234,0.4); }
 .profile-card .profile-btn.secondary {
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
 }
-.profile-card .profile-btn.secondary:hover { background:rgba(255,255,255,0.1); }
 .profile-close {
   position:absolute; top:10px; right:10px;
-  width:36px; height:36px; border-radius:50%;
+  width:32px; height:32px; border-radius:50%;
   background:rgba(255,255,255,0.1); border:none;
-  color:#fff; font-size:18px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-}
-.profile-close:hover { background:rgba(255,100,100,0.3); }
-
-/* ===== EMOJI PICKER ===== */
-.emoji-panel {
-  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
-  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
-  padding:16px; display:none; opacity:0;
-  transition:all 0.3s; max-width:320px;
-}
-.emoji-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
-.emoji-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; }
-.emoji-grid span { font-size:22px; cursor:pointer; text-align:center; padding:4px; border-radius:6px; transition:all 0.2s; }
-.emoji-grid span:hover { background:rgba(255,255,255,0.1); transform:scale(1.2); }
-
-/* ===== REACTION PANEL ===== */
-.reaction-panel {
-  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
-  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
-  padding:16px; display:none; opacity:0;
-  transition:all 0.3s;
-}
-.reaction-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
-.reaction-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
-.reaction-item {
-  width:50px; height:50px; border-radius:12px;
-  background:rgba(255,255,255,0.05);
-  display:flex; align-items:center; justify-content:center;
-  font-size:24px; cursor:pointer;
-  transition:all 0.3s; border:1px solid transparent;
-}
-.reaction-item:hover { transform:scale(1.2); background:rgba(255,255,255,0.1); border-color:rgba(255,100,100,0.3); }
-.reaction-item .reaction-label {
-  position:absolute; bottom:-18px; font-size:10px; color:rgba(255,255,255,0.5);
-  white-space:nowrap;
+  color:#fff; font-size:16px; cursor:pointer;
 }
 
-/* ===== DRAWING PANEL ===== */
-.draw-panel {
-  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9);
-  z-index:250; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,0.08); border-radius:20px;
-  padding:20px; display:none; opacity:0;
-  transition:all 0.3s;
-  width:min(90vw,500px);
+/* ===== MISIDE TEXT ===== */
+.miside-text-container {
+  position:fixed; top:45%; left:50%; transform:translate(-50%,-50%);
+  z-index:50; pointer-events:none; text-align:center;
 }
-.draw-panel.active { display:block; opacity:1; transform:translate(-50%,-50%) scale(1); }
-.draw-panel h3 { color:#fff; font-family:'Orbitron',sans-serif; font-size:16px; margin-bottom:12px; text-align:center; }
-.draw-canvas-wrap {
-  width:100%; height:300px; background:rgba(255,255,255,0.03);
-  border-radius:12px; border:1px solid rgba(255,255,255,0.1);
-  position:relative; overflow:hidden;
-}
-.draw-canvas-wrap canvas { width:100%; height:100%; cursor:crosshair; }
-.draw-colors {
-  display:flex; gap:8px; margin-top:12px; justify-content:center;
-}
-.draw-color {
-  width:28px; height:28px; border-radius:50%; cursor:pointer;
-  border:2px solid transparent; transition:all 0.2s;
-}
-.draw-color.active { border-color:#fff; transform:scale(1.2); }
-.draw-actions {
-  display:flex; gap:8px; margin-top:12px;
-}
-.draw-actions button {
-  flex:1; padding:10px; border:none; border-radius:10px;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  color:#fff; font-size:13px; cursor:pointer; transition:all 0.3s;
-}
-.draw-actions button:hover { transform:translateY(-2px); }
-.draw-actions button.secondary {
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.1);
+.miside-letter {
+  display:inline-block; font-family:'Orbitron',sans-serif;
+  font-size:clamp(36px,12vw,80px); font-weight:900;
+  color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.5), 0 0 40px rgba(102,126,234,0.4);
+  opacity:0; transform:scale(0.5) translateY(30px);
 }
 
-/* ===== GESTURE PANEL ===== */
-.gesture-panel {
-  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
-  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
-  padding:16px; display:none; opacity:0;
-  transition:all 0.3s;
+/* ===== MEDIA VIEWER ===== */
+.media-viewer {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.92); backdrop-filter:blur(20px);
+  display:none; align-items:center; justify-content:center;
 }
-.gesture-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
-.gesture-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.gesture-item {
-  padding:12px; border-radius:12px;
-  background:rgba(255,255,255,0.05);
-  text-align:center; cursor:pointer;
-  transition:all 0.3s; border:1px solid transparent;
+.media-viewer.active { display:flex; }
+.media-viewer .media-3d {
+  width:min(90vw,500px); height:min(50vh,400px);
+  border-radius:14px; overflow:hidden;
+  box-shadow:0 0 40px rgba(102,126,234,0.3);
 }
-.gesture-item:hover { background:rgba(200,100,255,0.15); border-color:rgba(200,100,255,0.3); transform:scale(1.1); }
-.gesture-item .gesture-emoji { font-size:28px; display:block; margin-bottom:4px; }
-.gesture-item .gesture-name { font-size:11px; color:rgba(255,255,255,0.6); }
-
-/* ===== VOICE WAVE OVERLAY ===== */
-.voice-overlay {
-  position:fixed; inset:0; z-index:250;
-  background:rgba(0,0,0,0.7); backdrop-filter:blur(10px);
-  display:none; align-items:center; justify-content:center; flex-direction:column;
+.media-viewer .media-3d img, .media-viewer .media-3d video {
+  width:100%; height:100%; object-fit:cover;
 }
-.voice-overlay.active { display:flex; }
-.voice-wave-container {
-  width:300px; height:200px;
-  position:relative;
+.media-viewer .close-media {
+  position:absolute; top:16px; right:16px;
+  width:44px; height:44px; border-radius:50%;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+  color:#fff; font-size:20px; cursor:pointer;
 }
-.voice-timer {
-  color:#fff; font-family:'Orbitron',sans-serif; font-size:32px;
-  margin-top:20px; text-shadow:0 0 20px rgba(255,100,200,0.5);
-}
-.voice-hint {
-  color:rgba(255,255,255,0.5); font-size:13px; margin-top:12px;
-}
-.voice-stop-btn {
-  margin-top:20px; padding:12px 32px;
-  background:linear-gradient(135deg,#ff6b6b,#ff4444);
-  border:none; border-radius:14px; color:#fff;
-  font-size:16px; cursor:pointer; transition:all 0.3s;
-}
-.voice-stop-btn:hover { transform:scale(1.05); box-shadow:0 0 30px rgba(255,100,100,0.4); }
-
-/* ===== 3D MESSAGE TIMELINE ===== */
-.timeline-hint {
-  position:fixed; top:80px; right:20px; z-index:70;
-  color:rgba(255,255,255,0.3); font-size:11px;
-  text-align:right; pointer-events:none;
-}
-
-/* ===== ENVIRONMENT CONTROLS ===== */
-.env-controls {
-  position:fixed; top:80px; left:20px; z-index:70;
-  display:flex; flex-direction:column; gap:8px;
-}
-.env-btn {
-  width:40px; height:40px; border-radius:10px;
-  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-  color:#fff; font-size:18px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:all 0.3s;
-}
-.env-btn:hover { background:rgba(255,255,255,0.1); transform:scale(1.1); }
-.env-btn.active { background:rgba(102,126,234,0.3); border-color:rgba(102,126,234,0.5); }
-
-/* ===== STICKER THROW EFFECT ===== */
-.sticker-3d {
-  position:fixed; pointer-events:none; z-index:60;
-  font-size:60px; transition:none;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px; }
 
 /* Loading */
 .loading-overlay {
@@ -616,37 +480,27 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 }
 .loading-overlay.hidden { opacity:0; pointer-events:none; }
 .loading-overlay .loader {
-  width:60px; height:60px; border:3px solid rgba(102,126,234,0.2);
+  width:50px; height:50px; border:3px solid rgba(102,126,234,0.2);
   border-top-color:#667eea; border-radius:50%;
   animation:spin 1s linear infinite;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
-.loading-overlay p { color:rgba(255,255,255,0.5); margin-top:16px; font-size:14px; }
+.loading-overlay p { color:rgba(255,255,255,0.5); margin-top:12px; font-size:13px; }
 
-/* Responsive */
-@media (max-width:600px) {
-  .side-panel { width:80vw; }
-  .panel-toggle.open { left:80vw; }
-  .music-panel { width:80vw; }
-  .input-bar .msg-input { font-size:14px; padding:12px 14px; }
-  .input-bar .send-btn, .input-bar .attach-btn, .input-bar .emoji-btn, .input-bar .music-btn,
-  .input-bar .reaction-btn, .input-bar .draw-btn, .input-bar .voice-btn, .input-bar .gesture-btn {
-    width:38px; height:38px; font-size:16px;
-  }
-}
+/* Scrollbar */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:3px; }
 </style>
 </head>
 <body>
 
-<!-- Loading -->
 <div class="loading-overlay" id="loading"><div class="loader"></div><p>Загрузка 3D мира...</p></div>
 
-<!-- Auth Screen -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-container">
     <div class="auth-logo">3D MESSENGER</div>
     <div class="auth-sub">Miside Style · Realtime · 3D Room</div>
-
     <div class="auth-mode active" id="loginMode">
       <input type="email" class="auth-input" id="loginEmail" placeholder="Email" autocomplete="email">
       <input type="password" class="auth-input" id="loginPass" placeholder="Пароль" autocomplete="current-password">
@@ -654,7 +508,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
       <div class="auth-error" id="loginError"></div>
       <div class="auth-toggle">Нет аккаунта? <span onclick="switchAuth('register')">Создать</span></div>
     </div>
-
     <div class="auth-mode" id="registerMode">
       <input type="text" class="auth-input" id="regUsername" placeholder="Username (для поиска)" maxlength="20">
       <input type="email" class="auth-input" id="regEmail" placeholder="Email" autocomplete="email">
@@ -666,12 +519,11 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
-<!-- Main UI -->
 <div class="main-ui" id="mainUI">
   <div class="top-bar">
     <div class="logo-text">3D MESSENGER</div>
     <div class="user-info">
-      <div class="avatar" id="userAvatar" onclick="openProfile()" title="Профиль">?</div>
+      <div class="avatar" id="userAvatar" onclick="openProfile()">?</div>
       <button class="logout-btn" onclick="doLogout()">Выйти</button>
     </div>
   </div>
@@ -686,12 +538,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="users-list" id="usersList"></div>
   </div>
 
-  <!-- Environment Controls -->
   <div class="env-controls" id="envControls">
-    <button class="env-btn" id="envDay" onclick="setEnvironment('day')" title="День">☀️</button>
     <button class="env-btn active" id="envNight" onclick="setEnvironment('night')" title="Ночь">🌙</button>
+    <button class="env-btn" id="envDay" onclick="setEnvironment('day')" title="День">☀️</button>
     <button class="env-btn" id="envRain" onclick="setEnvironment('rain')" title="Дождь">🌧️</button>
-    <button class="env-btn" id="envNeon" onclick="setEnvironment('neon')" title="Неон">🌃</button>
   </div>
 
   <canvas id="room-canvas"></canvas>
@@ -705,52 +555,46 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     </div>
   </div>
 
-  <div class="typing-indicator" id="typingIndicator">
-    <span></span><span></span><span></span>
-  </div>
-
-  <div class="timeline-hint" id="timelineHint">
-    🖱 Колёсико мыши — листать историю<br>
-    🖱 ПКМ + движение — рисовать в 3D
-  </div>
+  <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
 
   <div class="input-bar">
-    <button class="music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
-    <button class="gesture-btn" onclick="toggleGesturePanel()" title="Жесты">🎭</button>
-    <button class="reaction-btn" onclick="toggleReactionPanel()" title="Реакции">💖</button>
-    <button class="draw-btn" id="drawBtn" onclick="toggleDrawPanel()" title="Рисовать">✏️</button>
-    <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()" title="Голос">🎤</button>
-    <button class="emoji-btn" onclick="toggleEmojiPanel()" title="Эмодзи">😊</button>
-    <button class="attach-btn" onclick="triggerFile()" title="Фото/Видео">📎</button>
+    <button class="action-btn icon-btn music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
+    <button class="action-btn icon-btn" onclick="toggleGesturePanel()" title="Жесты и эмодзи">🎭</button>
+    <button class="action-btn icon-btn" onclick="toggleDrawPanel()" title="Рисовать">✏️</button>
+    <button class="action-btn icon-btn" onclick="triggerFile()" title="Фото/Видео">📎</button>
     <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
-    <input type="text" class="msg-input" id="msgInput" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" oninput="onTyping()">
-    <button class="send-btn" onclick="sendMessage()">➤</button>
+    <input type="text" class="msg-input" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" oninput="onTyping()">
+    <button class="action-btn send-btn" onclick="sendMessage()">➤</button>
   </div>
 </div>
 
 <!-- Music Panel -->
 <div class="music-panel" id="musicPanel">
   <button class="music-close" onclick="toggleMusicPanel()">✕</button>
-  <h3>🎵 Фоновая Музыка</h3>
-  <div class="music-track" data-src="minecraft" onclick="playTrack('minecraft')">
-    <div class="track-icon">⛏️</div>
-    <div class="track-info"><div class="track-name">Minecraft Ambient</div><div class="track-desc">Спокойная атмосфера</div></div>
-    <div class="track-play" id="play-minecraft">▶</div>
-  </div>
+  <h3>🎵 Музыка</h3>
   <div class="music-track" data-src="genshin" onclick="playTrack('genshin')">
     <div class="track-icon">🌸</div>
     <div class="track-info"><div class="track-name">Genshin Impact</div><div class="track-desc">Мелодичная фантазия</div></div>
     <div class="track-play" id="play-genshin">▶</div>
+    <a class="music-download" id="dl-genshin" href="" download="genshin.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
-  <div class="music-track" data-src="lofi" onclick="playTrack('lofi')">
-    <div class="track-icon">☕</div>
-    <div class="track-info"><div class="track-name">Lo-Fi Chill</div><div class="track-desc">Расслабляющий бит</div></div>
-    <div class="track-play" id="play-lofi">▶</div>
+  <div class="music-track" data-src="forest" onclick="playTrack('forest')">
+    <div class="track-icon">🌲</div>
+    <div class="track-info"><div class="track-name">Forest Whisper</div><div class="track-desc">Шёпот леса</div></div>
+    <div class="track-play" id="play-forest">▶</div>
+    <a class="music-download" id="dl-forest" href="" download="forest.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
-  <div class="music-track" data-src="cyber" onclick="playTrack('cyber')">
-    <div class="track-icon">🌃</div>
-    <div class="track-info"><div class="track-name">Cyberpunk Vibes</div><div class="track-desc">Неоновая ночь</div></div>
-    <div class="track-play" id="play-cyber">▶</div>
+  <div class="music-track" data-src="ocean" onclick="playTrack('ocean')">
+    <div class="track-icon">🌊</div>
+    <div class="track-info"><div class="track-name">Ocean Dreams</div><div class="track-desc">Морские волны</div></div>
+    <div class="track-play" id="play-ocean">▶</div>
+    <a class="music-download" id="dl-ocean" href="" download="ocean.mp3" onclick="event.stopPropagation()">⬇</a>
+  </div>
+  <div class="music-track" data-src="stardust" onclick="playTrack('stardust')">
+    <div class="track-icon">✨</div>
+    <div class="track-info"><div class="track-name">Stardust</div><div class="track-desc">Звёздная пыль</div></div>
+    <div class="track-play" id="play-stardust">▶</div>
+    <a class="music-download" id="dl-stardust" href="" download="stardust.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
   <div class="music-volume">
     <label>Громкость</label>
@@ -758,38 +602,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
-<!-- Emoji Panel -->
-<div class="emoji-panel" id="emojiPanel">
-  <div class="emoji-grid">
-    <span onclick="insertEmoji('😀')">😀</span><span onclick="insertEmoji('😂')">😂</span><span onclick="insertEmoji('🥰')">🥰</span><span onclick="insertEmoji('😎')">😎</span>
-    <span onclick="insertEmoji('🤔')">🤔</span><span onclick="insertEmoji('😭')">😭</span><span onclick="insertEmoji('😡')">😡</span><span onclick="insertEmoji('🥳')">🥳</span>
-    <span onclick="insertEmoji('❤️')">❤️</span><span onclick="insertEmoji('🔥')">🔥</span><span onclick="insertEmoji('✨')">✨</span><span onclick="insertEmoji('🎉')">🎉</span>
-    <span onclick="insertEmoji('👍')">👍</span><span onclick="insertEmoji('👎')">👎</span><span onclick="insertEmoji('🙏')">🙏</span><span onclick="insertEmoji('💀')">💀</span>
-    <span onclick="insertEmoji('🌟')">🌟</span><span onclick="insertEmoji('🌙')">🌙</span><span onclick="insertEmoji('☀️')">☀️</span><span onclick="insertEmoji('🌈')">🌈</span>
-    <span onclick="insertEmoji('🎮')">🎮</span><span onclick="insertEmoji('🎵')">🎵</span><span onclick="insertEmoji('🎨')">🎨</span><span onclick="insertEmoji('🚀')">🚀</span>
-    <span onclick="insertEmoji('🐱')">🐱</span><span onclick="insertEmoji('🐶')">🐶</span><span onclick="insertEmoji('🦊')">🦊</span><span onclick="insertEmoji('🐼')">🐼</span>
-    <span onclick="insertEmoji('🍕')">🍕</span><span onclick="insertEmoji('🍔')">🍔</span><span onclick="insertEmoji('🍦')">🍦</span><span onclick="insertEmoji('🍩')">🍩</span>
-    <span onclick="insertEmoji('⚡')">⚡</span><span onclick="insertEmoji('💎')">💎</span><span onclick="insertEmoji('🌺')">🌺</span><span onclick="insertEmoji('🍀')">🍀</span>
-  </div>
-</div>
-
-<!-- Reaction Panel (3D Particle Emojis) -->
-<div class="reaction-panel" id="reactionPanel">
-  <div class="reaction-grid">
-    <div class="reaction-item" onclick="send3DReaction('heart')">❤️</div>
-    <div class="reaction-item" onclick="send3DReaction('fire')">🔥</div>
-    <div class="reaction-item" onclick="send3DReaction('star')">⭐</div>
-    <div class="reaction-item" onclick="send3DReaction('sparkle')">✨</div>
-    <div class="reaction-item" onclick="send3DReaction('ghost')">👻</div>
-    <div class="reaction-item" onclick="send3DReaction('bomb')">💣</div>
-    <div class="reaction-item" onclick="send3DReaction('rainbow')">🌈</div>
-    <div class="reaction-item" onclick="send3DReaction('lightning')">⚡</div>
-    <div class="reaction-item" onclick="send3DReaction('diamond')">💎</div>
-    <div class="reaction-item" onclick="send3DReaction('rose')">🌹</div>
-  </div>
-</div>
-
-<!-- Gesture Panel -->
+<!-- Gesture Panel (with emoji inside) -->
 <div class="gesture-panel" id="gesturePanel">
   <div class="gesture-grid">
     <div class="gesture-item" onclick="sendGesture('wave')"><span class="gesture-emoji">👋</span><span class="gesture-name">Махать</span></div>
@@ -801,12 +614,23 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="gesture-item" onclick="sendGesture('angry')"><span class="gesture-emoji">😤</span><span class="gesture-name">Злиться</span></div>
     <div class="gesture-item" onclick="sendGesture('love')"><span class="gesture-emoji">😍</span><span class="gesture-name">Влюблён</span></div>
   </div>
+  <div class="gesture-emoji-section">
+    <div class="gesture-emoji-section-title">Эмодзи</div>
+    <div class="gesture-emoji-grid">
+      <span onclick="insertEmoji('😀')">😀</span><span onclick="insertEmoji('😂')">😂</span><span onclick="insertEmoji('🥰')">🥰</span><span onclick="insertEmoji('😎')">😎</span>
+      <span onclick="insertEmoji('🤔')">🤔</span><span onclick="insertEmoji('😭')">😭</span><span onclick="insertEmoji('😡')">😡</span><span onclick="insertEmoji('🥳')">🥳</span>
+      <span onclick="insertEmoji('❤️')">❤️</span><span onclick="insertEmoji('🔥')">🔥</span><span onclick="insertEmoji('✨')">✨</span><span onclick="insertEmoji('🎉')">🎉</span>
+      <span onclick="insertEmoji('👍')">👍</span><span onclick="insertEmoji('👎')">👎</span><span onclick="insertEmoji('🙏')">🙏</span><span onclick="insertEmoji('💀')">💀</span>
+      <span onclick="insertEmoji('🌟')">🌟</span><span onclick="insertEmoji('🌙')">🌙</span><span onclick="insertEmoji('☀️')">☀️</span><span onclick="insertEmoji('🌈')">🌈</span>
+      <span onclick="insertEmoji('🎮')">🎮</span><span onclick="insertEmoji('🎵')">🎵</span><span onclick="insertEmoji('🎨')">🎨</span><span onclick="insertEmoji('🚀')">🚀</span>
+    </div>
+  </div>
 </div>
 
-<!-- Drawing Panel -->
+<!-- Draw Panel -->
 <div class="draw-panel" id="drawPanel">
-  <h3>✏️ Рисовать в 3D</h3>
-  <div class="draw-canvas-wrap">
+  <h3>✏️ Рисовать</h3>
+  <div class="draw-canvas-wrap" id="drawCanvasWrap">
     <canvas id="drawCanvas"></canvas>
   </div>
   <div class="draw-colors">
@@ -820,24 +644,15 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
   <div class="draw-actions">
     <button onclick="clearDrawCanvas()">Очистить</button>
-    <button class="secondary" onclick="send3DDrawing()">Отправить в 3D 🚀</button>
+    <button class="secondary" onclick="send3DDrawing()">Отправить 🚀</button>
     <button class="secondary" onclick="toggleDrawPanel()">Закрыть</button>
   </div>
-</div>
-
-<!-- Voice Overlay -->
-<div class="voice-overlay" id="voiceOverlay">
-  <div class="voice-wave-container" id="voiceWaveContainer"></div>
-  <div class="voice-timer" id="voiceTimer">00:00</div>
-  <div class="voice-hint">Говорите... Голосовая волна в 3D</div>
-  <button class="voice-stop-btn" onclick="stopVoiceRecording()">⏹ Стоп</button>
 </div>
 
 <!-- Media Viewer -->
 <div class="media-viewer" id="mediaViewer">
   <button class="close-media" onclick="closeMedia()">✕</button>
   <div class="media-3d" id="media3d"></div>
-  <div class="media-hint">🖱 Перетаскивайте для вращения · 📱 Свайпайте</div>
 </div>
 
 <!-- Profile Modal -->
@@ -847,7 +662,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="profile-avatar" id="profileAvatar" onclick="triggerAvatarUpload()">
       <span id="profileAvatarText">?</span>
       <img id="profileAvatarImg" style="display:none;">
-      <div class="avatar-overlay">📷 Сменить</div>
+      <div class="avatar-overlay">📷</div>
     </div>
     <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">
     <div class="profile-name" id="profileName">User</div>
@@ -857,7 +672,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
-<!-- Miside Text Container -->
 <div class="miside-text-container" id="misideContainer"></div>
 
 <script>
@@ -876,62 +690,26 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 // ===== STATE =====
-let currentUser = null;
-let currentPartner = null;
-let chatId = null;
-let typingTimeout = null;
+let currentUser = null, currentPartner = null, chatId = null, typingTimeout = null;
 let scene, camera, renderer, roomGroup;
-let messages3D = [];
-let mediaObjects = [];
-let avatar3DObjects = {};
-let particleReactions = [];
-let voiceWaves3D = [];
-let drawings3D = [];
-let gestureAnimations = [];
-let stickerObjects = [];
-let rainParticles = null;
-let animationId;
-let isPanelOpen = false;
-let isMusicPanelOpen = false;
-let isReactionPanelOpen = false;
-let isGesturePanelOpen = false;
-let isDrawPanelOpen = false;
-let isRecordingVoice = false;
-let currentAudio = null;
-let currentTrack = null;
-let audioVolume = 0.3;
-let userData = {};
-let partnerLastSeen = 0;
-let partnerStatusListener = null;
-let mediaRecorder = null;
-let voiceChunks = [];
-let voiceTimerInterval = null;
-let drawColor = '#ff6b6b';
-let isDrawing = false;
-let drawCtx = null;
+let messages3D = [], mediaObjects = [], avatar3DObjects = {};
+let gestureAnimations = [], drawings3D = [], fireflies = [];
+let rainSound = null, rainParticles = null;
+let sunMesh = null, skyMesh = null;
+let animationId, isPanelOpen = false, isMusicPanelOpen = false;
+let currentAudio = null, currentTrack = null, audioVolume = 0.3;
+let userData = {}, partnerStatusListener = null;
+let drawCtx = null, drawColor = '#ff6b6b';
+let isDrawingCanvas = false;
 let currentEnvironment = 'night';
 let envLights = {};
 
 // ===== MUSIC TRACKS =====
 const MUSIC_TRACKS = {
-  minecraft: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Chris_Zabriskie/Undercover_Vampire_Policeman/Chris_Zabriskie_-_01_-_The_Temperature_of_the_Air_on_the_Bow_of_the_Kaleetan.mp3',
   genshin: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3',
-  lofi: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Algorithms.mp3',
-  cyber: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Tours/Enthusiast/Tours_-_01_-_Enthusiast.mp3'
-};
-
-// ===== REACTION PARTICLE SHAPES =====
-const REACTION_SHAPES = {
-  heart: { color: 0xff3366, particles: 80, type: 'heart' },
-  fire: { color: 0xff6600, particles: 100, type: 'fire' },
-  star: { color: 0xffd700, particles: 60, type: 'star' },
-  sparkle: { color: 0xffffff, particles: 120, type: 'sparkle' },
-  ghost: { color: 0xccffff, particles: 70, type: 'ghost' },
-  bomb: { color: 0x333333, particles: 150, type: 'bomb' },
-  rainbow: { color: 'rainbow', particles: 200, type: 'rainbow' },
-  lightning: { color: 0xffff00, particles: 90, type: 'lightning' },
-  diamond: { color: 0x00ffff, particles: 50, type: 'diamond' },
-  rose: { color: 0xff0044, particles: 70, type: 'rose' }
+  forest: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Chris_Zabriskie/Undercover_Vampire_Policeman/Chris_Zabriskie_-_01_-_The_Temperature_of_the_Air_on_the_Bow_of_the_Kaleetan.mp3',
+  ocean: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Algorithms.mp3',
+  stardust: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Tours/Enthusiast/Tours_-_01_-_Enthusiast.mp3'
 };
 
 // ===== AUTH =====
@@ -957,7 +735,7 @@ function doRegister() {
       const uid = cred.user.uid;
       db.ref('users/'+uid).set({
         username: username, email: email, displayName: username,
-        createdAt: Date.now(), online: true, avatar: ''
+        createdAt: Date.now(), online: true, avatar: '', lastSeen: Date.now()
       });
       db.ref('usernames/'+username).set(uid);
     }).catch(e=>err.textContent=e.message);
@@ -972,10 +750,37 @@ function doLogin() {
 }
 
 function doLogout() {
-  if(currentUser) db.ref('users/'+currentUser.uid+'/online').set(false);
+  if(currentUser) {
+    db.ref('users/'+currentUser.uid+'/online').set(false);
+    db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now());
+  }
   if(currentAudio) { currentAudio.pause(); currentAudio = null; }
   auth.signOut();
 }
+
+// Online status - realtime heartbeat
+let heartbeatInterval = null;
+function startHeartbeat() {
+  if(heartbeatInterval) clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(()=>{
+    if(currentUser) {
+      db.ref('users/'+currentUser.uid).update({ online: true, lastSeen: Date.now() });
+    }
+  }, 5000);
+}
+
+// Offline on page hide/close
+function setOffline() {
+  if(currentUser) {
+    db.ref('users/'+currentUser.uid).update({ online: false, lastSeen: Date.now() });
+  }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) setOffline();
+  else if(currentUser) db.ref('users/'+currentUser.uid).update({ online: true, lastSeen: Date.now() });
+});
+window.addEventListener('beforeunload', setOffline);
+window.addEventListener('pagehide', setOffline);
 
 auth.onAuthStateChanged(user=>{
   if(user){
@@ -992,9 +797,8 @@ auth.onAuthStateChanged(user=>{
       } else {
         document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
       }
-      db.ref('users/'+user.uid+'/online').set(true);
-      db.ref('users/'+user.uid+'/lastSeen').set(Date.now());
-      setInterval(()=>{ if(currentUser) db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now()); }, 30000);
+      db.ref('users/'+user.uid).update({ online: true, lastSeen: Date.now() });
+      startHeartbeat();
     });
     document.getElementById('authScreen').classList.add('hidden');
     setTimeout(()=>{
@@ -1007,6 +811,7 @@ auth.onAuthStateChanged(user=>{
     },800);
   } else {
     currentUser = null; userData = {};
+    if(heartbeatInterval) clearInterval(heartbeatInterval);
     document.getElementById('authScreen').style.display='flex';
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('mainUI').classList.remove('active');
@@ -1064,28 +869,34 @@ function loadUsers() {
       div.onclick = ()=>selectUser(uid,data);
       const isOnline = data.online === true;
       const lastSeen = data.lastSeen || 0;
-      const timeAgo = formatTimeAgo(lastSeen);
+      const timeStr = formatLastSeen(lastSeen, isOnline);
       let avatarHTML = '<div class="u-avatar">' + (data.displayName||data.username||'U').charAt(0).toUpperCase() + '</div>';
       if(data.avatar) {
         avatarHTML = '<div class="u-avatar"><img src="' + data.avatar + '" onerror="this.style.display=\'none\';this.parentNode.textContent=\''+(data.displayName||data.username||'U').charAt(0).toUpperCase()+'\'"></div>';
       }
       div.innerHTML = avatarHTML + `
         <div class="u-info"><div class="u-name">${data.displayName||data.username||'User'}</div><div class="u-username">@${data.username||'user'}</div></div>
-        <div class="u-status-wrap"><div class="u-status ${isOnline?'':'offline'}"></div><div class="u-last-seen">${isOnline?'online':timeAgo}</div></div>
+        <div class="u-status-wrap"><div class="u-status ${isOnline?'':'offline'}"></div><div class="u-last-seen">${timeStr}</div></div>
       `;
       list.appendChild(div);
     });
   });
 }
 
-function formatTimeAgo(timestamp) {
+function formatLastSeen(timestamp, isOnline) {
+  if(isOnline) return 'в сети';
   if(!timestamp) return 'давно';
-  const diff = Date.now() - timestamp;
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
   const sec = Math.floor(diff/1000);
   if(sec < 60) return 'только что';
-  if(sec < 3600) return Math.floor(sec/60) + ' мин';
-  if(sec < 86400) return Math.floor(sec/3600) + ' ч';
-  return Math.floor(sec/86400) + ' дн';
+  if(sec < 3600) return Math.floor(sec/60) + ' мин назад';
+  if(sec < 86400) return Math.floor(sec/3600) + ' ч назад';
+  // Format as "был(а) в 15:00"
+  const hours = date.getHours().toString().padStart(2,'0');
+  const mins = date.getMinutes().toString().padStart(2,'0');
+  return 'в ' + hours + ':' + mins;
 }
 
 function searchUsers() {
@@ -1109,8 +920,7 @@ function selectUser(uid,data) {
     const pData = snap.val()||{};
     const isOnline = pData.online === true;
     statusDot.className = 'partner-status-dot ' + (isOnline?'online':'offline');
-    statusText.textContent = isOnline ? 'в сети' : 'был(а) ' + formatTimeAgo(pData.lastSeen);
-    partnerLastSeen = pData.lastSeen || 0;
+    statusText.textContent = isOnline ? 'в сети' : 'был(а) ' + formatLastSeen(pData.lastSeen, false);
     updatePartner3DAvatar(pData);
   };
   db.ref('users/'+uid).on('value', partnerStatusListener);
@@ -1118,8 +928,7 @@ function selectUser(uid,data) {
   chatId = ids.join('_');
   messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
   mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
-  particleReactions.forEach(r=>{ if(r.group && roomGroup) roomGroup.remove(r.group); }); particleReactions = [];
-  voiceWaves3D.forEach(w=>{ if(w.mesh && roomGroup) roomGroup.remove(w.mesh); }); voiceWaves3D = [];
+  gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.remove(g.mesh); }); gestureAnimations = [];
   drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.remove(d.mesh); }); drawings3D = [];
   if(avatar3DObjects[uid]) { if(avatar3DObjects[uid].mesh && roomGroup) roomGroup.remove(avatar3DObjects[uid].mesh); delete avatar3DObjects[uid]; }
   db.ref('chats/'+chatId).off();
@@ -1127,10 +936,8 @@ function selectUser(uid,data) {
     const msg = snap.val();
     if(msg.sender!==currentUser.uid) {
       if(msg.text) showMisideText(msg.text);
-      if(msg.reactionType) create3DParticleReaction(msg.reactionType, false);
       if(msg.gestureType) create3DGesture(msg.gestureType, false);
       if(msg.drawingData) create3DDrawing(msg.drawingData, false);
-      if(msg.voiceData) create3DVoiceWave(msg.voiceData, false);
     }
     if(msg.mediaData) create3DMedia(msg.mediaData, msg.mediaType, msg.sender===currentUser.uid);
   });
@@ -1165,231 +972,16 @@ function sendMessage() {
   showMisideText(text);
 }
 
-// ===== EMOJI =====
-function toggleEmojiPanel() {
-  document.getElementById('emojiPanel').classList.toggle('active');
-  document.getElementById('reactionPanel').classList.remove('active');
-  document.getElementById('gesturePanel').classList.remove('active');
-}
 function insertEmoji(emoji) {
   const input = document.getElementById('msgInput');
   input.value += emoji; input.focus();
-  document.getElementById('emojiPanel').classList.remove('active');
-}
-
-document.addEventListener('click', e=>{
-  if(!e.target.closest('.emoji-panel') && !e.target.closest('.emoji-btn'))
-    document.getElementById('emojiPanel').classList.remove('active');
-  if(!e.target.closest('.reaction-panel') && !e.target.closest('.reaction-btn'))
-    document.getElementById('reactionPanel').classList.remove('active');
-  if(!e.target.closest('.gesture-panel') && !e.target.closest('.gesture-btn'))
-    document.getElementById('gesturePanel').classList.remove('active');
-});
-
-// ===== MISIDE TEXT EFFECT =====
-function showMisideText(text) {
-  const container = document.getElementById('misideContainer');
-  container.innerHTML = '';
-  const chars = text.split('');
-  const spans = [];
-  chars.forEach((char,i)=>{
-    const span = document.createElement('span');
-    span.className = 'miside-letter';
-    span.textContent = char === ' ' ? '\u00A0' : char;
-    span.style.color = `hsl(${200 + Math.random()*60}, 80%, 70%)`;
-    container.appendChild(span); spans.push(span);
-  });
-  spans.forEach((span,i)=>{
-    gsap.to(span, { opacity:1, scale:1, y:0, duration:0.3, delay:i*0.05, ease:'back.out(1.7)' });
-  });
-  const totalTime = Math.max(2000, chars.length * 300);
-  setTimeout(()=>{
-    spans.forEach((span,i)=>{
-      gsap.to(span, { opacity:0, scale:0.3, y:-50, duration:0.4, delay:i*0.08, ease:'power2.in',
-        onComplete:()=>{ if(i===spans.length-1) container.innerHTML=''; }
-      });
-    });
-  }, totalTime);
-  add3DTextBubble(text);
-}
-
-// ===== MUSIC =====
-function toggleMusicPanel() {
-  isMusicPanelOpen = !isMusicPanelOpen;
-  document.getElementById('musicPanel').classList.toggle('open', isMusicPanelOpen);
-}
-function playTrack(trackId) {
-  if(currentTrack === trackId && currentAudio && !currentAudio.paused) {
-    currentAudio.pause(); currentAudio = null; currentTrack = null;
-    document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
-    document.getElementById('musicBtn').classList.remove('playing');
-    return;
-  }
-  if(currentAudio) { currentAudio.pause(); currentAudio = null; }
-  const audio = new Audio(MUSIC_TRACKS[trackId]);
-  audio.loop = true; audio.volume = audioVolume;
-  audio.play().catch(e=>console.log('Audio play failed:', e));
-  currentAudio = audio; currentTrack = trackId;
-  document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`.music-track[data-src="${trackId}"]`).classList.add('active');
-  document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
-  document.getElementById('play-'+trackId).textContent='⏸';
-  document.getElementById('musicBtn').classList.add('playing');
-}
-function setVolume(val) {
-  audioVolume = val / 100;
-  if(currentAudio) currentAudio.volume = audioVolume;
-}
-
-// ===== 3D PARTICLE REACTIONS (FEATURE 1) =====
-function toggleReactionPanel() {
-  isReactionPanelOpen = !isReactionPanelOpen;
-  document.getElementById('reactionPanel').classList.toggle('active', isReactionPanelOpen);
-  document.getElementById('emojiPanel').classList.remove('active');
   document.getElementById('gesturePanel').classList.remove('active');
 }
 
-function send3DReaction(type) {
-  if(!chatId) return;
-  db.ref('chats/'+chatId).push({
-    reactionType: type, sender: currentUser.uid, timestamp: Date.now()
-  });
-  create3DParticleReaction(type, true);
-  document.getElementById('reactionPanel').classList.remove('active');
-}
-
-function create3DParticleReaction(type, isOwn) {
-  if(!roomGroup) return;
-  const config = REACTION_SHAPES[type];
-  if(!config) return;
-
-  const group = new THREE.Group();
-  const positions = [];
-  const colors = [];
-  const velocities = [];
-  const count = config.particles;
-
-  // Generate particle positions based on shape
-  for(let i=0; i<count; i++) {
-    let x,y,z;
-    if(config.type === 'heart') {
-      const t = Math.random() * Math.PI * 2;
-      const r = Math.random() * 0.8;
-      x = r * 16 * Math.pow(Math.sin(t), 3) * 0.05;
-      y = r * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 0.05;
-      z = (Math.random()-0.5) * 0.3;
-    } else if(config.type === 'star') {
-      const angle = (i/count) * Math.PI * 2;
-      const radius = (i%2===0) ? 0.8 : 0.3;
-      x = Math.cos(angle) * radius;
-      y = Math.sin(angle) * radius;
-      z = (Math.random()-0.5) * 0.2;
-    } else if(config.type === 'fire') {
-      const angle = Math.random() * Math.PI * 2;
-      const r = Math.random() * 0.5;
-      x = Math.cos(angle) * r;
-      y = Math.random() * 1.5;
-      z = Math.sin(angle) * r;
-    } else if(config.type === 'rainbow') {
-      const angle = Math.random() * Math.PI;
-      const r = 1.0;
-      x = Math.cos(angle) * r;
-      y = Math.sin(angle) * r;
-      z = (Math.random()-0.5) * 0.3;
-    } else if(config.type === 'lightning') {
-      x = (Math.random()-0.5) * 0.3;
-      y = (Math.random()-0.5) * 2;
-      z = (Math.random()-0.5) * 0.3;
-    } else {
-      x = (Math.random()-0.5) * 1.5;
-      y = (Math.random()-0.5) * 1.5;
-      z = (Math.random()-0.5) * 1.5;
-    }
-    positions.push(x, y, z);
-
-    let color;
-    if(config.color === 'rainbow') {
-      const hue = i / count;
-      const c = new THREE.Color().setHSL(hue, 1, 0.6);
-      colors.push(c.r, c.g, c.b);
-    } else {
-      const c = new THREE.Color(config.color);
-      const variation = 0.3;
-      colors.push(
-        c.r + (Math.random()-0.5)*variation,
-        c.g + (Math.random()-0.5)*variation,
-        c.b + (Math.random()-0.5)*variation
-      );
-    }
-
-    velocities.push(
-      (Math.random()-0.5) * 0.02,
-      Math.random() * 0.03 + 0.01,
-      (Math.random()-0.5) * 0.02
-    );
-  }
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-  const mat = new THREE.PointsMaterial({
-    size: 0.08, vertexColors: true, transparent: true, opacity: 1,
-    blending: THREE.AdditiveBlending
-  });
-
-  const particles = new THREE.Points(geo, mat);
-  particles.position.set(
-    (Math.random()-0.5) * 6,
-    2 + Math.random() * 3,
-    (Math.random()-0.5) * 6
-  );
-
-  group.add(particles);
-
-  // Add glow sphere in center
-  const glowGeo = new THREE.SphereGeometry(0.3, 16, 16);
-  const glowMat = new THREE.MeshBasicMaterial({
-    color: config.color === 'rainbow' ? 0xffffff : config.color,
-    transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending
-  });
-  const glow = new THREE.Mesh(glowGeo, glowMat);
-  group.add(glow);
-
-  // Add rotation ring
-  const ringGeo = new THREE.RingGeometry(0.5, 0.55, 32);
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: config.color === 'rainbow' ? 0xffffff : config.color,
-    transparent: true, opacity: 0.3, side: THREE.DoubleSide
-  });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI/2;
-  group.add(ring);
-
-  roomGroup.add(group);
-
-  const reactionObj = {
-    group, particles, glow, ring, velocities,
-    createdAt: Date.now(), life: 30000,
-    baseY: particles.position.y
-  };
-  particleReactions.push(reactionObj);
-
-  // Auto-remove after 30 seconds
-  setTimeout(()=>{
-    if(roomGroup) roomGroup.remove(group);
-    const idx = particleReactions.indexOf(reactionObj);
-    if(idx > -1) particleReactions.splice(idx, 1);
-  }, 30000);
-}
-
-// ===== 3D GESTURES (FEATURE 2) =====
+// ===== GESTURE PANEL =====
 function toggleGesturePanel() {
-  isGesturePanelOpen = !isGesturePanelOpen;
-  document.getElementById('gesturePanel').classList.toggle('active', isGesturePanelOpen);
-  document.getElementById('emojiPanel').classList.remove('active');
-  document.getElementById('reactionPanel').classList.remove('active');
+  const panel = document.getElementById('gesturePanel');
+  panel.classList.toggle('active');
 }
 
 function sendGesture(type) {
@@ -1403,106 +995,105 @@ function sendGesture(type) {
 
 function create3DGesture(type, isOwn) {
   if(!roomGroup || !avatar3DObjects[currentPartner.uid]) return;
-  const avatarGroup = avatar3DObjects[currentPartner.uid].mesh;
-
   const gestureConfig = {
-    wave: { emoji: '👋', color: 0xffff00, yOffset: 3 },
-    dance: { emoji: '💃', color: 0xff00ff, yOffset: 3.5 },
-    bow: { emoji: '🙇', color: 0x00ff00, yOffset: 2.5 },
-    clap: { emoji: '👏', color: 0xffaa00, yOffset: 3 },
-    think: { emoji: '🤔', color: 0x8888ff, yOffset: 3.2 },
-    sleep: { emoji: '😴', color: 0xaaaaff, yOffset: 2.8 },
-    angry: { emoji: '😤', color: 0xff4444, yOffset: 3 },
-    love: { emoji: '😍', color: 0xff66aa, yOffset: 3.2 }
+    wave: { emoji: '👋', color: 0xffff00 },
+    dance: { emoji: '💃', color: 0xff00ff },
+    bow: { emoji: '🙇', color: 0x00ff00 },
+    clap: { emoji: '👏', color: 0xffaa00 },
+    think: { emoji: '🤔', color: 0x8888ff },
+    sleep: { emoji: '😴', color: 0xaaaaff },
+    angry: { emoji: '😤', color: 0xff4444 },
+    love: { emoji: '😍', color: 0xff66aa }
   };
+  const config = gestureConfig[type]; if(!config) return;
 
-  const config = gestureConfig[type];
-  if(!config) return;
-
-  // Create floating emoji
   const canvas = document.createElement('canvas');
   canvas.width = 128; canvas.height = 128;
   const ctx = canvas.getContext('2d');
-  ctx.font = '80px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.font = '80px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(config.emoji, 64, 64);
-
   const texture = new THREE.CanvasTexture(canvas);
   const geo = new THREE.PlaneGeometry(1, 1);
   const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(geo, mat);
-
-  mesh.position.set(0, config.yOffset, -4);
-  mesh.userData = { isGesture: true, startTime: Date.now(), type: type };
+  mesh.position.set(0, 3, -4);
+  mesh.userData = { isGesture: true, startTime: Date.now() };
   roomGroup.add(mesh);
 
-  // Add particle burst
-  const burstCount = 30;
-  const burstPositions = [];
-  const burstColors = [];
-  for(let i=0; i<burstCount; i++) {
-    burstPositions.push(0, 0, 0);
-    const c = new THREE.Color(config.color);
-    burstColors.push(c.r, c.g, c.b);
-  }
-  const burstGeo = new THREE.BufferGeometry();
-  burstGeo.setAttribute('position', new THREE.Float32BufferAttribute(burstPositions, 3));
-  burstGeo.setAttribute('color', new THREE.Float32BufferAttribute(burstColors, 3));
-  const burstMat = new THREE.PointsMaterial({ size: 0.06, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending });
-  const burst = new THREE.Points(burstGeo, burstMat);
-  burst.position.set(0, config.yOffset, -4);
-  roomGroup.add(burst);
-
-  const gestureObj = { mesh, burst, startTime: Date.now(), duration: 4000, baseY: config.yOffset };
+  const gestureObj = { mesh, startTime: Date.now(), duration: 4000, baseY: 3 };
   gestureAnimations.push(gestureObj);
 
   setTimeout(()=>{
-    if(roomGroup) { roomGroup.remove(mesh); roomGroup.remove(burst); }
+    if(roomGroup) roomGroup.remove(mesh);
     const idx = gestureAnimations.indexOf(gestureObj);
     if(idx > -1) gestureAnimations.splice(idx, 1);
   }, 4000);
 }
 
-// ===== 3D DRAWING (FEATURE 3) =====
+// ===== DRAWING =====
 function toggleDrawPanel() {
-  isDrawPanelOpen = !isDrawPanelOpen;
-  document.getElementById('drawPanel').classList.toggle('active', isDrawPanelOpen);
-  document.getElementById('drawBtn').classList.toggle('active', isDrawPanelOpen);
+  const panel = document.getElementById('drawPanel');
+  panel.classList.toggle('active');
+  if(panel.classList.contains('active')) initDrawCanvas();
 }
 
 function initDrawCanvas() {
   const canvas = document.getElementById('drawCanvas');
-  if(!canvas) return;
-  canvas.width = canvas.parentElement.offsetWidth;
-  canvas.height = 300;
+  if(!canvas || drawCtx) return;
+  const wrap = document.getElementById('drawCanvasWrap');
+  canvas.width = wrap.offsetWidth;
+  canvas.height = wrap.offsetHeight;
   drawCtx = canvas.getContext('2d');
   drawCtx.fillStyle = 'rgba(255,255,255,0.02)';
   drawCtx.fillRect(0, 0, canvas.width, canvas.height);
   drawCtx.strokeStyle = drawColor;
   drawCtx.lineWidth = 3;
   drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
 
   let drawing = false;
-  canvas.addEventListener('mousedown', e=>{ drawing=true; drawCtx.beginPath(); drawCtx.moveTo(e.offsetX, e.offsetY); });
-  canvas.addEventListener('mousemove', e=>{ if(drawing){ drawCtx.lineTo(e.offsetX, e.offsetY); drawCtx.stroke(); } });
-  canvas.addEventListener('mouseup', ()=>{ drawing=false; });
-  canvas.addEventListener('mouseleave', ()=>{ drawing=false; });
-  canvas.addEventListener('touchstart', e=>{
-    drawing=true; const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    drawCtx.beginPath(); drawCtx.moveTo(touch.clientX-rect.left, touch.clientY-rect.top);
-  }, {passive:true});
-  canvas.addEventListener('touchmove', e=>{
-    if(drawing){ const rect = canvas.getBoundingClientRect(); const touch = e.touches[0];
-      drawCtx.lineTo(touch.clientX-rect.left, touch.clientY-rect.top); drawCtx.stroke(); }
-  }, {passive:true});
-  canvas.addEventListener('touchend', ()=>{ drawing=false; });
+  let lastX = 0, lastY = 0;
+
+  const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
+
+  const startDraw = (e) => {
+    e.preventDefault();
+    drawing = true;
+    const pos = getPos(e);
+    lastX = pos.x; lastY = pos.y;
+    drawCtx.beginPath(); drawCtx.moveTo(lastX, lastY);
+  };
+
+  const moveDraw = (e) => {
+    if(!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    drawCtx.lineTo(pos.x, pos.y);
+    drawCtx.stroke();
+    lastX = pos.x; lastY = pos.y;
+  };
+
+  const endDraw = () => { drawing = false; };
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', moveDraw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', moveDraw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+  canvas.addEventListener('touchcancel', endDraw);
 }
 
 function setDrawColor(el) {
   drawColor = el.dataset.color;
-  drawCtx.strokeStyle = drawColor;
+  if(drawCtx) drawCtx.strokeStyle = drawColor;
   document.querySelectorAll('.draw-color').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
 }
@@ -1528,214 +1119,89 @@ function create3DDrawing(dataURL, isOwn) {
   if(!roomGroup) return;
   const loader = new THREE.TextureLoader();
   loader.load(dataURL, texture=>{
-    const geo = new THREE.PlaneGeometry(3, 3);
+    const geo = new THREE.PlaneGeometry(2.5, 2.5);
     const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, opacity: 0.9 });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      (Math.random()-0.5) * 6,
-      2 + Math.random() * 2,
-      (Math.random()-0.5) * 6
-    );
+    mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
     mesh.userData = { isDrawing: true };
     roomGroup.add(mesh);
     drawings3D.push({ mesh, baseY: mesh.position.y, createdAt: Date.now() });
   });
 }
 
-// ===== 3D VOICE WAVES (FEATURE 4) =====
-function toggleVoiceRecording() {
-  if(isRecordingVoice) {
-    stopVoiceRecording();
+// ===== MUSIC =====
+function toggleMusicPanel() {
+  isMusicPanelOpen = !isMusicPanelOpen;
+  document.getElementById('musicPanel').classList.toggle('open', isMusicPanelOpen);
+}
+
+function playTrack(trackId) {
+  if(currentTrack === trackId && currentAudio && !currentAudio.paused) {
+    currentAudio.pause(); currentAudio = null; currentTrack = null;
+    document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
+    document.getElementById('musicBtn').classList.remove('playing');
     return;
   }
-  if(!chatId) return;
-  isRecordingVoice = true;
-  document.getElementById('voiceBtn').classList.add('recording');
-  document.getElementById('voiceOverlay').classList.add('active');
+  if(currentAudio) { currentAudio.pause(); currentAudio = null; }
+  const audio = new Audio(MUSIC_TRACKS[trackId]);
+  audio.loop = true; audio.volume = audioVolume;
+  audio.play().catch(e=>console.log('Audio play failed:', e));
+  currentAudio = audio; currentTrack = trackId;
+  document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.music-track[data-src="${trackId}"]`).classList.add('active');
+  document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
+  document.getElementById('play-'+trackId).textContent='⏸';
+  document.getElementById('musicBtn').classList.add('playing');
 
-  // Create 3D voice wave visualization
-  createVoiceWaveVisualization();
-
-  // Start timer
-  let seconds = 0;
-  document.getElementById('voiceTimer').textContent = '00:00';
-  voiceTimerInterval = setInterval(()=>{
-    seconds++;
-    const mins = Math.floor(seconds/60).toString().padStart(2,'0');
-    const secs = (seconds%60).toString().padStart(2,'0');
-    document.getElementById('voiceTimer').textContent = `${mins}:${secs}`;
-  }, 1000);
-
-  // Simulate voice data (in real app would use Web Audio API + MediaRecorder)
-  // For demo, we'll create a simulated voice wave
-  setTimeout(()=>{
-    if(isRecordingVoice) stopVoiceRecording();
-  }, 10000); // Auto stop after 10s
+  // Set download link
+  document.getElementById('dl-'+trackId).href = MUSIC_TRACKS[trackId];
 }
 
-function createVoiceWaveVisualization() {
-  if(!roomGroup) return;
-  const waveGroup = new THREE.Group();
-  const bars = [];
-  const barCount = 20;
-
-  for(let i=0; i<barCount; i++) {
-    const geo = new THREE.BoxGeometry(0.15, 1, 0.15);
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(i/barCount, 0.8, 0.6),
-      emissive: new THREE.Color().setHSL(i/barCount, 0.8, 0.3),
-      emissiveIntensity: 0.5, transparent: true, opacity: 0.8
-    });
-    const bar = new THREE.Mesh(geo, mat);
-    bar.position.set((i - barCount/2) * 0.3, 2, -2);
-    bar.userData = { index: i, baseHeight: 1 };
-    waveGroup.add(bar);
-    bars.push(bar);
-  }
-
-  roomGroup.add(waveGroup);
-  voiceWaves3D.push({ group: waveGroup, bars, createdAt: Date.now(), isRecording: true });
+function setVolume(val) {
+  audioVolume = val / 100;
+  if(currentAudio) currentAudio.volume = audioVolume;
 }
 
-function stopVoiceRecording() {
-  isRecordingVoice = false;
-  document.getElementById('voiceBtn').classList.remove('recording');
-  document.getElementById('voiceOverlay').classList.remove('active');
-  if(voiceTimerInterval) { clearInterval(voiceTimerInterval); voiceTimerInterval = null; }
-
-  // Send voice message
-  if(chatId) {
-    db.ref('chats/'+chatId).push({
-      voiceData: 'voice_placeholder', sender: currentUser.uid, timestamp: Date.now(), duration: document.getElementById('voiceTimer').textContent
-    });
-  }
-
-  // Convert recording wave to static wave
-  voiceWaves3D.forEach(wave=>{
-    wave.isRecording = false;
-    wave.staticAt = Date.now();
-  });
-}
-
-function create3DVoiceWave(voiceData, isOwn) {
-  if(!roomGroup) return;
-  const waveGroup = new THREE.Group();
-  const bars = [];
-  const barCount = 20;
-
-  for(let i=0; i<barCount; i++) {
-    const height = 0.3 + Math.random() * 1.5;
-    const geo = new THREE.BoxGeometry(0.15, height, 0.15);
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(i/barCount, 0.8, 0.6),
-      emissive: new THREE.Color().setHSL(i/barCount, 0.8, 0.3),
-      emissiveIntensity: 0.5, transparent: true, opacity: 0.8
-    });
-    const bar = new THREE.Mesh(geo, mat);
-    bar.position.set((i - barCount/2) * 0.3, height/2 + 0.5, (Math.random()-0.5) * 6);
-    waveGroup.add(bar);
-    bars.push({ mesh: bar, baseHeight: height, phase: Math.random() * Math.PI * 2 });
-  }
-
-  roomGroup.add(waveGroup);
-  voiceWaves3D.push({ group: waveGroup, bars, createdAt: Date.now(), isRecording: false, staticAt: Date.now() });
-}
-// ===== 3D STICKER THROW (FEATURE 5) =====
-function throw3DSticker(emoji) {
-  if(!roomGroup) return;
-  const canvas = document.createElement('canvas');
-  canvas.width = 128; canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  ctx.font = '80px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, 64, 64);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  const geo = new THREE.PlaneGeometry(1.5, 1.5);
-  const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(geo, mat);
-
-  // Start from center, throw outward
-  mesh.position.set(0, 3, 0);
-  const targetX = (Math.random()-0.5) * 8;
-  const targetZ = (Math.random()-0.5) * 8;
-  const targetY = 1 + Math.random() * 3;
-
-  roomGroup.add(mesh);
-
-  // Animate throw with physics-like motion
-  const startTime = Date.now();
-  const duration = 1500;
-  const startPos = { x: 0, y: 3, z: 0 };
-
-  const stickerObj = { mesh, startTime, duration, startPos, target: { x: targetX, y: targetY, z: targetZ }, velocity: { x: 0, y: 0.1, z: 0 }, rotationSpeed: { x: Math.random()*0.1, y: Math.random()*0.1 } };
-  stickerObjects.push(stickerObj);
-
-  // Auto-remove after 15 seconds
-  setTimeout(()=>{
-    if(roomGroup) roomGroup.remove(mesh);
-    const idx = stickerObjects.indexOf(stickerObj);
-    if(idx > -1) stickerObjects.splice(idx, 1);
-  }, 15000);
-}
-
-// ===== ENVIRONMENT CONTROLS (FEATURE 6) =====
+// ===== ENVIRONMENT =====
 function setEnvironment(type) {
   currentEnvironment = type;
   document.querySelectorAll('.env-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('env'+type.charAt(0).toUpperCase()+type.slice(1)).classList.add('active');
-
   if(!scene) return;
 
-  // Remove rain if exists
-  if(rainParticles) {
-    scene.remove(rainParticles);
-    rainParticles = null;
-  }
+  // Stop rain sound
+  if(rainSound) { rainSound.pause(); rainSound = null; }
 
-  // Update fog and lights
   if(type === 'day') {
     scene.fog.color.setHex(0x87CEEB);
-    scene.fog.density = 0.01;
-    if(envLights.ambient) envLights.ambient.color.setHex(0x8888aa);
-    if(envLights.main) { envLights.main.color.setHex(0xffffcc); envLights.main.intensity = 1.5; }
+    scene.fog.density = 0.008;
+    if(envLights.ambient) { envLights.ambient.color.setHex(0x666688); envLights.ambient.intensity = 0.8; }
+    if(envLights.main) { envLights.main.color.setHex(0xffffcc); envLights.main.intensity = 1.5; envLights.main.position.set(0, 15, 0); }
+    if(sunMesh) sunMesh.visible = true;
+    if(skyMesh) skyMesh.visible = true;
+    if(rainParticles) rainParticles.visible = false;
   } else if(type === 'night') {
     scene.fog.color.setHex(0x0a0a0f);
     scene.fog.density = 0.02;
-    if(envLights.ambient) envLights.ambient.color.setHex(0x404080);
-    if(envLights.main) { envLights.main.color.setHex(0x667eea); envLights.main.intensity = 1; }
+    if(envLights.ambient) { envLights.ambient.color.setHex(0x404080); envLights.ambient.intensity = 0.5; }
+    if(envLights.main) { envLights.main.color.setHex(0x667eea); envLights.main.intensity = 1; envLights.main.position.set(0, 8, 0); }
+    if(sunMesh) sunMesh.visible = false;
+    if(skyMesh) skyMesh.visible = false;
+    if(rainParticles) rainParticles.visible = false;
   } else if(type === 'rain') {
     scene.fog.color.setHex(0x1a1a2e);
-    scene.fog.density = 0.03;
-    createRainParticles();
-  } else if(type === 'neon') {
-    scene.fog.color.setHex(0x0a0015);
-    scene.fog.density = 0.015;
-    if(envLights.ambient) envLights.ambient.color.setHex(0x400040);
-    if(envLights.main) { envLights.main.color.setHex(0xff00ff); envLights.main.intensity = 0.8; }
+    scene.fog.density = 0.025;
+    if(envLights.ambient) { envLights.ambient.color.setHex(0x303050); envLights.ambient.intensity = 0.4; }
+    if(envLights.main) { envLights.main.color.setHex(0x4444aa); envLights.main.intensity = 0.7; }
+    if(sunMesh) sunMesh.visible = false;
+    if(skyMesh) skyMesh.visible = false;
+    if(rainParticles) rainParticles.visible = true;
+    // Rain sound
+    rainSound = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_5e3fa5e6a6.mp3?filename=rain-112836.mp3');
+    rainSound.loop = true; rainSound.volume = 0.3;
+    rainSound.play().catch(()=>{});
   }
-}
-
-function createRainParticles() {
-  if(!scene) return;
-  const rainCount = 1000;
-  const rainGeo = new THREE.BufferGeometry();
-  const rainPos = new Float32Array(rainCount * 3);
-  const rainVel = new Float32Array(rainCount);
-  for(let i=0; i<rainCount; i++) {
-    rainPos[i*3] = (Math.random()-0.5) * 30;
-    rainPos[i*3+1] = Math.random() * 20;
-    rainPos[i*3+2] = (Math.random()-0.5) * 30;
-    rainVel[i] = 0.1 + Math.random() * 0.2;
-  }
-  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
-  const rainMat = new THREE.PointsMaterial({
-    color: 0x8888ff, size: 0.03, transparent: true, opacity: 0.6
-  });
-  rainParticles = new THREE.Points(rainGeo, rainMat);
-  rainParticles.userData = { velocities: rainVel };
-  scene.add(rainParticles);
 }
 
 // ===== 3D ROOM =====
@@ -1758,109 +1224,103 @@ function init3DRoom() {
 
   // Floor
   const floorGeo = new THREE.PlaneGeometry(30, 30);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color:0x0d0d15, roughness:0.6, metalness:0.4, transparent:true, opacity:0.9
-  });
+  const floorMat = new THREE.MeshStandardMaterial({ color:0x0d0d15, roughness:0.7, metalness:0.3, transparent:true, opacity:0.9 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI/2;
   floor.receiveShadow = true;
   roomGroup.add(floor);
 
-  // Grid on floor
+  // Grid
   const gridHelper = new THREE.GridHelper(30, 30, 0x333344, 0x1a1a2e);
   gridHelper.position.y = 0.01;
   roomGroup.add(gridHelper);
 
-  // Animated floor rings
-  for(let i=1; i<=5; i++){
-    const ringGeo = new THREE.RingGeometry(i*2-0.05, i*2+0.05, 64);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color:0x667eea, transparent:true, opacity:0.1/i, side:THREE.DoubleSide
-    });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI/2;
-    ring.position.y = 0.02;
-    ring.userData = {ringIndex:i, isRing:true};
-    roomGroup.add(ring);
-  }
-
   // Walls
-  const wallMat = new THREE.MeshStandardMaterial({
-    color:0x0a0a12, transparent:true, opacity:0.3, side:THREE.DoubleSide
-  });
+  const wallMat = new THREE.MeshStandardMaterial({ color:0x0a0a12, transparent:true, opacity:0.25, side:THREE.DoubleSide });
   [-15,15].forEach(x=>{
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(30,15), wallMat);
-    wall.position.set(x,7.5,0);
-    wall.rotation.y = x>0?-Math.PI/2:Math.PI/2;
+    wall.position.set(x,7.5,0); wall.rotation.y = x>0?-Math.PI/2:Math.PI/2;
     roomGroup.add(wall);
   });
   [-15,15].forEach(z=>{
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(30,15), wallMat);
-    wall.position.set(0,7.5,z);
-    wall.rotation.y = z>0?Math.PI:0;
+    wall.position.set(0,7.5,z); wall.rotation.y = z>0?Math.PI:0;
     roomGroup.add(wall);
   });
 
-  // Floating particles with colors
-  const particlesGeo = new THREE.BufferGeometry();
-  const particleCount = 300;
-  const posArray = new Float32Array(particleCount*3);
-  const colorArray = new Float32Array(particleCount*3);
-  for(let i=0;i<particleCount;i++){
-    posArray[i*3] = (Math.random()-0.5)*30;
-    posArray[i*3+1] = Math.random()*15;
-    posArray[i*3+2] = (Math.random()-0.5)*30;
-    const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
-    colorArray[i*3] = color.r; colorArray[i*3+1] = color.g; colorArray[i*3+2] = color.b;
+  // ===== FIREFLIES (glowing particles) =====
+  const fireflyCount = 150;
+  const ffGeo = new THREE.BufferGeometry();
+  const ffPos = new Float32Array(fireflyCount*3);
+  const ffColors = new Float32Array(fireflyCount*3);
+  for(let i=0;i<fireflyCount;i++){
+    ffPos[i*3] = (Math.random()-0.5)*25;
+    ffPos[i*3+1] = 0.5 + Math.random()*10;
+    ffPos[i*3+2] = (Math.random()-0.5)*25;
+    const hue = 0.15 + Math.random()*0.25; // yellow-green range
+    const c = new THREE.Color().setHSL(hue, 0.9, 0.6);
+    ffColors[i*3] = c.r; ffColors[i*3+1] = c.g; ffColors[i*3+2] = c.b;
   }
-  particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray,3));
-  particlesGeo.setAttribute('color', new THREE.BufferAttribute(colorArray,3));
-  const particlesMat = new THREE.PointsMaterial({ size:0.08, transparent:true, opacity:0.7, vertexColors:true });
-  const particles = new THREE.Points(particlesGeo, particlesMat);
-  particles.userData = {isParticles:true};
-  roomGroup.add(particles);
+  ffGeo.setAttribute('position', new THREE.BufferAttribute(ffPos,3));
+  ffGeo.setAttribute('color', new THREE.BufferAttribute(ffColors,3));
+  const ffMat = new THREE.PointsMaterial({ size:0.12, vertexColors:true, transparent:true, opacity:0.8, blending:THREE.AdditiveBlending });
+  const firefliesMesh = new THREE.Points(ffGeo, ffMat);
+  firefliesMesh.userData = { isFireflies:true, originalPos: ffPos.slice() };
+  roomGroup.add(firefliesMesh);
 
-  // Floating geometric shapes
-  const shapes = [
-    new THREE.IcosahedronGeometry(0.3, 0),
-    new THREE.OctahedronGeometry(0.3, 0),
-    new THREE.TetrahedronGeometry(0.3, 0)
-  ];
-  const shapeColors = [0xff6b6b, 0x4ecdc4, 0xa855f7, 0xffd700];
-  for(let i=0; i<12; i++){
-    const geo = shapes[i%3];
-    const mat = new THREE.MeshStandardMaterial({
-      color: shapeColors[i%4], emissive: shapeColors[i%4], emissiveIntensity: 0.3,
-      transparent:true, opacity:0.6, wireframe: Math.random()>0.5
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set((Math.random()-0.5)*20, 1+Math.random()*8, (Math.random()-0.5)*20);
-    mesh.userData = {
-      isFloatingShape:true, speed: 0.2+Math.random()*0.5,
-      rotSpeed: {x:Math.random()*0.02, y:Math.random()*0.02, z:Math.random()*0.02},
-      baseY: mesh.position.y, phase: Math.random()*Math.PI*2
-    };
-    roomGroup.add(mesh);
+  // ===== RAIN PARTICLES =====
+  const rainCount = 800;
+  const rainGeo = new THREE.BufferGeometry();
+  const rainPos = new Float32Array(rainCount*3);
+  const rainVel = new Float32Array(rainCount);
+  for(let i=0;i<rainCount;i++){
+    rainPos[i*3] = (Math.random()-0.5)*30;
+    rainPos[i*3+1] = Math.random()*20;
+    rainPos[i*3+2] = (Math.random()-0.5)*30;
+    rainVel[i] = 0.15 + Math.random()*0.25;
   }
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos,3));
+  const rainMat = new THREE.PointsMaterial({ color:0x8888ff, size:0.04, transparent:true, opacity:0.5 });
+  rainParticles = new THREE.Points(rainGeo, rainMat);
+  rainParticles.userData = { velocities:rainVel };
+  rainParticles.visible = false;
+  roomGroup.add(rainParticles);
+
+  // ===== SUN (for day mode) =====
+  const sunGeo = new THREE.SphereGeometry(2, 32, 32);
+  const sunMat = new THREE.MeshBasicMaterial({ color:0xffff88, emissive:0xffaa00, emissiveIntensity:1 });
+  sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  sunMesh.position.set(0, 20, -10);
+  sunMesh.visible = false;
+  roomGroup.add(sunMesh);
+
+  // Sun glow
+  const sunGlowGeo = new THREE.SphereGeometry(4, 32, 32);
+  const sunGlowMat = new THREE.MeshBasicMaterial({ color:0xffaa00, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending });
+  const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
+  sunGlow.position.copy(sunMesh.position);
+  sunMesh.add(sunGlow);
+
+  // ===== SKY DOME =====
+  const skyGeo = new THREE.SphereGeometry(50, 32, 32);
+  const skyMat = new THREE.MeshBasicMaterial({ color:0x87CEEB, transparent:true, opacity:0.3, side:THREE.BackSide });
+  skyMesh = new THREE.Mesh(skyGeo, skyMat);
+  skyMesh.visible = false;
+  roomGroup.add(skyMesh);
 
   // Lights
   const ambientLight = new THREE.AmbientLight(0x404080, 0.5);
-  scene.add(ambientLight);
-  envLights.ambient = ambientLight;
+  scene.add(ambientLight); envLights.ambient = ambientLight;
 
   const pointLight = new THREE.PointLight(0x667eea, 1, 20);
-  pointLight.position.set(0, 8, 0);
-  pointLight.castShadow = true;
-  scene.add(pointLight);
-  envLights.main = pointLight;
+  pointLight.position.set(0, 8, 0); pointLight.castShadow = true;
+  scene.add(pointLight); envLights.main = pointLight;
 
-  const pointLight2 = new THREE.PointLight(0xff6b6b, 0.5, 15);
-  pointLight2.position.set(5, 5, 5);
-  scene.add(pointLight2);
+  const pointLight2 = new THREE.PointLight(0xff6b6b, 0.4, 12);
+  pointLight2.position.set(5, 5, 5); scene.add(pointLight2);
 
-  const pointLight3 = new THREE.PointLight(0x4ecdc4, 0.5, 15);
-  pointLight3.position.set(-5, 5, -5);
-  scene.add(pointLight3);
+  const pointLight3 = new THREE.PointLight(0x4ecdc4, 0.4, 12);
+  pointLight3.position.set(-5, 5, -5); scene.add(pointLight3);
 
   animate();
 
@@ -1870,104 +1330,43 @@ function init3DRoom() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Mouse wheel for timeline scrolling (FEATURE 7)
-  canvas.addEventListener('wheel', e=>{
-    if(!roomGroup) return;
-    e.preventDefault();
-    const delta = e.deltaY * 0.001;
-    roomGroup.children.forEach(child=>{
-      if(child.userData && (child.userData.isMessage || child.userData.isMedia || child.userData.isDrawing)) {
-        child.position.z += delta * 5;
-      }
-    });
-  }, {passive:false});
+  // Touch orbit
+  let isDragging = false, prevX = 0, prevY = 0, rotX = 0, rotY = 0;
 
-  // Right-click drawing in 3D space (FEATURE 8)
-  let is3DDrawing = false;
-  let last3DDrawPos = null;
-  const draw3DPoints = [];
+  canvas.addEventListener('touchstart',e=>{
+    isDragging = true;
+    prevX = e.touches[0].clientX;
+    prevY = e.touches[0].clientY;
+  },{passive:true});
 
-  canvas.addEventListener('contextmenu', e=>{
-    e.preventDefault();
-    is3DDrawing = !is3DDrawing;
-    if(!is3DDrawing && draw3DPoints.length > 0) {
-      // Create 3D line from points
-      create3DLineFromPoints(draw3DPoints);
-      draw3DPoints.length = 0;
-    }
-  });
-
-  canvas.addEventListener('mousemove', e=>{
-    if(!is3DDrawing || e.buttons !== 2) return;
-    mouse.x = (e.clientX/window.innerWidth)*2-1;
-    mouse.y = -(e.clientY/window.innerHeight)*2+1;
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(roomGroup.children);
-    if(intersects.length > 0) {
-      const point = intersects[0].point;
-      if(!last3DDrawPos || point.distanceTo(last3DDrawPos) > 0.1) {
-        draw3DPoints.push(point.clone());
-        last3DDrawPos = point;
-        // Add visual point
-        const dotGeo = new THREE.SphereGeometry(0.03, 8, 8);
-        const dotMat = new THREE.MeshBasicMaterial({ color: parseInt(drawColor.replace('#','0x')) });
-        const dot = new THREE.Mesh(dotGeo, dotMat);
-        dot.position.copy(point);
-        roomGroup.add(dot);
-        setTimeout(()=>roomGroup.remove(dot), 5000);
-      }
-    }
-  });
-
-  // Touch/mouse orbit
-  let isDragging = false;
-  let prevX = 0, prevY = 0;
-  let rotX = 0, rotY = 0;
-
-  canvas.addEventListener('mousedown',e=>{ if(e.button===0){isDragging=true;prevX=e.clientX;prevY=e.clientY;} });
-  canvas.addEventListener('mousemove',e=>{
-    if(!isDragging) return;
-    const dx = e.clientX-prevX;
-    const dy = e.clientY-prevY;
-    rotY += dx*0.005;
-    rotX += dy*0.005;
-    rotX = Math.max(-0.5, Math.min(0.5, rotX));
-    camera.position.x = Math.sin(rotY)*8;
-    camera.position.z = Math.cos(rotY)*8;
-    camera.position.y = 3 + rotX*4;
-    camera.lookAt(0,1,0);
-    prevX=e.clientX; prevY=e.clientY;
-  });
-  canvas.addEventListener('mouseup',()=>isDragging=false);
-  canvas.addEventListener('touchstart',e=>{ isDragging=true; prevX=e.touches[0].clientX; prevY=e.touches[0].clientY; },{passive:true});
   canvas.addEventListener('touchmove',e=>{
     if(!isDragging) return;
-    const dx = e.touches[0].clientX-prevX;
-    const dy = e.touches[0].clientY-prevY;
-    rotY += dx*0.005; rotX += dy*0.005;
-    rotX = Math.max(-0.5, Math.min(0.5, rotX));
+    const dx = e.touches[0].clientX - prevX;
+    const dy = e.touches[0].clientY - prevY;
+    rotY += dx*0.008;
+    rotX += dy*0.008;
+    rotX = Math.max(-0.6, Math.min(0.6, rotX));
     camera.position.x = Math.sin(rotY)*8;
     camera.position.z = Math.cos(rotY)*8;
     camera.position.y = 3 + rotX*4;
     camera.lookAt(0,1,0);
-    prevX=e.touches[0].clientX; prevY=e.touches[0].clientY;
+    prevX = e.touches[0].clientX;
+    prevY = e.touches[0].clientY;
   },{passive:true});
-  canvas.addEventListener('touchend',()=>isDragging=false);
-}
 
-function create3DLineFromPoints(points) {
-  if(points.length < 2 || !roomGroup) return;
-  const curve = new THREE.CatmullRomCurve3(points);
-  const tubeGeo = new THREE.TubeGeometry(curve, points.length*2, 0.02, 8, false);
-  const tubeMat = new THREE.MeshStandardMaterial({
-    color: parseInt(drawColor.replace('#','0x')),
-    emissive: parseInt(drawColor.replace('#','0x')),
-    emissiveIntensity: 0.5, transparent: true, opacity: 0.8
+  canvas.addEventListener('touchend',()=>isDragging=false);
+
+  // Mouse orbit (for desktop testing)
+  canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
+  canvas.addEventListener('mousemove',e=>{
+    if(!isDragging) return;
+    const dx=e.clientX-prevX, dy=e.clientY-prevY;
+    rotY+=dx*0.008; rotX+=dy*0.008;
+    rotX=Math.max(-0.6,Math.min(0.6,rotX));
+    camera.position.x=Math.sin(rotY)*8; camera.position.z=Math.cos(rotY)*8; camera.position.y=3+rotX*4;
+    camera.lookAt(0,1,0); prevX=e.clientX; prevY=e.clientY;
   });
-  const tube = new THREE.Mesh(tubeGeo, tubeMat);
-  tube.userData = { isDrawing: true };
-  roomGroup.add(tube);
-  drawings3D.push({ mesh: tube, baseY: 0, createdAt: Date.now() });
+  canvas.addEventListener('mouseup',()=>isDragging=false);
 }
 function animate() {
   animationId = requestAnimationFrame(animate);
@@ -1989,124 +1388,62 @@ function animate() {
     }
   });
 
-  // Animate particle reactions
-  particleReactions.forEach(reaction=>{
-    const age = Date.now() - reaction.createdAt;
-    const lifeRatio = age / reaction.life;
-    if(lifeRatio > 1) return;
-
-    // Fade out
-    reaction.particles.material.opacity = 1 - lifeRatio;
-    reaction.glow.material.opacity = 0.1 * (1 - lifeRatio);
-    reaction.ring.material.opacity = 0.3 * (1 - lifeRatio);
-
-    // Rotate ring
-    reaction.ring.rotation.z += 0.02;
-
-    // Pulse particles
-    const positions = reaction.particles.geometry.attributes.position.array;
-    for(let i=0; i<reaction.velocities.length/3; i++) {
-      positions[i*3] += reaction.velocities[i*3] * Math.sin(time*2 + i);
-      positions[i*3+1] += reaction.velocities[i*3+1] * 0.5;
-      positions[i*3+2] += reaction.velocities[i*3+2] * Math.sin(time*2 + i);
-    }
-    reaction.particles.geometry.attributes.position.needsUpdate = true;
-
-    // Float up
-    reaction.group.position.y = reaction.baseY + Math.sin(time)*0.2;
-    reaction.group.rotation.y += 0.005;
-  });
-
   // Animate gestures
   gestureAnimations.forEach(gesture=>{
     const age = Date.now() - gesture.startTime;
     const progress = age / gesture.duration;
     if(progress > 1) return;
-
-    // Bounce animation
     gesture.mesh.position.y = gesture.baseY + Math.sin(progress * Math.PI * 4) * 0.5;
     gesture.mesh.scale.setScalar(1 + Math.sin(progress * Math.PI) * 0.3);
     gesture.mesh.material.opacity = 1 - progress;
-
-    // Burst particles
-    const burstPos = gesture.burst.geometry.attributes.position.array;
-    for(let i=0; i<burstPos.length/3; i++) {
-      burstPos[i*3] += (Math.random()-0.5) * 0.02;
-      burstPos[i*3+1] += Math.random() * 0.03;
-      burstPos[i*3+2] += (Math.random()-0.5) * 0.02;
-    }
-    gesture.burst.geometry.attributes.position.needsUpdate = true;
-    gesture.burst.material.opacity = 1 - progress;
+    gesture.mesh.material.transparent = true;
   });
 
-  // Animate voice waves
-  voiceWaves3D.forEach(wave=>{
-    if(wave.isRecording) {
-      // Active recording animation
-      wave.bars.forEach((bar,i)=>{
-        const height = 0.2 + Math.abs(Math.sin(time*3 + i*0.5)) * 1.5;
-        bar.mesh.scale.y = height;
-        bar.mesh.position.y = height/2 + 0.5;
-        bar.mesh.material.emissiveIntensity = 0.5 + Math.sin(time*5 + i)*0.5;
-      });
-      wave.group.rotation.y = Math.sin(time)*0.1;
-    } else {
-      // Static wave - gentle pulse
-      wave.bars.forEach((bar,i)=>{
-        const pulse = Math.sin(time*2 + bar.phase) * 0.3 + 0.7;
-        bar.mesh.scale.y = pulse;
-        bar.mesh.position.y = bar.baseHeight/2 * pulse + 0.5;
-      });
-      wave.group.rotation.y += 0.002;
-    }
+  // Float drawings
+  drawings3D.forEach(d=>{
+    if(d.mesh) d.mesh.position.y = d.baseY + Math.sin(time + d.createdAt*0.001)*0.15;
   });
 
-  // Animate stickers
-  stickerObjects.forEach(sticker=>{
-    const progress = Math.min((Date.now() - sticker.startTime) / sticker.duration, 1);
-    const ease = 1 - Math.pow(1 - progress, 3); // ease out cubic
-
-    sticker.mesh.position.x = sticker.startPos.x + (sticker.target.x - sticker.startPos.x) * ease;
-    sticker.mesh.position.y = sticker.startPos.y + (sticker.target.y - sticker.startPos.y) * ease - Math.sin(progress * Math.PI) * 2;
-    sticker.mesh.position.z = sticker.startPos.z + (sticker.target.z - sticker.startPos.z) * ease;
-    sticker.mesh.rotation.x += sticker.rotationSpeed.x;
-    sticker.mesh.rotation.y += sticker.rotationSpeed.y;
+  // Animate fireflies
+  roomGroup.children.forEach(child=>{
+    if(child.userData && child.userData.isFireflies) {
+      const positions = child.geometry.attributes.position.array;
+      const orig = child.userData.originalPos;
+      for(let i=0; i<positions.length/3; i++) {
+        positions[i*3] = orig[i*3] + Math.sin(time*0.5 + i)*0.5;
+        positions[i*3+1] = orig[i*3+1] + Math.sin(time*0.8 + i*0.5)*0.3;
+        positions[i*3+2] = orig[i*3+2] + Math.cos(time*0.3 + i)*0.5;
+      }
+      child.geometry.attributes.position.needsUpdate = true;
+      child.material.opacity = 0.5 + Math.sin(time*2)*0.3;
+    }
   });
 
   // Animate rain
-  if(rainParticles && rainParticles.userData.velocities) {
+  if(rainParticles && rainParticles.visible && rainParticles.userData.velocities) {
     const positions = rainParticles.geometry.attributes.position.array;
     const vels = rainParticles.userData.velocities;
     for(let i=0; i<vels.length; i++) {
       positions[i*3+1] -= vels[i];
       if(positions[i*3+1] < 0) {
-        positions[i*3+1] = 20;
-        positions[i*3] = (Math.random()-0.5) * 30;
-        positions[i*3+2] = (Math.random()-0.5) * 30;
+        positions[i*3+1] = 18 + Math.random()*5;
+        positions[i*3] = (Math.random()-0.5)*30;
+        positions[i*3+2] = (Math.random()-0.5)*30;
       }
     }
     rainParticles.geometry.attributes.position.needsUpdate = true;
   }
 
-  // Rotate particles
+  // Animate sun
+  if(sunMesh && sunMesh.visible) {
+    sunMesh.rotation.y += 0.002;
+    sunMesh.children[0].scale.setScalar(1 + Math.sin(time)*0.1);
+  }
+
+  // Animate partner avatar
   roomGroup.children.forEach(child=>{
-    if(child.userData && child.userData.isParticles) {
-      child.rotation.y = time*0.05;
-      child.rotation.x = Math.sin(time*0.1)*0.1;
-    }
-    if(child.userData && child.userData.isRing) {
-      child.scale.setScalar(1 + Math.sin(time*0.5 + child.userData.ringIndex)*0.05);
-      child.material.opacity = (0.1/child.userData.ringIndex) * (0.5 + Math.sin(time + child.userData.ringIndex)*0.5);
-    }
-    if(child.userData && child.userData.isFloatingShape) {
-      child.position.y = child.userData.baseY + Math.sin(time*child.userData.speed + child.userData.phase)*0.5;
-      child.rotation.x += child.userData.rotSpeed.x;
-      child.rotation.y += child.userData.rotSpeed.y;
-      child.rotation.z += child.userData.rotSpeed.z;
-    }
     if(child.userData && child.userData.isPartnerAvatar) {
       child.position.y = child.userData.baseY + Math.sin(time*1.5)*0.2;
-      child.rotation.y = Math.sin(time*0.5)*0.3;
     }
   });
 
@@ -2121,14 +1458,14 @@ function add3DTextBubble(text) {
   ctx.fillStyle = 'rgba(102,126,234,0.2)';
   ctx.fillRect(0,0,512,128);
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 32px Arial';
+  ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(text.substring(0,30), 256, 75);
+  ctx.fillText(text.substring(0,35), 256, 75);
   const texture = new THREE.CanvasTexture(canvas2d);
   const geo = new THREE.PlaneGeometry(4,1);
   const mat = new THREE.MeshBasicMaterial({map:texture, transparent:true, side:THREE.DoubleSide});
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set((Math.random()-0.5)*8, 1.5+Math.random()*3, (Math.random()-0.5)*8);
+  mesh.position.set((Math.random()-0.5)*7, 1.5+Math.random()*3, (Math.random()-0.5)*7);
   mesh.lookAt(camera.position);
   mesh.userData = { isMessage: true };
   roomGroup.add(mesh);
@@ -2151,12 +1488,10 @@ function createPartner3DAvatar(data) {
   const avatarGroup = new THREE.Group();
 
   // Platform
-  const platformGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 32);
-  const platformMat = new THREE.MeshStandardMaterial({
-    color:0x667eea, emissive:0x667eea, emissiveIntensity:0.3, transparent:true, opacity:0.6
-  });
+  const platformGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.08, 32);
+  const platformMat = new THREE.MeshStandardMaterial({ color:0x667eea, emissive:0x667eea, emissiveIntensity:0.3, transparent:true, opacity:0.5 });
   const platform = new THREE.Mesh(platformGeo, platformMat);
-  platform.position.set(0, 0.05, -4);
+  platform.position.set(0, 0.04, -4);
   avatarGroup.add(platform);
 
   // Avatar image or letter
@@ -2164,13 +1499,12 @@ function createPartner3DAvatar(data) {
     const loader = new THREE.TextureLoader();
     loader.load(data.avatar, texture=>{
       const aspect = texture.image.width / texture.image.height;
-      const w = 1.2;
-      const h = w / aspect;
-      const geo = new THREE.PlaneGeometry(w, Math.min(h, 1.5));
+      const w = 1.1; const h = w / aspect;
+      const geo = new THREE.PlaneGeometry(w, Math.min(h, 1.4));
       const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(0, 1.2, -4);
-      mesh.userData = {isPartnerAvatar:true, baseY:1.2};
+      mesh.position.set(0, 1.1, -4);
+      mesh.userData = {isPartnerAvatar:true, baseY:1.1};
       avatarGroup.add(mesh);
     }, undefined, ()=>{ createAvatarLetter(data, avatarGroup); });
   } else {
@@ -2180,41 +1514,38 @@ function createPartner3DAvatar(data) {
   // Name label
   const nameCanvas = document.createElement('canvas');
   const nctx = nameCanvas.getContext('2d');
-  nameCanvas.width = 256; nameCanvas.height = 64;
-  nctx.fillStyle = 'rgba(0,0,0,0.6)';
-  nctx.fillRect(0,0,256,64);
+  nameCanvas.width = 256; nameCanvas.height = 56;
+  nctx.fillStyle = 'rgba(0,0,0,0.5)';
+  nctx.fillRect(0,0,256,56);
   nctx.fillStyle = '#fff';
-  nctx.font = 'bold 20px Arial';
-  nctx.textAlign = 'center';
-  nctx.textBaseline = 'middle';
-  const name = (data.displayName||data.username||'User');
-  nctx.fillText(name, 128, 32);
+  nctx.font = 'bold 18px Arial';
+  nctx.textAlign = 'center'; nctx.textBaseline = 'middle';
+  nctx.fillText((data.displayName||data.username||'User'), 128, 28);
   const nameTexture = new THREE.CanvasTexture(nameCanvas);
-  const nameGeo = new THREE.PlaneGeometry(2, 0.5);
+  const nameGeo = new THREE.PlaneGeometry(1.8, 0.4);
   const nameMat = new THREE.MeshBasicMaterial({map:nameTexture, transparent:true, side:THREE.DoubleSide});
   const nameMesh = new THREE.Mesh(nameGeo, nameMat);
-  nameMesh.position.set(0, 2.2, -4);
-  nameMesh.userData = {isPartnerAvatar:true, baseY:2.2};
+  nameMesh.position.set(0, 2.0, -4);
+  nameMesh.userData = {isPartnerAvatar:true, baseY:2.0};
   avatarGroup.add(nameMesh);
 
   // Status indicator
   const isOnline = data.online === true;
   const statusColor = isOnline ? 0x22c55e : 0x6b7280;
-  const statusGeo = new THREE.SphereGeometry(0.15, 16, 16);
+  const statusGeo = new THREE.SphereGeometry(0.12, 16, 16);
   const statusMat = new THREE.MeshBasicMaterial({color:statusColor, emissive:statusColor, emissiveIntensity:0.5});
   const statusMesh = new THREE.Mesh(statusGeo, statusMat);
-  statusMesh.position.set(0.6, 2.0, -4);
-  statusMesh.userData = {isPartnerAvatar:true, baseY:2.0, isStatus:true};
+  statusMesh.position.set(0.55, 1.85, -4);
+  statusMesh.userData = {isPartnerAvatar:true, baseY:1.85, isStatus:true};
   avatarGroup.add(statusMesh);
 
-  // Online ring glow
+  // Online glow ring
   if(isOnline) {
-    const glowGeo = new THREE.RingGeometry(0.9, 1.0, 32);
-    const glowMat = new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0.3, side:THREE.DoubleSide});
+    const glowGeo = new THREE.RingGeometry(0.8, 0.9, 32);
+    const glowMat = new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0.2, side:THREE.DoubleSide});
     const glow = new THREE.Mesh(glowGeo, glowMat);
     glow.rotation.x = -Math.PI/2;
-    glow.position.set(0, 0.06, -4);
-    glow.userData = {isPartnerAvatar:true, isGlow:true};
+    glow.position.set(0, 0.05, -4);
     avatarGroup.add(glow);
   }
 
@@ -2231,15 +1562,14 @@ function createAvatarLetter(data, group) {
   ctx.fillRect(0,0,128,128);
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 64px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(letter, 64, 64);
   const texture = new THREE.CanvasTexture(canvas);
-  const geo = new THREE.PlaneGeometry(1.2, 1.2);
+  const geo = new THREE.PlaneGeometry(1.1, 1.1);
   const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(0, 1.2, -4);
-  mesh.userData = {isPartnerAvatar:true, baseY:1.2};
+  mesh.position.set(0, 1.1, -4);
+  mesh.userData = {isPartnerAvatar:true, baseY:1.1};
   group.add(mesh);
 }
 
@@ -2260,7 +1590,7 @@ function updatePartner3DAvatar(data) {
   }
 }
 
-// ===== MEDIA (BASE64 REALTIME) =====
+// ===== MEDIA =====
 function triggerFile() {
   document.getElementById('fileInput').click();
 }
@@ -2295,13 +1625,12 @@ function create3DMedia(url, type, isOwn) {
       const thumbUrl = canvas.toDataURL();
       const loader = new THREE.TextureLoader();
       loader.load(thumbUrl, texture=>{
-        const aspect = 256/144;
-        const w = 3; const h = w / aspect;
+        const w = 2.5; const h = w * 0.56;
         const geo = new THREE.PlaneGeometry(w, h);
         const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set((Math.random()-0.5)*6, 2+Math.random()*2, (Math.random()-0.5)*6);
-        mesh.userData = {url:url, type:type, isMedia:true, isVideo:true};
+        mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
+        mesh.userData = {url:url, type:type};
         roomGroup.add(mesh);
         mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
       });
@@ -2310,20 +1639,19 @@ function create3DMedia(url, type, isOwn) {
   } else {
     const loader = new THREE.TextureLoader();
     loader.load(url, texture=>{
-      const aspect = texture.image.width / texture.image.height;
-      const w = 3; const h = w / aspect;
-      const geo = new THREE.PlaneGeometry(w, h);
+      const w = 2.5; const h = w / (texture.image.width/texture.image.height);
+      const geo = new THREE.PlaneGeometry(w, Math.min(h, 2));
       const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set((Math.random()-0.5)*6, 2+Math.random()*2, (Math.random()-0.5)*6);
-      mesh.userData = {url:url, type:type, isMedia:true};
+      mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
+      mesh.userData = {url:url, type:type};
       roomGroup.add(mesh);
       mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
     });
   }
 }
 
-// Raycaster for clicking 3D media
+// Raycaster
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -2353,40 +1681,41 @@ function openMedia(url, type) {
     img.src = url; container.appendChild(img);
   }
   viewer.classList.add('active');
-  let rotX=0, rotY=0;
-  const el = container;
-  const onMove = (e)=>{
-    const clientX = e.touches?e.touches[0].clientX:e.clientX;
-    const clientY = e.touches?e.touches[0].clientY:e.clientY;
-    if(el.dataset.startX){
-      rotY += (clientX - parseFloat(el.dataset.startX))*0.5;
-      rotX -= (clientY - parseFloat(el.dataset.startY))*0.5;
-      el.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-    }
-    el.dataset.startX = clientX; el.dataset.startY = clientY;
-  };
-  const onStart = (e)=>{
-    const clientX = e.touches?e.touches[0].clientX:e.clientX;
-    const clientY = e.touches?e.touches[0].clientY:e.clientY;
-    el.dataset.startX = clientX; el.dataset.startY = clientY;
-  };
-  const onEnd = ()=>{ delete el.dataset.startX; delete el.dataset.startY; };
-  el.addEventListener('mousedown',onStart);
-  el.addEventListener('mousemove',onMove);
-  el.addEventListener('mouseup',onEnd);
-  el.addEventListener('mouseleave',onEnd);
-  el.addEventListener('touchstart',onStart,{passive:true});
-  el.addEventListener('touchmove',onMove,{passive:true});
-  el.addEventListener('touchend',onEnd);
 }
-
 function closeMedia() {
   document.getElementById('mediaViewer').classList.remove('active');
 }
 
+// ===== MISIDE TEXT =====
+function showMisideText(text) {
+  const container = document.getElementById('misideContainer');
+  container.innerHTML = '';
+  const chars = text.split('');
+  const spans = [];
+  chars.forEach((char,i)=>{
+    const span = document.createElement('span');
+    span.className = 'miside-letter';
+    span.textContent = char === ' ' ? '\u00A0' : char;
+    span.style.color = `hsl(${200 + Math.random()*60}, 80%, 70%)`;
+    container.appendChild(span); spans.push(span);
+  });
+  spans.forEach((span,i)=>{
+    gsap.to(span, { opacity:1, scale:1, y:0, duration:0.3, delay:i*0.05, ease:'back.out(1.7)' });
+  });
+  const totalTime = Math.max(2000, chars.length * 300);
+  setTimeout(()=>{
+    spans.forEach((span,i)=>{
+      gsap.to(span, { opacity:0, scale:0.3, y:-50, duration:0.4, delay:i*0.08, ease:'power2.in',
+        onComplete:()=>{ if(i===spans.length-1) container.innerHTML=''; }
+      });
+    });
+  }, totalTime);
+  add3DTextBubble(text);
+}
+
 // ===== INIT =====
 window.addEventListener('load',()=>{
-  setTimeout(()=>document.getElementById('loading').classList.add('hidden'), 1000);
+  setTimeout(()=>document.getElementById('loading').classList.add('hidden'), 800);
 });
 </script>
 </body>
