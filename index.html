@@ -3209,7 +3209,35 @@ async function initRatchetBob(peerId, skHex, bobDhPair) {
 
 async function ratchetEncrypt(peerId, plaintext) {
     let state = loadRatchetState(peerId);
-    if (!state || !state.initialized) return null;
+
+    // Initialize as Alice if no state (we are initiating the conversation)
+    if (!state || !state.initialized) {
+        let skHex = activeRoomSharedKey;
+        if (!skHex) {
+            const info = await getPeerCurrentKeyInfo(peerId, true);
+            if (info.pub) {
+                const kv = `${myKeyStore.current}_${info.ver || 'legacy'}`;
+                skHex = await getSharedKeyForKv(peerId, kv);
+            }
+        }
+        if (!skHex) return null;
+
+        // Try to get peer's ratchet pub
+        try {
+            const snap = await window.fb.get(window.fb.ref(window.fb.db, `users/${peerId}/ratchetPub`));
+            if (snap.exists()) {
+                const peerPub = JSON.parse(snap.val());
+                state = await initRatchetAlice(peerId, skHex, peerPub);
+            } else {
+                // Peer hasn't published yet - fallback to AES
+                return null;
+            }
+        } catch (e) {
+            return null;
+        }
+    }
+
+    if (!state || !state.CKs) return null;
 
     const { chainKey: newCKs, messageKey: mk } = await drKdfCk(state.CKs);
     state.CKs = newCKs;
@@ -3237,7 +3265,12 @@ async function ratchetEncrypt(peerId, plaintext) {
 
 async function ratchetDecrypt(peerId, header, ciphertext, ad) {
     let state = loadRatchetState(peerId);
-    if (!state || !state.initialized) return null;
+
+    // Initialize from header if no state exists (first message from Alice)
+    if (!state || !state.initialized) {
+        state = await initRatchetFromHeader(peerId, header);
+        if (!state) return null;
+    }
 
     const headerJson = JSON.stringify(header);
     const adBytes = ad + headerJson;
@@ -3297,7 +3330,7 @@ async function ratchetDecrypt(peerId, header, ciphertext, ad) {
     return await drDecrypt(mk, ciphertext, adBytes);
 }
 
-async function initDoubleRatchetForPeer(peerId) {
+async function initDoubleRatchetForPeer(peerId, forceAlice = false) {
     if (peerId === myUid) return;
 
     const existingState = loadRatchetState(peerId);
@@ -3317,16 +3350,73 @@ async function initDoubleRatchetForPeer(peerId) {
     if (!skHex) return null;
 
     try {
+        // Always publish our ratchet public key first
+        const myPair = await drGenerateDh();
+        await window.fb.set(window.fb.ref(window.fb.db, `users/${myUid}/ratchetPub`), JSON.stringify(myPair.pub));
+
         const snap = await window.fb.get(window.fb.ref(window.fb.db, `users/${peerId}/ratchetPub`));
-        if (snap.exists()) {
+        if (snap.exists() && !forceAlice) {
+            // Peer has ratchet pub - we are Bob (responder)
             const peerPub = JSON.parse(snap.val());
-            return await initRatchetAlice(peerId, skHex, peerPub);
+            return await initRatchetBob(peerId, skHex, myPair);
         } else {
-            const myPair = await drGenerateDh();
-            await window.fb.set(window.fb.ref(window.fb.db, `users/${myUid}/ratchetPub`), JSON.stringify(myPair.pub));
+            // No peer ratchet pub yet - we are Alice (initiator), wait for peer
+            // Actually we should be Bob by default since we published our key
+            // But if forceAlice is true, we act as Alice using peer's key from somewhere
+            if (snap.exists() && forceAlice) {
+                const peerPub = JSON.parse(snap.val());
+                return await initRatchetAlice(peerId, skHex, peerPub);
+            }
             return await initRatchetBob(peerId, skHex, myPair);
         }
     } catch (e) {
+        console.error("DR init error:", e);
+        return null;
+    }
+}
+
+// Initialize ratchet from received header (Bob receives first message from Alice)
+async function initRatchetFromHeader(peerId, header, skHex) {
+    if (!skHex) {
+        if (activeRoomSharedKey) skHex = activeRoomSharedKey;
+        else {
+            const info = await getPeerCurrentKeyInfo(peerId, true);
+            if (info.pub) {
+                const kv = `${myKeyStore.current}_${info.ver || 'legacy'}`;
+                skHex = await getSharedKeyForKv(peerId, kv);
+            }
+        }
+    }
+    if (!skHex) return null;
+
+    try {
+        const myPair = await drGenerateDh();
+        await window.fb.set(window.fb.ref(window.fb.db, `users/${myUid}/ratchetPub`), JSON.stringify(myPair.pub));
+
+        const state = {
+            DHs: myPair,
+            DHr: header.dh,
+            RK: skHex,
+            CKs: null,
+            CKr: null,
+            Ns: 0,
+            Nr: 0,
+            PN: 0,
+            MKSKIPPED: {},
+            initialized: true,
+            isAlice: false
+        };
+
+        // First DH ratchet step with received header key
+        const dhOut = await drDh(myPair, header.dh);
+        const { rootKey, chainKey } = await drKdfRk(skHex, dhOut);
+        state.RK = rootKey;
+        state.CKr = chainKey;
+
+        saveRatchetState(peerId, state);
+        return state;
+    } catch (e) {
+        console.error("DR init from header error:", e);
         return null;
     }
 }
