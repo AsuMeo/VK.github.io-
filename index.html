@@ -1,365 +1,233 @@
 <!DOCTYPE html>
-<html lang="ru" class="dark">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DefiChat - WOW E2EE Messenger (M.E.O.W. Protocol v5.1)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meow P2P Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkBg: '#0b0f19',
-                        panelBg: '#111827',
-                        accentGreen: '#10b981',
-                        accentTeal: '#14b8a6',
-                        bubbleMe: '#059669',
-                        bubblePartner: '#1f2937'
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-            background-color: #0b0f19;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: #0f0f0f; color: #fff; overflow: hidden; height: 100vh; }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .chat-bubble { max-width: 75%; padding: 12px 16px; border-radius: 20px; word-break: break-word; position: relative; animation: slideIn 0.3s ease; }
+        .chat-bubble.sent { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); align-self: flex-end; border-bottom-right-radius: 4px; }
+        .chat-bubble.received { background: #2a2a2a; align-self: flex-start; border-bottom-left-radius: 4px; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse-ring { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); } 100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); } }
+        .typing-dot { width: 6px; height: 6px; background: #667eea; border-radius: 50%; display: inline-block; animation: typing 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+        .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; }
+        .offline-dot { width: 8px; height: 8px; background: #6b7280; border-radius: 50%; display: inline-block; }
+        .scroll-hidden::-webkit-scrollbar { display: none; }
+        .scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .media-preview { max-width: 250px; max-height: 300px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
+        .media-preview:hover { transform: scale(1.02); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .modal-content { max-width: 90vw; max-height: 90vh; }
+        .sidebar-item { transition: all 0.2s; cursor: pointer; }
+        .sidebar-item:hover { background: rgba(102, 126, 234, 0.1); }
+        .sidebar-item.active { background: rgba(102, 126, 234, 0.2); border-left: 3px solid #667eea; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 24px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
+        .input-field { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px 16px; border-radius: 12px; width: 100%; outline: none; transition: all 0.3s; }
+        .input-field:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        #app { height: 100vh; display: flex; }
+        .sidebar { width: 320px; min-width: 320px; background: #111; border-right: 1px solid #222; display: flex; flex-direction: column; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform 0.3s; width: 85vw; max-width: 320px; }
+            .sidebar.open { transform: translateX(0); }
+            .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; display: none; }
+            .overlay.show { display: block; }
         }
-        .app-container {
-            height: 100vh;
-            height: 100dvh;
-        }
-        .glass-panel {
-            background: rgba(17, 24, 39, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .glass-header {
-            background: rgba(17, 24, 39, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .gradient-bg {
-            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 45%),
-                        radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.06), transparent 45%);
-        }
-        /* Typing animation */
-        .typing-dot {
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
+        .file-input-label { cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s; }
+        .file-input-label:hover { background: rgba(102, 126, 234, 0.1); }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; }
+        .avatar.online { border-color: #10b981; }
+        .avatar.offline { border-color: #6b7280; }
+        .time-text { font-size: 11px; color: #888; }
+        .message-status { font-size: 11px; color: #aaa; margin-left: 4px; }
+        .encryption-badge { background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1a1a1a; border: 1px solid #333; padding: 12px 24px; border-radius: 12px; z-index: 200; transition: transform 0.3s; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .spinner { width: 20px; height: 20px; border: 2px solid #333; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .video-container { position: relative; }
+        .video-container video { max-width: 250px; max-height: 300px; border-radius: 12px; }
+        .video-play-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-radius: 12px; cursor: pointer; }
+        .video-play-btn i { font-size: 40px; color: white; opacity: 0.9; }
     </style>
 </head>
-<body class="text-slate-100 overflow-hidden transition-colors duration-300 gradient-bg" id="body-layout">
-
-    <div id="app" class="app-container flex flex-col w-screen relative overflow-hidden">
-        
-        <!-- GLOW EFFECTS -->
-        <div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none z-0"></div>
-        <div class="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none z-0"></div>
-
-        <!-- LOADING OVERLAY -->
-        <div id="loading-overlay" class="absolute inset-0 bg-slate-950/95 z-50 flex items-center justify-center hidden">
-            <div class="flex flex-col items-center space-y-4 p-6 text-center">
-                <div class="relative w-16 h-16">
-                    <div class="absolute inset-0 rounded-full border-4 border-emerald-500/20"></div>
-                    <div class="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin"></div>
+<body>
+    <div id="app">
+        <!-- Auth Screen -->
+        <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center" style="background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);">
+            <div class="w-full max-w-md p-8">
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-comments text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold gradient-text mb-2">Meow P2P</h1>
+                    <p class="text-gray-400">Сквозное шифрование · P2P · Реалтайм</p>
                 </div>
-                <p id="loading-text" class="text-sm text-slate-400 font-semibold tracking-wide uppercase">M.E.O.W. v5.1 Шифрование...</p>
-            </div>
-        </div>
-
-        <!-- AUTH SCREEN -->
-        <div id="auth-screen" class="flex-1 flex items-center justify-center p-4 overflow-y-auto z-10">
-            <div class="glass-panel rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl space-y-6 my-auto">
-                <div class="text-center space-y-2">
-                    <div class="inline-flex p-4 bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 rounded-2xl mb-1 shadow-lg shadow-emerald-500/10">
-                        <!-- Shield SVG Icon -->
-                        <svg class="w-8 h-8 text-slate-950" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                        </svg>
+                <div id="authForm">
+                    <div class="mb-4">
+                        <label class="block text-sm text-gray-400 mb-2">Email</label>
+                        <input type="email" id="authEmail" class="input-field" placeholder="your@email.com" autocomplete="email">
                     </div>
-                    <h2 class="text-2xl font-extrabold text-white tracking-tight">DefiChat <span class="text-xs text-emerald-400 font-mono font-bold px-2.5 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">M.E.O.W. v5.1</span></h2>
-                    <p class="text-xs text-slate-400 font-medium">Криптографическая безопасность нового поколения</p>
+                    <div class="mb-4">
+                        <label class="block text-sm text-gray-400 mb-2">Пароль</label>
+                        <input type="password" id="authPassword" class="input-field" placeholder="••••••••" autocomplete="current-password">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm text-gray-400 mb-2">Никнейм (@username)</label>
+                        <input type="text" id="authUsername" class="input-field" placeholder="@username" maxlength="20">
+                    </div>
+                    <button id="authBtn" class="btn-primary w-full mb-4">
+                        <span id="authBtnText">Войти / Зарегистрироваться</span>
+                    </button>
+                    <p class="text-center text-sm text-gray-500">Нет аккаунта? Введите данные — он создастся автоматически</p>
                 </div>
-
-                <div class="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800">
-                    <button id="toggle-login" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-md shadow-emerald-600/10 transition-all">Вход</button>
-                    <button id="toggle-register" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">Регистрация</button>
-                </div>
-
-                <form id="auth-form" class="space-y-4">
-                    <!-- AVATAR PHOTO SELECTOR (WOW FEATURE) -->
-                    <div id="avatar-upload-field" class="hidden flex flex-col items-center space-y-2">
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Фото вашего профиля</label>
-                        <div class="relative group cursor-pointer" id="btn-trigger-avatar">
-                            <div class="w-20 h-20 rounded-full bg-slate-800 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden shadow-inner" id="avatar-preview-box">
-                                <svg class="w-8 h-8 text-slate-500 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                            </div>
-                            <div class="absolute bottom-0 right-0 p-1 bg-emerald-500 rounded-full text-slate-950 shadow border border-slate-900">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-                            </div>
-                        </div>
-                        <input type="file" id="auth-avatar-input" class="hidden" accept="image/*">
-                        <span class="text-[10px] text-slate-500">Нажмите для загрузки кастомного фото</span>
-                    </div>
-
-                    <div id="username-field" class="space-y-1.5 hidden">
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ваш уникальный юзернейм</label>
-                        <input type="text" id="auth-username" placeholder="@ivan_groznij" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Электронная почта (скрытая)</label>
-                        <input type="email" id="auth-email" required placeholder="email@example.com" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Пароль</label>
-                        <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                    </div>
-
-                    <div id="passphrase-field" class="space-y-1.5 hidden">
-                        <label class="text-[11px] font-bold text-amber-400 flex items-center gap-1 uppercase tracking-wider">
-                            <span>🔑</span> Пароль бэкапа ключей (PBKDF2)
-                        </label>
-                        <input type="password" id="auth-passphrase" minlength="12" placeholder="Минимум 12 символов..." class="w-full px-4 py-3 bg-slate-950/50 border border-amber-500/20 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
-                    </div>
-
-                    <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">Войти</button>
-                </form>
-
-                <div id="auth-error" class="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl hidden"></div>
-            </div>
-        </div>
-
-        <!-- KEY WARNING BAR -->
-        <div id="key-warning-bar" class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3.5 hidden z-30">
-            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
-                <div class="flex items-start sm:items-center gap-2">
-                    <span class="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg">⚠️</span>
-                    <span class="text-amber-300 font-medium">Крипто-хранилище (IndexedDB) пусто. Восстановите ключи для доступа к чатам!</span>
-                </div>
-                <div class="flex gap-2">
-                    <button id="warn-btn-generate" class="px-3 py-1.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-amber-400 transition-all">Новые ключи</button>
-                    <button id="warn-btn-import" class="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-bold rounded-lg hover:bg-slate-700 transition-all">Импорт бэкапа</button>
+                <div id="authLoading" class="hidden text-center py-8">
+                    <div class="spinner mx-auto mb-4"></div>
+                    <p class="text-gray-400">Подключение...</p>
                 </div>
             </div>
         </div>
 
-        <!-- MITM ALERT SCREEN -->
-        <div id="mitm-block-screen" class="absolute inset-0 bg-red-950/95 z-50 flex items-center justify-center p-4 hidden">
-            <div class="bg-slate-900 border-2 border-red-500 rounded-2xl w-full max-w-lg p-6 sm:p-8 text-center space-y-5 shadow-2xl">
-                <div class="inline-flex p-3 bg-red-500/10 text-red-500 rounded-xl">🔒</div>
-                <h3 class="text-xl font-bold text-red-400">ОБНАРУЖЕНА MITM-АТАКА!</h3>
-                <p class="text-sm text-slate-300 leading-relaxed">
-                    Публичный Identity-ключ пользователя был изменен на сервере. Это означает попытку перехвата.
-                </p>
-                <button id="mitm-dismiss-btn" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg text-sm transition-all">Закрыть сессию</button>
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold gradient-text">Meow P2P</h2>
+                    <button id="mobileMenuClose" class="md:hidden text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-3 mb-4">
+                    <img id="currentUserAvatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff" class="avatar" alt="Avatar">
+                    <div class="flex-1 min-w-0">
+                        <p id="currentUserName" class="font-semibold text-sm truncate">Загрузка...</p>
+                        <p id="currentUserHandle" class="text-xs text-gray-500 truncate">@user</p>
+                    </div>
+                    <button id="logoutBtn" class="text-gray-400 hover:text-red-400 transition-colors" title="Выйти">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                    <input type="text" id="searchUsers" class="input-field pl-10 text-sm" placeholder="Поиск по @username...">
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto scroll-hidden" id="usersList">
+                <!-- Users will be populated here -->
+            </div>
+            <div class="p-3 border-t border-gray-800 text-center">
+                <span class="encryption-badge"><i class="fas fa-lock mr-1"></i>P2P E2E Шифрование</span>
             </div>
         </div>
 
-        <!-- MAIN APP CONTENT -->
-        <div id="main-screen" class="flex-1 flex overflow-hidden hidden z-10">
-            
-            <!-- SIDEBAR -->
-            <aside id="sidebar" class="w-full md:w-80 border-r border-slate-800 bg-slate-900/90 flex flex-col flex-shrink-0">
-                <div class="p-4 border-b border-slate-800 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3 overflow-hidden">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0 shadow-md uppercase overflow-hidden" id="user-avatar">?</div>
-                            <div class="overflow-hidden">
-                                <h3 class="font-bold text-sm text-slate-100 truncate" id="user-username">@username</h3>
-                                <p class="text-[10px] text-emerald-400 truncate tracking-wider font-semibold uppercase">M.E.O.W. Active</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-1 shrink-0">
-                            <button id="theme-toggle" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all">🌙</button>
-                            <button id="btn-security" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            </button>
-                            <button id="btn-logout" class="p-2 text-red-400 hover:text-red-300 rounded-xl hover:bg-slate-800/60 transition-all">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                            </button>
-                        </div>
-                    </div>
+        <!-- Mobile Overlay -->
+        <div class="overlay" id="mobileOverlay"></div>
 
-                    <form id="search-form" class="relative">
-                        <input type="text" id="search-email" required placeholder="Поиск по @юзернейму..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
-                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                    </form>
-                    <div id="search-result" class="text-xs text-center p-2 hidden bg-slate-950/50 rounded-xl border border-slate-800"></div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto" id="conversations-list">
-                    <div class="p-4 text-center text-xs text-slate-500">Список активных чатов пуст.</div>
-                </div>
-            </aside>
-
-            <!-- CHAT AREA -->
-            <main id="chat-area" class="flex-1 bg-slate-950/80 flex flex-col hidden md:flex relative">
-                <!-- Chat Placeholder -->
-                <div id="chat-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
-                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-3xl text-slate-400 shadow-xl">💬</div>
-                    <div class="space-y-1 max-w-sm">
-                        <h4 class="font-bold text-white text-lg font-mono">Protocol M.E.O.W. v5.1</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">Сквозной шифрующий храповик ECDH P-256 + HMAC-SHA256. Полная защита от извлечения ключей, компрометации сервера, replay-атак и утечки метаданных.</p>
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <!-- Chat Header -->
+            <div class="glass p-4 flex items-center justify-between border-b border-gray-800">
+                <div class="flex items-center gap-3">
+                    <button id="mobileMenuBtn" class="md:hidden text-gray-400 hover:text-white mr-2">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <img id="chatAvatar" src="https://ui-avatars.com/api/?name=Chat&background=333&color=fff" class="avatar" alt="Avatar">
+                    <div>
+                        <p id="chatName" class="font-semibold">Выберите собеседника</p>
+                        <p id="chatStatus" class="text-xs text-gray-500 flex items-center gap-1">
+                            <span class="offline-dot"></span> Офлайн
+                        </p>
                     </div>
                 </div>
-
-                <!-- Active Chat -->
-                <div id="chat-active" class="flex-1 flex flex-col overflow-hidden hidden">
-                    <div class="p-4 border-b border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="flex items-center space-x-3">
-                            <button id="btn-back-sidebar" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all md:hidden">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
-                            </button>
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm overflow-hidden" id="active-recipient-avatar">R</div>
-                            <div>
-                                <h3 class="font-bold text-sm text-slate-100" id="active-recipient-name">Собеседник</h3>
-                                <p class="text-[10px] text-emerald-400 font-bold tracking-wider flex items-center gap-1">
-                                    <span class="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-                                    M.E.O.W. ACTIVE
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center space-x-2">
-                            <button id="btn-diagnostics" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 flex items-center gap-1 transition-all">
-                                🛠️ Логи
-                            </button>
-                            <button id="btn-self-healing" class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-950/60 border border-rose-500/20 text-xs font-semibold rounded-lg text-rose-400 flex items-center gap-1 transition-all">
-                                🔄 Сбросить сессию
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- EPHEMERAL TYPING INDICATOR -->
-                    <div id="typing-indicator" class="px-4 py-1.5 text-xs text-emerald-400 font-semibold bg-slate-900/40 border-b border-slate-800/40 hidden">
-                        <div class="flex items-center gap-1.5">
-                            <span>Собеседник печатает</span>
-                            <div class="flex gap-1 items-center h-2">
-                                <span class="typing-dot w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                                <span class="typing-dot w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                                <span class="typing-dot w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container"></div>
-
-                    <!-- Message Form -->
-                    <form id="message-form" class="p-4 border-t border-slate-800 bg-slate-900/90 flex gap-2 items-center">
-                        <label class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl cursor-pointer transition-all active:scale-95">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                            <input type="file" id="message-file-input" class="hidden" accept="image/*,video/*">
-                        </label>
-                        <input type="text" id="message-input" required autocomplete="off" placeholder="Введите зашифрованное сообщение..." class="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all">
-                        <button type="submit" id="message-submit" class="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9-2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                        </button>
-                    </form>
+                <div class="flex items-center gap-2">
+                    <button id="callBtn" class="hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-all" title="Звонок (скоро)">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button id="videoCallBtn" class="hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-all" title="Видеозвонок (скоро)">
+                        <i class="fas fa-video"></i>
+                    </button>
                 </div>
+            </div>
 
-                <!-- DIAGNOSTICS SLIDE DRAWER -->
-                <div id="diagnostics-drawer" class="absolute inset-y-0 right-0 w-80 bg-slate-900 border-l border-slate-800 z-30 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col shadow-2xl">
-                    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                        <h4 class="font-bold text-sm text-emerald-400 font-mono">M.E.O.W. Diagnostics Log</h4>
-                        <button id="btn-diagnostics-close" class="text-slate-400 hover:text-white text-xs font-bold">❌</button>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-2 bg-slate-950/50" id="diagnostics-log-box">
-                        <div class="text-slate-500">// Журнал криптографических событий пуст.</div>
-                    </div>
+            <!-- Messages Area -->
+            <div class="flex-1 overflow-y-auto scroll-hidden p-4" id="messagesContainer">
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-comments text-6xl mb-4 opacity-20"></i>
+                    <p class="text-lg">Выберите пользователя из списка</p>
+                    <p class="text-sm mt-2">Все сообщения шифруются P2P сквозным шифрованием</p>
                 </div>
-            </main>
-        </div>
+                <div id="messagesList" class="flex flex-col gap-3 hidden"></div>
+            </div>
 
-        <!-- MODAL: SECURITY -->
-        <div id="modal-security" class="fixed inset-0 bg-slate-950/80 z-40 flex items-center justify-center p-4 hidden">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 flex flex-col max-h-[90vh]">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2"><span>🔒</span> Настройки Безопасности E2EE</h3>
-                    <button id="modal-security-close" class="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-all">❌</button>
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="hidden px-4 pb-2">
+                <div class="flex items-center gap-2 text-gray-500 text-sm">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span>печатает...</span>
                 </div>
+            </div>
 
-                <div class="text-[11px] text-slate-400 leading-relaxed bg-slate-950 border border-slate-800 p-3 rounded-lg space-y-2">
-                    <p>⭐ <strong>Non-extractable:</strong> Приватные криптоключи защищены флагом <code>extractable: false</code> внутри IndexedDB. Даже вредоносное расширение браузера или XSS не смогут скомпрометировать ваши сеансовые ключи.</p>
+            <!-- Input Area -->
+            <div class="glass p-3 border-t border-gray-800">
+                <div class="flex items-end gap-2">
+                    <label class="file-input-label flex-shrink-0">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*">
+                        <i class="fas fa-paperclip text-gray-400 hover:text-white text-lg"></i>
+                    </label>
+                    <div class="flex-1 relative">
+                        <textarea id="messageInput" class="input-field resize-none pr-10" rows="1" placeholder="Введите сообщение..." style="min-height: 44px; max-height: 120px;"></textarea>
+                    </div>
+                    <button id="sendBtn" class="btn-primary flex-shrink-0" style="padding: 10px 16px;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
-
-                <div class="flex-1 overflow-y-auto space-y-4 pr-1">
-                    <div class="space-y-2 p-3 bg-slate-950 border border-slate-800 rounded-lg">
-                        <h4 class="text-xs font-semibold text-slate-300">Ротация Signed Prekey</h4>
-                        <div class="flex justify-between items-center">
-                            <span class="text-[10px] text-slate-400">Последняя ротация: <span id="lbl-last-rotation" class="text-emerald-400">...</span></span>
-                            <button id="btn-force-rotate-prekey" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold rounded transition-all">Обновить Prekey</button>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2 p-3 bg-slate-950 border border-slate-800 rounded-lg">
-                        <h4 class="text-xs font-semibold text-slate-300">Создать зашифрованную резервную копию (PBKDF2)</h4>
-                        <div class="space-y-2">
-                            <input type="password" id="backup-password" placeholder="Пароль шифрования бэкапа (минимум 12 знаков)..." class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500">
-                            <button id="btn-create-backup" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition-all">Экспортировать ключи</button>
-                        </div>
-                        <div id="backup-output-container" class="space-y-1 hidden">
-                            <label class="text-[10px] font-semibold text-slate-400 flex justify-between items-center">
-                                <span>Скопируйте этот шифротекст бэкапа:</span>
-                                <button id="btn-copy-backup" class="text-emerald-400 hover:text-emerald-300 font-bold">СКОПИРОВАТЬ</button>
-                            </label>
-                            <textarea id="backup-output-text" readonly rows="3" class="w-full p-2 bg-slate-900 border border-slate-800 rounded text-[9px] font-mono text-slate-400 focus:outline-none"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2 p-3 bg-slate-950 border border-slate-800 rounded-lg">
-                        <h4 class="text-xs font-semibold text-slate-300">Восстановить ключи из бэкапа</h4>
-                        <textarea id="import-backup-blob" placeholder="Вставьте зашифрованный текст бэкапа..." rows="2" class="w-full p-2 bg-slate-900 border border-slate-800 rounded text-[10px] font-mono text-slate-200 placeholder-slate-600 focus:outline-none"></textarea>
-                        <input type="password" id="import-backup-password" placeholder="Пароль от этого бэкапа..." class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded text-xs text-slate-100 placeholder-slate-600 focus:outline-none">
-                        <button id="btn-execute-import" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded transition-all">Дешифровать и Импортировать</button>
-                    </div>
+                <div id="filePreview" class="hidden mt-2 flex items-center gap-2 p-2 bg-gray-900 rounded-lg">
+                    <i class="fas fa-file text-gray-400"></i>
+                    <span id="filePreviewName" class="text-sm text-gray-400 flex-1 truncate"></span>
+                    <button id="removeFile" class="text-red-400 hover:text-red-300">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- FIREBASE AND ADVANCED CRYPTO WITH WORKAROUNDS -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { 
-            getDatabase, 
-            ref, 
-            set, 
-            get, 
-            push, 
-            onValue, 
-            query, 
-            orderByChild, 
-            equalTo,
-            update,
-            remove
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    <!-- Image/Video Modal -->
+    <div id="mediaModal" class="modal-overlay hidden">
+        <div class="modal-content relative">
+            <button id="closeModal" class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="modalImage" class="max-w-full max-h-full rounded-lg hidden" alt="Full size">
+            <video id="modalVideo" class="max-w-full max-h-full rounded-lg hidden" controls></video>
+        </div>
+    </div>
 
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <span id="toastText"></span>
+    </div>
+
+    <script>
+        // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyBm0mIvHVznIeF2PoFk6dtdaiT5r877wyA",
             authDomain: "meow-874ce.firebaseapp.com",
@@ -370,1792 +238,613 @@
             appId: "1:471541334599:web:567af3e7dbe70a37572762"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        // Application State
+        // ==================== GLOBAL STATE ====================
         let currentUser = null;
-        let localKeys = null; 
-        let currentChatRecipient = null;
-        let currentChatListener = null;
-        let currentChatsListListener = null;
-        let lastSentTime = 0; 
-        let isLogin = true;
-        
-        let registrationPassphrase = null;
-        let registrationAvatarB64 = null; // Stored Base64 Avatar
-        let activeListeners = [];
+        let currentChatUser = null;
+        let sharedKey = null;
+        let usersRef = null;
+        let messagesRef = null;
+        let typingRef = null;
+        let presenceRef = null;
+        let fileToSend = null;
+        let isTyping = false;
+        let typingTimeout = null;
+        let messageListeners = [];
+        let typingListener = null;
+        let presenceListener = null;
 
-        // Transaction queue
-        let messageProcessingQueue = Promise.resolve();
-        function queueMessageProcessing(task) {
-            messageProcessingQueue = messageProcessingQueue.then(task).catch(err => {
-                logDiagnostic("⚠️ Очередь выбросила исключение: " + err.message, "rose-400");
-                console.error("M.E.O.W Queue Error:", err);
-            });
-        }
+        // ==================== CRYPTO UTILITIES ====================
+        const Crypto = {
+            async generateKeyPair() {
+                return await window.crypto.subtle.generateKey(
+                    { name: "ECDH", namedCurve: "P-256" },
+                    true,
+                    ["deriveKey"]
+                );
+            },
 
-        function registerListener(unsubscribeFn) {
-            activeListeners.push(unsubscribeFn);
-        }
+            async exportPublicKey(key) {
+                const exported = await window.crypto.subtle.exportKey("raw", key.publicKey);
+                return btoa(String.fromCharCode(...new Uint8Array(exported)));
+            },
 
-        function logDiagnostic(text, color = "slate-400") {
-            const box = document.getElementById("diagnostics-log-box");
-            if (!box) return;
-            const logItem = document.createElement("div");
-            logItem.className = `text-${color} border-b border-slate-800/20 py-1 text-[9px]`;
-            logItem.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
-            box.appendChild(logItem);
-            box.scrollTop = box.scrollHeight;
-        }
+            async importPublicKey(base64Key) {
+                const binary = atob(base64Key);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                return await window.crypto.subtle.importKey(
+                    "raw", bytes, { name: "ECDH", namedCurve: "P-256" }, true, []
+                );
+            },
 
-        // CSS Fallback Gradients for empty avatars
-        const defaultGradients = [
-            "from-orange-500 to-rose-500",
-            "from-blue-600 to-cyan-400",
-            "from-emerald-600 to-teal-400",
-            "from-fuchsia-600 to-purple-500",
-            "from-indigo-600 to-violet-500",
-            "from-red-600 to-orange-500"
-        ];
+            async deriveSharedKey(privateKey, publicKey) {
+                return await window.crypto.subtle.deriveKey(
+                    { name: "ECDH", public: publicKey },
+                    privateKey,
+                    { name: "AES-GCM", length: 256 },
+                    false,
+                    ["encrypt", "decrypt"]
+                );
+            },
 
-        function getHashGradient(username) {
-            let hash = 0;
-            const cleanStr = username || "defichat";
-            for (let i = 0; i < cleanStr.length; i++) {
-                hash = cleanStr.charCodeAt(i) + ((hash << 5) - hash);
+            async encrypt(text, key) {
+                const encoder = new TextEncoder();
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv },
+                    key,
+                    encoder.encode(text)
+                );
+                const combined = new Uint8Array(iv.length + encrypted.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(encrypted), iv.length);
+                return btoa(String.fromCharCode(...combined));
+            },
+
+            async decrypt(base64Ciphertext, key) {
+                const binary = atob(base64Ciphertext);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                const iv = bytes.slice(0, 12);
+                const ciphertext = bytes.slice(12);
+                const decrypted = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv },
+                    key,
+                    ciphertext
+                );
+                return new TextDecoder().decode(decrypted);
+            },
+
+            async encryptFile(arrayBuffer, key) {
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv },
+                    key,
+                    arrayBuffer
+                );
+                const combined = new Uint8Array(iv.length + encrypted.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(encrypted), iv.length);
+                return btoa(String.fromCharCode(...combined));
+            },
+
+            async decryptFile(base64Ciphertext, key) {
+                const binary = atob(base64Ciphertext);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                const iv = bytes.slice(0, 12);
+                const ciphertext = bytes.slice(12);
+                return await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv },
+                    key,
+                    ciphertext
+                );
             }
-            const index = Math.abs(hash) % defaultGradients.length;
-            return defaultGradients[index];
+        };
+
+        // ==================== UI UTILITIES ====================
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastText').textContent = text;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        function getInitials(username) {
-            if (!username) return "?";
-            const clean = username.startsWith("@") ? username.slice(1) : username;
-            return clean.charAt(0).toUpperCase();
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
         }
 
-        /* ==========================================================================
-           COMPACT AVATAR HANDLER (FROM GALLERY)
-           ========================================================================== */
-        const fileAvatarInput = document.getElementById("auth-avatar-input");
-        const btnTriggerAvatar = document.getElementById("btn-trigger-avatar");
-        const avatarPreviewBox = document.getElementById("avatar-preview-box");
+        function formatDate(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            if (isToday) return 'Сегодня';
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
 
-        btnTriggerAvatar.addEventListener("click", () => fileAvatarInput.click());
+        // ==================== AUTH ====================
+        document.getElementById('authBtn').addEventListener('click', async () => {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const username = document.getElementById('authUsername').value.trim().replace(/^@/, '');
 
-        fileAvatarInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (!file.type.startsWith("image/")) {
-                alert("Пожалуйста, выберите файл изображения!");
+            if (!email || !password) {
+                showToast('Введите email и пароль');
+                return;
+            }
+            if (!username) {
+                showToast('Введите никнейм');
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const rawImg = new Image();
-                rawImg.src = event.target.result;
-                rawImg.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    const ctx = canvas.getContext("2d");
-                    
-                    // Force crop to circle square 120x120px for optimal storage
-                    canvas.width = 120;
-                    canvas.height = 120;
-                    
-                    const size = Math.min(rawImg.width, rawImg.height);
-                    const sx = (rawImg.width - size) / 2;
-                    const sy = (rawImg.height - size) / 2;
-                    
-                    ctx.drawImage(rawImg, sx, sy, size, size, 0, 0, 120, 120);
-                    
-                    registrationAvatarB64 = canvas.toDataURL("image/jpeg", 0.7);
-                    avatarPreviewBox.innerHTML = `<img src="${registrationAvatarB64}" class="w-full h-full object-cover">`;
-                };
-            };
-            reader.readAsDataURL(file);
-        });
-
-        /* ==========================================================================
-           INDEXEDDB SECURE STORAGE V5
-           ========================================================================== */
-        const DB_NAME = "DefiChatV5SecureStore";
-        const STORES = {
-            SECURE_KEYS: "secure_keys",
-            HISTORICAL_PREKEYS: "historical_prekeys",
-            PINNED_IDENTITIES: "pinned_identities",
-            RATCHET_SESSIONS: "ratchet_sessions",
-            DECRYPTED_MESSAGES: "decrypted_messages",
-            OFFLINE_SEND_QUEUE: "offline_send_queue"
-        };
-
-        function openCryptoDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 5); 
-                request.onupgradeneeded = (e) => {
-                    const database = e.target.result;
-                    for (const key in STORES) {
-                        if (!database.objectStoreNames.contains(STORES[key])) {
-                            database.createObjectStore(STORES[key]);
-                        }
-                    }
-                };
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e.target.error);
-            });
-        }
-
-        async function dbPut(storeName, name, value) {
-            const database = await openCryptoDB();
-            return new Promise((resolve, reject) => {
-                const tx = database.transaction(storeName, "readwrite");
-                const store = tx.objectStore(storeName);
-                const request = store.put(value, name);
-                request.onsuccess = () => resolve();
-                request.onerror = (e) => reject(e.target.error);
-            });
-        }
-
-        async function dbGet(storeName, name) {
-            const database = await openCryptoDB();
-            return new Promise((resolve, reject) => {
-                const tx = database.transaction(storeName, "readonly");
-                const store = tx.objectStore(storeName);
-                const request = store.get(name);
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e.target.error);
-            });
-        }
-
-        async function dbDelete(storeName, name) {
-            const database = await openCryptoDB();
-            return new Promise((resolve, reject) => {
-                const tx = database.transaction(storeName, "readwrite");
-                const store = tx.objectStore(storeName);
-                const request = store.delete(name);
-                request.onsuccess = () => resolve();
-                request.onerror = (e) => reject(e.target.error);
-            });
-        }
-
-        async function dbGetAllKeys(storeName) {
-            const database = await openCryptoDB();
-            return new Promise((resolve, reject) => {
-                const tx = database.transaction(storeName, "readonly");
-                const store = tx.objectStore(storeName);
-                const request = store.getAllKeys();
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e.target.error);
-            });
-        }
-
-        async function clearAllStores() {
-            const database = await openCryptoDB();
-            const tx = database.transaction(Object.values(STORES), "readwrite");
-            for (const storeName of Object.values(STORES)) {
-                tx.objectStore(storeName).clear();
-            }
-            return new Promise((resolve) => {
-                tx.oncomplete = () => resolve();
-            });
-        }
-
-        /* ==========================================================================
-           PADDING (PKCS#7)
-           ========================================================================== */
-        function padMessage(text) {
-            const blockSize = 256;
-            const textBytes = new TextEncoder().encode(text);
-            const padLength = blockSize - (textBytes.length % blockSize);
-            const paddedBytes = new Uint8Array(textBytes.length + padLength);
-            paddedBytes.set(textBytes);
-            for (let i = textBytes.length; i < paddedBytes.length; i++) {
-                paddedBytes[i] = padLength;
-            }
-            return bufferToBase64(paddedBytes);
-        }
-
-        function unpadMessage(paddedB64) {
-            const paddedBytes = new Uint8Array(base64ToBuffer(paddedB64));
-            const padLength = paddedBytes[paddedBytes.length - 1];
-            if (padLength <= 0 || padLength > 256) throw new Error("Невалидный вектор выравнивания M.E.O.W. Padding!");
-            const textBytes = paddedBytes.slice(0, paddedBytes.length - padLength);
-            return new TextDecoder().decode(textBytes);
-        }
-
-        /* ==========================================================================
-           IMAGE COMPRESSION HELPER (FOR FILE UPLOADS)
-           ========================================================================== */
-        function compressImage(base64Str) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.src = base64Str;
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    const ctx = canvas.getContext("2d");
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 800;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.7));
-                };
-                img.onerror = () => resolve(base64Str);
-            });
-        }
-
-        /* ==========================================================================
-           CRYPTOGRAPHIC HELPER UTILITIES
-           ========================================================================== */
-        function bufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-        }
-
-        function base64ToBuffer(base64) {
-            const binaryString = atob(base64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-
-        async function sha256Hex(text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        function validateJWK(jwkStr, expectedType) {
-            try {
-                const jwk = JSON.parse(atob(jwkStr));
-                if (expectedType === "EC" && (jwk.kty !== "EC" || jwk.crv !== "P-256")) return null;
-                return jwk;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function showLoading(show, text = "Выполнение криптографических операций...") {
-            const overlay = document.getElementById('loading-overlay');
-            const label = document.getElementById('loading-text');
-            if (label) label.innerText = text;
-            if (overlay) {
-                if (show) overlay.classList.remove('hidden');
-                else overlay.classList.add('hidden');
-            }
-        }
-
-        /* ==========================================================================
-           STRICT CRYPTOGRAPHY (ECDH, ECDSA & DOUBLE RATCHET)
-           ========================================================================== */
-        async function importRawPublicKey(jwkB64, algName, usages) {
-            const jwk = validateJWK(jwkB64, "EC");
-            if (!jwk) throw new Error("Поврежденный или невалидный публичный ключ JWK!");
-            return await window.crypto.subtle.importKey(
-                "jwk",
-                jwk,
-                { name: algName, namedCurve: "P-256" },
-                true,
-                usages
-            );
-        }
-
-        async function generateIdentityKeyPair(extractable = false) {
-            return await window.crypto.subtle.generateKey(
-                { name: "ECDSA", namedCurve: "P-256" },
-                extractable,
-                ["sign", "verify"]
-            );
-        }
-
-        async function generateExchangeKeyPair(extractable = false) {
-            return await window.crypto.subtle.generateKey(
-                { name: "ECDH", namedCurve: "P-256" },
-                extractable,
-                ["deriveBits", "deriveKey"]
-            );
-        }
-
-        async function signPayload(ecdsaPrivateKey, rawDataB64) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(rawDataB64);
-            const signature = await window.crypto.subtle.sign(
-                { name: "ECDSA", hash: { name: "SHA-256" } },
-                ecdsaPrivateKey,
-                data
-            );
-            return bufferToBase64(signature);
-        }
-
-        async function verifyPayloadSignature(ecdsaPublicKey, rawDataB64, signatureB64) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(rawDataB64);
-            const signature = base64ToBuffer(signatureB64);
-            return await window.crypto.subtle.verify(
-                { name: "ECDSA", hash: { name: "SHA-256" } },
-                ecdsaPublicKey,
-                signature,
-                data
-            );
-        }
-
-        async function computeECDH(privateKey, publicKey) {
-            return await window.crypto.subtle.deriveBits(
-                { name: "ECDH", public: publicKey },
-                privateKey,
-                256
-            );
-        }
-
-        /* ==========================================================================
-           ARCHIVE KEY DERIVATION CHAIN (W3C DOMException Fixed)
-           ========================================================================== */
-        async function deriveArchiveMsgKey(masterArchiveKey, msgKeyBytes) {
-            const hkdfInputKey = await window.crypto.subtle.importKey(
-                "raw", msgKeyBytes, "HKDF", false, ["deriveKey"]
-            );
-            return await window.crypto.subtle.deriveKey(
-                {
-                    name: "HKDF",
-                    hash: "SHA-256",
-                    salt: msgKeyBytes,
-                    info: new TextEncoder().encode("DefiChat-Archive-Message-v5.1")
-                },
-                masterArchiveKey,
-                { name: "AES-GCM", length: 256 },
-                false, 
-                ["encrypt", "decrypt"]
-            );
-        }
-
-        /* ==========================================================================
-           4-DH X3DH INITIAL AGREEMENT
-           ========================================================================== */
-        async function deriveX3DHInitialRK(dh1, dh2, dh3, dh4) {
-            const masterSecret = new Uint8Array(128);
-            masterSecret.set(new Uint8Array(dh1), 0);
-            masterSecret.set(new Uint8Array(dh2), 32);
-            masterSecret.set(new Uint8Array(dh3), 64);
-            masterSecret.set(new Uint8Array(dh4), 96);
-
-            const hkdfInputKey = await window.crypto.subtle.importKey(
-                "raw", masterSecret, "HKDF", false, ["deriveBits"]
-            );
-
-            const derivedBits = await window.crypto.subtle.deriveBits(
-                {
-                    name: "HKDF",
-                    hash: "SHA-256",
-                    salt: new Uint8Array(32),
-                    info: new TextEncoder().encode("DefiChat-Initial-X3DH-V5-MEOW")
-                },
-                hkdfInputKey,
-                256
-            );
-
-            return new Uint8Array(derivedBits);
-        }
-
-        /* ==========================================================================
-           DOUBLE RATCHET PROTOCOL (KDF CK & KDF RK)
-           ========================================================================== */
-        async function kdfCk(ckBytes) {
-            const hmacKey = await window.crypto.subtle.importKey(
-                "raw", ckBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-            );
-            const nextCK = await window.crypto.subtle.sign("HMAC", hmacKey, new Uint8Array([1]));
-            const msgKey = await window.crypto.subtle.sign("HMAC", hmacKey, new Uint8Array([2]));
-            return {
-                nextCK: new Uint8Array(nextCK),
-                msgKey: new Uint8Array(msgKey)
-            };
-        }
-
-        async function kdfRk(rkBytes, dhSecretBytes) {
-            const ikmKey = await window.crypto.subtle.importKey(
-                "raw", dhSecretBytes, "HKDF", false, ["deriveBits"]
-            );
-            const derivedBits = await window.crypto.subtle.deriveBits(
-                {
-                    name: "HKDF",
-                    hash: "SHA-256",
-                    salt: rkBytes,
-                    info: new TextEncoder().encode("DefiChat-Ratchet-RK-KDF-v5-MEOW")
-                },
-                ikmKey,
-                512 
-            );
-            const derivedArray = new Uint8Array(derivedBits);
-            return {
-                newRK: derivedArray.slice(0, 32),
-                newCK: derivedArray.slice(32, 64)
-            };
-        }
-
-        /* ==========================================================================
-           INITIALIZE DOUBLE RATCHET SESSION (W3C Mobile Compliant)
-           ========================================================================== */
-        async function initializeSession(partner, isSender, peerFirstEphemeralPubB64 = null) {
-            const sessionKey = `session_${partner.uid}`;
-            let session = await dbGet(STORES.RATCHET_SESSIONS, sessionKey);
-            if (session) return session;
-
-            logDiagnostic(`Инициация сессии Double Ratchet с ${partner.username}...`, "emerald-400");
-
-            const peerIdentityPub = await importRawPublicKey(partner.id_ecdh_pub, "ECDH", []);
-            const peerPrekeyPub = await importRawPublicKey(partner.spk_ecdh_pub, "ECDH", []);
-            
-            let peerOPKPub = partner.opk_ecdh_pub ? await importRawPublicKey(partner.opk_ecdh_pub, "ECDH", []) : null;
-
-            let initialRK;
-            let myActiveDHPriv = null;
-            let myActiveDHPubB64 = null;
-            let initialCKs = null;
-            let initialCKr = null;
-
-            if (isSender) {
-                const newDH = await generateExchangeKeyPair(true);
-                const pubJWK = await window.crypto.subtle.exportKey("jwk", newDH.publicKey);
-                myActiveDHPubB64 = btoa(JSON.stringify(pubJWK));
-
-                const privJWK = await window.crypto.subtle.exportKey("jwk", newDH.privateKey);
-                myActiveDHPriv = await window.crypto.subtle.importKey(
-                    "jwk", privJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
-                );
-
-                const dh1 = await computeECDH(localKeys.idExchangePriv, peerPrekeyPub);
-                const dh2 = await computeECDH(myActiveDHPriv, peerIdentityPub);
-                const dh3 = await computeECDH(myActiveDHPriv, peerPrekeyPub);
-                const dh4 = peerOPKPub ? await computeECDH(myActiveDHPriv, peerOPKPub) : new Uint8Array(32);
-
-                const rk0 = await deriveX3DHInitialRK(dh1, dh2, dh3, dh4);
-
-                const dhSecret = await computeECDH(myActiveDHPriv, peerPrekeyPub);
-                const { newRK, newCK } = await kdfRk(rk0, new Uint8Array(dhSecret));
-                
-                initialRK = newRK;
-                initialCKs = newCK;
-            } else {
-                if (!peerFirstEphemeralPubB64) {
-                    throw new Error("Не предоставлен ephemeral-ключ отправителя для инициализации X3DH!");
-                }
-                const peerEphemeralPub = await importRawPublicKey(peerFirstEphemeralPubB64, "ECDH", []);
-
-                const dh1 = await computeECDH(localKeys.prekeyExchangePriv, peerIdentityPub);
-                const dh2 = await computeECDH(localKeys.idExchangePriv, peerEphemeralPub);
-                const dh3 = await computeECDH(localKeys.prekeyExchangePriv, peerEphemeralPub);
-                const dh4 = localKeys.opkExchangePriv ? await computeECDH(localKeys.opkExchangePriv, peerEphemeralPub) : new Uint8Array(32);
-
-                const rk0 = await deriveX3DHInitialRK(dh1, dh2, dh3, dh4);
-
-                // DH Ratchet Step 1: Compute receiving chain immediately
-                const dhSecret1 = await computeECDH(localKeys.prekeyExchangePriv, peerEphemeralPub);
-                const rkStep = await kdfRk(rk0, new Uint8Array(dhSecret1));
-                
-                initialRK = rkStep.newRK;
-                initialCKr = rkStep.newCK;
-
-                // Bob generates his first ratchet ephemeral key DK_B right now!
-                const newDH = await generateExchangeKeyPair(true);
-                const pubJWK = await window.crypto.subtle.exportKey("jwk", newDH.publicKey);
-                myActiveDHPubB64 = btoa(JSON.stringify(pubJWK));
-
-                const privJWK = await window.crypto.subtle.exportKey("jwk", newDH.privateKey);
-                myActiveDHPriv = await window.crypto.subtle.importKey(
-                    "jwk", privJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
-                );
-
-                // DH Ratchet Step 2: Compute sending chain immediately
-                const dhSecret2 = await computeECDH(myActiveDHPriv, peerEphemeralPub);
-                const { newRK: finalRK, newCK: finalCKs } = await kdfRk(initialRK, new Uint8Array(dhSecret2));
-                
-                initialRK = finalRK;
-                initialCKs = finalCKs;
-
-                if (localKeys.opkExchangePriv) {
-                    logDiagnostic("Атомарное расходование One-Time Prekey (OPK)...", "amber-400");
-                    await dbDelete(STORES.SECURE_KEYS, "opk_exchange_priv");
-                    await dbDelete(STORES.SECURE_KEYS, "opk_exchange_pub_b64");
-                    await dbDelete(STORES.SECURE_KEYS, "opk_hash");
-                }
-            }
-
-            session = {
-                RK: bufferToBase64(initialRK),
-                CKs: initialCKs ? bufferToBase64(initialCKs) : null,
-                CKr: initialCKr ? bufferToBase64(initialCKr) : null,
-                Ns: 0,
-                Nr: 0,
-                PN: 0,
-                myActiveDHPriv: myActiveDHPriv,
-                myActiveDHPubB64: myActiveDHPubB64,
-                lastSeenPartnerDHPub: isSender ? partner.spk_ecdh_pub : peerFirstEphemeralPubB64,
-                dhStepRequired: false, 
-                skippedKeys: {},
-                receivedMsgNums: {}
-            };
-
-            await dbPut(STORES.RATCHET_SESSIONS, sessionKey, session);
-            return session;
-        }
-
-        async function saveRatchetSession(partnerUid, session) {
-            await dbPut(STORES.RATCHET_SESSIONS, `session_${partnerUid}`, session);
-        }
-
-        /* ==========================================================================
-           DOUBLE RATCHET DECRYPTION WITH SYMMETRIC RATCHETING & OUT-OF-ORDER HANDLING
-           ========================================================================== */
-        async function skipMessageKeys(session, until) {
-            const totalSkippedCount = Object.keys(session.skippedKeys || {}).length;
-            if (totalSkippedCount > 100) {
-                logDiagnostic("Превышен лимит пропущенных ключей (Sliding Window DoS Protection)!", "rose-400");
-                throw new Error("Заблокирован DoS: перегрузка пула пропущенных ключей.");
-            }
-            if (session.Nr + 100 < until) {
-                throw new Error("Заблокирован DoS: слишком большой разрыв в номерах сообщений.");
-            }
-            if (session.CKr) {
-                if (!session.skippedKeys) session.skippedKeys = {};
-                while (session.Nr < until) {
-                    const { nextCK, msgKey } = await kdfCk(base64ToBuffer(session.CKr));
-                    session.CKr = bufferToBase64(nextCK);
-                    const keyStr = `${session.lastSeenPartnerDHPub}:${session.Nr}`;
-                    session.skippedKeys[keyStr] = bufferToBase64(msgKey);
-                    session.Nr++;
-                }
-            }
-        }
-
-        async function decryptIncomingMessage(session, msg, myPrekeyPriv) {
-            const msgNum = msg.msg_num || 0;
-            const senderDHPubStr = msg.dh_pub;
-
-            const uniqueMsgKeyStr = `${senderDHPubStr}:${msgNum}`;
-            if (!session.receivedMsgNums) session.receivedMsgNums = {};
-            if (session.receivedMsgNums[uniqueMsgKeyStr]) {
-                throw new Error("ОБНАРУЖЕНА REPLAY-АТАКА: Данное сообщение уже расшифровано!");
-            }
-
-            if (session.skippedKeys && session.skippedKeys[uniqueMsgKeyStr]) {
-                const rawMsgKey = base64ToBuffer(session.skippedKeys[uniqueMsgKeyStr]);
-                delete session.skippedKeys[uniqueMsgKeyStr];
-                session.receivedMsgNums[uniqueMsgKeyStr] = true;
-                await saveRatchetSession(currentChatRecipient.uid, session);
-                logDiagnostic("Сообщение расшифровано из skipped keys резерва.", "teal-400");
-                return await decryptAESGCM(rawMsgKey, msg.ciphertext, msg.iv);
-            }
-
-            if (senderDHPubStr !== session.lastSeenPartnerDHPub) {
-                logDiagnostic("Принят новый ephemeral-ключ. Продвижение DH Ratchet...", "emerald-400");
-                await skipMessageKeys(session, msg.prev_chain_len || 0);
-
-                let dhPrivKey = session.myActiveDHPriv;
-                if (!dhPrivKey) {
-                    dhPrivKey = myPrekeyPriv; 
-                }
-
-                const senderDHPub = await importRawPublicKey(senderDHPubStr, "ECDH", []);
-                const dhSecret = await computeECDH(dhPrivKey, senderDHPub);
-
-                const { newRK, newCK } = await kdfRk(base64ToBuffer(session.RK), new Uint8Array(dhSecret));
-                session.RK = bufferToBase64(newRK);
-                session.CKr = bufferToBase64(newCK);
-                session.lastSeenPartnerDHPub = senderDHPubStr;
-                session.Nr = 0;
-                session.dhStepRequired = true;
-            }
-
-            await skipMessageKeys(session, msgNum);
-
-            const { nextCK, msgKey } = await kdfCk(base64ToBuffer(session.CKr));
-            session.CKr = bufferToBase64(nextCK);
-            session.Nr++;
-
-            session.receivedMsgNums[uniqueMsgKeyStr] = true;
-
-            await saveRatchetSession(currentChatRecipient.uid, session);
-
-            return { msgKey, payload: await decryptAESGCM(msgKey, msg.ciphertext, msg.iv) };
-        }
-
-        /* ==========================================================================
-           AES-GCM 256 BIT ENCRYPTION
-           ========================================================================== */
-        async function encryptAESGCM(rawKey, text) {
-            let aesKey;
-            if (rawKey instanceof CryptoKey) {
-                aesKey = rawKey;
-            } else {
-                aesKey = await window.crypto.subtle.importKey(
-                    "raw", rawKey, { name: "AES-GCM" }, false, ["encrypt"]
-                );
-            }
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const ciphertext = await window.crypto.subtle.encrypt(
-                { name: "AES-GCM", iv: iv },
-                aesKey,
-                new TextEncoder().encode(text)
-            );
-            return {
-                ciphertext: bufferToBase64(ciphertext),
-                iv: bufferToBase64(iv)
-            };
-        }
-
-        async function decryptAESGCM(rawKey, ciphertextB64, ivB64) {
-            let aesKey;
-            if (rawKey instanceof CryptoKey) {
-                aesKey = rawKey;
-            } else {
-                aesKey = await window.crypto.subtle.importKey(
-                    "raw", rawKey, { name: "AES-GCM" }, false, ["decrypt"]
-                );
-            }
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: base64ToBuffer(ivB64) },
-                aesKey,
-                base64ToBuffer(ciphertextB64)
-            );
-            return new TextDecoder().decode(decrypted);
-        }
-
-        /* ==========================================================================
-           PREKEY ROTATION (SECURED AS NON-EXTRACTABLE CryptoKey)
-           ========================================================================== */
-        async function rotateSignedPrekey(uid, force = false) {
-            const lastRotStr = localStorage.getItem(`last_prekey_rot_${uid}`);
-            const lastRot = lastRotStr ? parseInt(lastRotStr) : 0;
-            const now = Date.now();
-
-            if (!lastRot || (now - lastRot > 24 * 60 * 60 * 1000) || force) {
-                showLoading(true, "Выполнение плановой ротации Signed Prekey...");
-                
-                const freshPrekey = await generateExchangeKeyPair(true);
-                const prekeyPubJWK = await window.crypto.subtle.exportKey("jwk", freshPrekey.publicKey);
-                const prekeyPrivJWK = await window.crypto.subtle.exportKey("jwk", freshPrekey.privateKey);
-                
-                const prekeyPubB64 = btoa(JSON.stringify(prekeyPubJWK));
-                const hash = (await sha256Hex(prekeyPubB64)).substring(0, 8);
-
-                const idEcdsaPriv = await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv");
-                const signature = await signPayload(idEcdsaPriv, prekeyPubB64);
-
-                const nonExtPrekeyPriv = await window.crypto.subtle.importKey(
-                    "jwk", prekeyPrivJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
-                );
-                await dbPut(STORES.HISTORICAL_PREKEYS, hash, nonExtPrekeyPriv);
-
-                await dbPut(STORES.SECURE_KEYS, "prekey_exchange_priv", nonExtPrekeyPriv);
-                await dbPut(STORES.SECURE_KEYS, "prekey_exchange_pub_b64", prekeyPubB64);
-                await dbPut(STORES.SECURE_KEYS, "prekey_hash", hash);
-
-                const opkExchange = await generateExchangeKeyPair(true);
-                const opkPubJWK = await window.crypto.subtle.exportKey("jwk", opkExchange.publicKey);
-                const opkPrivJWK = await window.crypto.subtle.exportKey("jwk", opkExchange.privateKey);
-                const opkPubB64 = btoa(JSON.stringify(opkPubJWK));
-                const opkHash = (await sha256Hex(opkPubB64)).substring(0, 8);
-
-                const nonExtOpkPriv = await window.crypto.subtle.importKey(
-                    "jwk", opkPrivJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
-                );
-                await dbPut(STORES.SECURE_KEYS, "opk_exchange_priv", nonExtOpkPriv);
-                await dbPut(STORES.SECURE_KEYS, "opk_exchange_pub_b64", opkPubB64);
-                await dbPut(STORES.SECURE_KEYS, "opk_hash", opkHash);
-
-                await update(ref(db, `users/${uid}`), {
-                    spk_ecdh_pub: prekeyPubB64,
-                    spk_signature: signature,
-                    spk_hash: hash,
-                    opk_ecdh_pub: opkPubB64,
-                    opk_hash: opkHash,
-                    last_rotated_ts: now
-                });
-
-                localStorage.setItem(`last_prekey_rot_${uid}`, now.toString());
-                const rotationLabel = document.getElementById('lbl-last-rotation');
-                if (rotationLabel) rotationLabel.innerText = new Date(now).toLocaleString();
-                showLoading(false);
-            } else {
-                const currentHash = await dbGet(STORES.SECURE_KEYS, "prekey_hash");
-                if (!currentHash) {
-                    await rotateSignedPrekey(uid, true);
-                } else {
-                    const rotationLabel = document.getElementById('lbl-last-rotation');
-                    if (rotationLabel) rotationLabel.innerText = new Date(lastRot).toLocaleString();
-                }
-            }
-        }
-
-        /* ==========================================================================
-           KEY GENERATOR AND STORAGE INITIALIZER (Non-Extractable Fixes)
-           ========================================================================== */
-        async function generateAndSaveNewKeys(uid, passphrase, profile) {
-            showLoading(true, "Генерация криптографического окружения M.E.O.W...");
-            
-            let rawIdEcdsa = null;
-            let rawIdExchange = null;
-            let rawArchiveKey = null;
+            document.getElementById('authForm').classList.add('hidden');
+            document.getElementById('authLoading').classList.remove('hidden');
 
             try {
-                rawIdEcdsa = await generateIdentityKeyPair(true);
-                rawIdExchange = await generateExchangeKeyPair(true);
-                rawArchiveKey = window.crypto.getRandomValues(new Uint8Array(32));
-
-                const idEcdsaPubJWK = await window.crypto.subtle.exportKey("jwk", rawIdEcdsa.publicKey);
-                const idExchangePubJWK = await window.crypto.subtle.exportKey("jwk", rawIdExchange.publicKey);
-
-                const idEcdsaPubB64 = btoa(JSON.stringify(idEcdsaPubJWK));
-                const idExchangePubB64 = btoa(JSON.stringify(idExchangePubJWK));
-
-                const idEcdsaPrivJWK = await window.crypto.subtle.exportKey("jwk", rawIdEcdsa.privateKey);
-                const idExchangePrivJWK = await window.crypto.subtle.exportKey("jwk", rawIdExchange.privateKey);
-
-                const nonExtEcdsaPriv = await window.crypto.subtle.importKey(
-                    "jwk", idEcdsaPrivJWK, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
-                );
-                const nonExtExchangePriv = await window.crypto.subtle.importKey(
-                    "jwk", idExchangePrivJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
-                );
-
-                const nonExtMasterArchiveKey = await window.crypto.subtle.importKey(
-                    "raw", rawArchiveKey, "HKDF", false, ["deriveKey", "deriveBits"]
-                );
-
-                await dbPut(STORES.SECURE_KEYS, "id_ecdsa_priv", nonExtEcdsaPriv);
-                await dbPut(STORES.SECURE_KEYS, "id_exchange_priv", nonExtExchangePriv);
-                await dbPut(STORES.SECURE_KEYS, "id_ecdsa_pub_b64", idEcdsaPubB64);
-                await dbPut(STORES.SECURE_KEYS, "id_exchange_pub_b64", idExchangePubB64);
-                await dbPut(STORES.SECURE_KEYS, "master_archive_key", nonExtMasterArchiveKey);
-                await dbPut(STORES.SECURE_KEYS, "master_archive_seed", rawArchiveKey); // Seed stored safely for zero-leaks export!
-
-                await update(ref(db, `users/${uid}`), {
-                    id_ecdsa_pub: idEcdsaPubB64,
-                    id_ecdh_pub: idExchangePubB64
-                });
-
-                const keysPayload = JSON.stringify({ 
-                    idEcdsaPrivJWK, 
-                    idExchangePrivJWK, 
-                    idEcdsaPubB64,
-                    idExchangePubB64,
-                    archiveKey: bufferToBase64(rawArchiveKey) 
-                });
-                const salt = window.crypto.getRandomValues(new Uint8Array(16));
-                const wrapKey = await derivePBKDF2WrappingKey(passphrase, salt);
-                const encResult = await encryptAESGCM(wrapKey, keysPayload);
-
-                const backupBlob = {
-                    salt: bufferToBase64(salt),
-                    iv: encResult.iv,
-                    ciphertext: encResult.ciphertext
-                };
-                localStorage.setItem(`backup_${uid}`, btoa(JSON.stringify(backupBlob)));
-
-                await rotateSignedPrekey(uid, true);
-                await initializeLocalKeys(uid);
-            } catch (err) {
-                console.error("KeyGen Error: ", err);
-                alert("Ошибка генерации ключей: " + err.message);
-            } finally {
-                rawIdEcdsa = null;
-                rawIdExchange = null;
-                rawArchiveKey = null;
-                showLoading(false);
-            }
-        }
-
-        async function initializeLocalKeys(uid, restoredKeys = null) {
-            if (restoredKeys) {
-                // Прямой импорт восстановленных ключей в IndexedDB
-                await dbPut(STORES.SECURE_KEYS, "id_ecdsa_priv", restoredKeys.idEcdsaPriv);
-                await dbPut(STORES.SECURE_KEYS, "id_exchange_priv", restoredKeys.idExchangePriv);
-                await dbPut(STORES.SECURE_KEYS, "id_ecdsa_pub_b64", restoredKeys.idEcdsaPubB64);
-                await dbPut(STORES.SECURE_KEYS, "id_exchange_pub_b64", restoredKeys.idExchangePubB64);
-                await dbPut(STORES.SECURE_KEYS, "master_archive_key", restoredKeys.masterArchiveKey);
-                await dbPut(STORES.SECURE_KEYS, "master_archive_seed", restoredKeys.masterArchiveSeed);
-            }
-
-            localKeys = {
-                idEcdsaPriv: await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv"),
-                idExchangePriv: await dbGet(STORES.SECURE_KEYS, "id_exchange_priv"),
-                idEcdsaPubB64: await dbGet(STORES.SECURE_KEYS, "id_ecdsa_pub_b64"),
-                idExchangePubB64: await dbGet(STORES.SECURE_KEYS, "id_exchange_pub_b64"),
-                prekeyExchangePriv: await dbGet(STORES.SECURE_KEYS, "prekey_exchange_priv"),
-                prekeyExchangePubB64: await dbGet(STORES.SECURE_KEYS, "prekey_exchange_pub_b64"),
-                prekeyHash: await dbGet(STORES.SECURE_KEYS, "prekey_hash"),
-                opkExchangePriv: await dbGet(STORES.SECURE_KEYS, "opk_exchange_priv"),
-                opkExchangePubB64: await dbGet(STORES.SECURE_KEYS, "opk_exchange_pub_b64"),
-                opkHash: await dbGet(STORES.SECURE_KEYS, "opk_hash"),
-                masterArchiveKey: await dbGet(STORES.SECURE_KEYS, "master_archive_key")
-            };
-
-            const lastRotStr = localStorage.getItem(`last_prekey_rot_${uid}`);
-            if (!lastRotStr || !localKeys.prekeyHash) {
-                await rotateSignedPrekey(uid, true);
-            }
-
-            hideKeyWarning();
-        }
-
-        function showKeyWarning() {
-            const warningBar = document.getElementById('key-warning-bar');
-            if (warningBar) warningBar.classList.remove('hidden');
-        }
-
-        function hideKeyWarning() {
-            const warningBar = document.getElementById('key-warning-bar');
-            if (warningBar) warningBar.classList.add('hidden');
-        }
-
-        /* ==========================================================================
-           TOFU IDENTITY PINNING
-           ========================================================================== */
-        async function verifyTOFUIdentity(partner) {
-            const pinnedKey = await dbGet(STORES.PINNED_IDENTITIES, partner.uid);
-            if (pinnedKey) {
-                if (pinnedKey !== partner.id_ecdsa_pub) {
-                    document.getElementById('mitm-user-email').innerText = partner.username;
-                    document.getElementById('mitm-block-screen').classList.remove('hidden');
-                    return false;
-                }
-            } else {
-                await dbPut(STORES.PINNED_IDENTITIES, partner.uid, partner.id_ecdsa_pub);
-            }
-            return true;
-        }
-
-        document.getElementById('mitm-dismiss-btn').onclick = () => {
-            document.getElementById('mitm-block-screen').classList.add('hidden');
-            document.getElementById('btn-back-sidebar').click();
-        };
-
-        /* ==========================================================================
-           CHAT ENGAGEMENT (CONCURRENCY RACING PROTECTED)
-           ========================================================================== */
-        async function startChatWith(partner) {
-            const isIdentityVerified = await verifyTOFUIdentity(partner);
-            if (!isIdentityVerified) return;
-
-            currentChatRecipient = partner;
-
-            document.getElementById('chat-placeholder').classList.add('hidden');
-            document.getElementById('chat-active').classList.remove('hidden');
-            document.getElementById('active-recipient-name').innerText = partner.username;
-            
-            // Render custom user avatar image or fall back to gradient (Initials charAt(0) Fix!)
-            const avatarElement = document.getElementById('active-recipient-avatar');
-            if (partner.avatarB64) {
-                avatarElement.innerHTML = `<img src="${partner.avatarB64}" class="w-full h-full object-cover">`;
-            } else {
-                avatarElement.innerHTML = `<div class="w-full h-full flex items-center justify-center font-bold text-white text-sm bg-gradient-to-tr ${getHashGradient(partner.username)}">${getInitials(partner.username)}</div>`;
-            }
-
-            const sidebar = document.getElementById('sidebar');
-            const chatArea = document.getElementById('chat-area');
-            sidebar.classList.add('hidden');
-            chatArea.classList.remove('hidden');
-            chatArea.classList.add('flex');
-
-            const sortedKeyText = [localKeys.idEcdsaPubB64, partner.id_ecdsa_pub].sort().join('-');
-            const fingerprint = await sha256Hex(sortedKeyText);
-            document.getElementById('chat-fingerprint').innerText = `${fingerprint.substring(0,8)}-${fingerprint.substring(8,16)}`;
-
-            await set(ref(db, `users/${currentUser.uid}/active_chats/${partner.uid}`), true);
-
-            const chatId = await sha256Hex([currentUser.uid, partner.uid].sort().join('|'));
-            const messagesContainer = document.getElementById('messages-container');
-            messagesContainer.innerHTML = `<div class="text-center text-xs text-slate-500 p-4 font-mono">Синхронизация эпохи Double Ratchet...</div>`;
-
-            if (currentChatListener) {
-                currentChatListener();
-            }
-
-            const typingRef = ref(db, `chats/${chatId}/typing/${partner.uid}`);
-            const unsubTyping = onValue(typingRef, (snap) => {
-                const typingObj = snap.val();
-                if (typingObj && Date.now() - typingObj.timestamp < 3000) {
-                    document.getElementById("typing-indicator").classList.remove("hidden");
-                } else {
-                    document.getElementById("typing-indicator").classList.add("hidden");
-                }
-            });
-            registerListener(unsubTyping);
-
-            const chatRef = ref(db, `chats/${chatId}/messages`);
-            currentChatListener = onValue(chatRef, (snapshot) => {
-                queueMessageProcessing(async () => {
-                    messagesContainer.innerHTML = "";
-
-                    if (!snapshot.exists()) {
-                        messagesContainer.innerHTML = `<div class="text-center text-xs text-slate-500 p-4 font-mono">Шифрованный канал пуст. Напишите что-нибудь!</div>`;
-                        return;
-                    }
-
-                    const messagesObj = snapshot.val();
-                    
-                    const partnerIdentityPubECDSA = await importRawPublicKey(partner.id_ecdsa_pub, "ECDSA", ["verify"]);
-                    const isPrekeyValid = await verifyPrekeySignature(
-                        partnerIdentityPubECDSA,
-                        partner.spk_ecdh_pub,
-                        partner.spk_signature
-                    );
-
-                    if (!isPrekeyValid) {
-                        messagesContainer.innerHTML = `<div class="text-center text-xs text-red-500 p-4 font-bold">⚠️ КРИТИЧЕСКИЙ СБОЙ: Невалидная цифровая подпись prekey собеседника! Сессия заблокирована.</div>`;
-                        return;
-                    }
-
-                    let session = await dbGet(STORES.RATCHET_SESSIONS, `session_${partner.uid}`);
-                    if (!session) {
-                        let firstPartnerMsg = null;
-                        for (let id of Object.keys(messagesObj)) {
-                            if (messagesObj[id].senderId === partner.uid) {
-                                firstPartnerMsg = messagesObj[id];
-                                break;
-                            }
-                        }
-                        if (firstPartnerMsg) {
-                            session = await initializeSession(partner, false, firstPartnerMsg.dh_pub);
-                        }
-                    }
-
-                    for (let msgId of Object.keys(messagesObj)) {
-                        const msg = messagesObj[msgId];
-                        const isMe = msg.senderId === currentUser.uid;
-
-                        let decryptedText = "";
-                        let isDecryptionSuccess = false;
-                        let innerType = "text";
-                        let innerFilename = "";
-
-                        const cachedText = await dbGet(STORES.DECRYPTED_MESSAGES, msgId);
-                        if (cachedText) {
-                            decryptedText = cachedText.text;
-                            innerType = cachedText.type || "text";
-                            innerFilename = cachedText.filename || "";
-                            isDecryptionSuccess = !decryptedText.startsWith("⚠️ [");
-                        } else {
-                            try {
-                                if (isMe) {
-                                    const rawMsgKey = base64ToBuffer(msg.msg_key_backup);
-                                    const archiveMsgKey = await deriveArchiveMsgKey(localKeys.masterArchiveKey, rawMsgKey);
-                                    const paddedPlain = await decryptAESGCM(archiveMsgKey, msg.self_msg_key, msg.self_msg_key_iv);
-                                    const innerPayload = JSON.parse(unpadMessage(paddedPlain));
-                                    
-                                    decryptedText = innerPayload.text;
-                                    innerType = innerPayload.type || "text";
-                                    innerFilename = innerPayload.filename || "";
-                                    isDecryptionSuccess = true;
-                                    await dbPut(STORES.DECRYPTED_MESSAGES, msgId, { text: decryptedText, type: innerType, filename: innerFilename });
-                                } else {
-                                    if (!session) {
-                                        session = await initializeSession(partner, false, msg.dh_pub);
-                                    }
-
-                                    if (msg.dh_pub_sig) {
-                                        const isDhPubValid = await verifyPayloadSignature(partnerIdentityPubECDSA, msg.dh_pub, msg.dh_pub_sig);
-                                        if (!isDhPubValid) {
-                                            throw new Error("Невалидный цифровой сертификат dh_pub!");
-                                        }
-                                    }
-
-                                    let myPrekeyPriv = await dbGet(STORES.HISTORICAL_PREKEYS, msg.prekey_hash);
-                                    if (!myPrekeyPriv) {
-                                        const currentHash = await dbGet(STORES.SECURE_KEYS, "prekey_hash");
-                                        if (currentHash === msg.prekey_hash) {
-                                            myPrekeyPriv = await dbGet(STORES.SECURE_KEYS, "prekey_exchange_priv");
-                                        }
-                                    }
-
-                                    if (!myPrekeyPriv) {
-                                        throw new Error("Не найден соответствующий локальный приватный prekey.");
-                                    }
-
-                                    const decryptResult = await decryptIncomingMessage(session, msg, myPrekeyPriv);
-                                    const innerPayload = JSON.parse(unpadMessage(decryptResult.payload));
-                                    
-                                    decryptedText = innerPayload.text;
-                                    innerType = innerPayload.type || "text";
-                                    innerFilename = innerPayload.filename || "";
-                                    isDecryptionSuccess = true;
-                                    
-                                    await dbPut(STORES.DECRYPTED_MESSAGES, msgId, { text: decryptedText, type: innerType, filename: innerFilename });
-                                    playAlertSound();
-                                }
-                            } catch (err) {
-                                console.error("Ошибка дешифрования храповика:", err);
-                                decryptedText = "⚠️ [Ошибка дешифрования: Нарушена синхронизация Double Ratchet]";
-                            }
-                        }
-
-                        const msgTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                        const row = document.createElement('div');
-                        row.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full items-end space-x-1`;
-
-                        const bubbleTail = isMe 
-                            ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-sm' 
-                            : 'bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-sm border border-slate-300 dark:border-slate-800';
-
-                        const bubble = document.createElement('div');
-                        bubble.className = `max-w-[85%] sm:max-w-md p-3 px-4 shadow-md ${bubbleTail} relative space-y-1 transition-all duration-300`;
-
-                        if (innerType === "file") {
-                            const fileContainer = document.createElement("div");
-                            fileContainer.className = "space-y-1";
-                            if (decryptedText.startsWith("data:image/")) {
-                                const img = document.createElement("img");
-                                img.src = decryptedText;
-                                img.className = "rounded-lg max-h-48 cursor-pointer hover:opacity-90";
-                                img.onclick = () => window.open(decryptedText);
-                                fileContainer.appendChild(img);
-                            } else {
-                                const link = document.createElement("a");
-                                link.href = decryptedText;
-                                link.download = innerFilename;
-                                link.className = "text-xs underline text-emerald-400 block break-all font-mono flex items-center gap-1";
-                                link.innerHTML = `📁 <span>${innerFilename}</span>`;
-                                fileContainer.appendChild(link);
-                            }
-                            bubble.appendChild(fileContainer);
-                        } else {
-                            const textNode = document.createElement('p');
-                            textNode.className = `text-sm break-words whitespace-pre-wrap leading-relaxed ${!isDecryptionSuccess && !isMe ? 'text-amber-500 font-mono text-[11px]' : ''}`;
-                            textNode.textContent = decryptedText;
-                            bubble.appendChild(textNode);
-                        }
-
-                        const meta = document.createElement('div');
-                        meta.className = `text-[9px] flex items-center justify-end gap-1 ${isMe ? 'text-emerald-200' : 'text-slate-500 dark:text-slate-400'}`;
-                        meta.innerHTML = `
-                            <span>${msgTime}</span>
-                            ${isMe ? `<svg class="w-3 h-3 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
-                        `;
-
-                        bubble.appendChild(meta);
-                        row.appendChild(bubble);
-                        messagesContainer.appendChild(row);
-                    }
-
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                });
-            });
-        }
-
-        document.getElementById('btn-back-sidebar').onclick = () => {
-            const sidebar = document.getElementById('sidebar');
-            const chatArea = document.getElementById('chat-area');
-            chatArea.classList.add('hidden');
-            sidebar.classList.remove('hidden');
-            sidebar.classList.add('flex');
-            
-            currentChatRecipient = null;
-            if (currentChatListener) {
-                currentChatListener();
-                currentChatListener = null;
-            }
-            loadActiveConversationsList();
-        };
-
-        const msgInput = document.getElementById("message-input");
-        msgInput.oninput = async () => {
-            if (!currentChatRecipient) return;
-            const chatId = await sha256Hex([currentUser.uid, currentChatRecipient.uid].sort().join('|'));
-            set(ref(db, `chats/${chatId}/typing/${currentUser.uid}`), {
-                timestamp: Date.now()
-            });
-        };
-
-        // MESSAGE SEND FLOW
-        const messageForm = document.getElementById('message-form');
-        const messageSubmit = document.getElementById('message-submit');
-
-        messageForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const text = msgInput.value.trim();
-            if (!text || !currentChatRecipient) return;
-
-            msgInput.value = "";
-            msgInput.disabled = true;
-            messageSubmit.disabled = true;
-
-            await executeSendMessage(text, "text", "");
-        };
-
-        document.getElementById("message-file-input").onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (file.size > 2 * 1024 * 1024) {
-                alert("Максимальный размер файла E2EE — 2 МБ!");
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                showLoading(true, "M.E.O.W. Защита и сжатие файла...");
-                let dataUrl = event.target.result;
-                if (file.type.startsWith("image/")) {
-                    dataUrl = await compressImage(dataUrl);
-                }
-                await executeSendMessage(dataUrl, "file", file.name);
-                showLoading(false);
-            };
-            reader.readAsDataURL(file);
-        };
-
-        async function executeSendMessage(text, type = "text", filename = "") {
-            const now = Date.now();
-            if (now - lastSentTime < 500) return;
-            lastSentTime = now;
-
-            if (!navigator.onLine) {
-                logDiagnostic("Сеть отсутствует! Сообщение сохранено в локальную очередь.", "amber-400");
-                const localQueueItem = {
-                    recipientUid: currentChatRecipient.uid,
-                    text,
-                    type,
-                    filename,
-                    timestamp: now
-                };
-                await dbPut(STORES.OFFLINE_SEND_QUEUE, `off_${now}`, localQueueItem);
-                msgInput.disabled = false;
-                messageSubmit.disabled = false;
-                return;
-            }
-
-            queueMessageProcessing(async () => {
+                let userCredential;
                 try {
-                    const partnerIdentityPubECDSA = await importRawPublicKey(currentChatRecipient.id_ecdsa_pub, "ECDSA", ["verify"]);
-                    const isPrekeyValid = await verifyPrekeySignature(
-                        partnerIdentityPubECDSA, 
-                        currentChatRecipient.spk_ecdh_pub, 
-                        currentChatRecipient.spk_signature
-                    );
+                    userCredential = await auth.signInWithEmailAndPassword(email, password);
+                } catch (e) {
+                    if (e.code === 'auth/user-not-found') {
+                        userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        const keyPair = await Crypto.generateKeyPair();
+                        const publicKey = await Crypto.exportPublicKey(keyPair);
 
-                    if (!isPrekeyValid) {
-                        alert("КРИТИЧЕСКАЯ УГРОЗА БЕЗОПАСНОСТИ: Подпись Signed Prekey не валидна! Передача сообщения прервана.");
-                        return;
+                        await db.ref('users/' + userCredential.user.uid).set({
+                            email: email,
+                            username: username,
+                            displayName: username,
+                            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=667eea&color=fff`,
+                            publicKey: publicKey,
+                            createdAt: firebase.database.ServerValue.TIMESTAMP,
+                            lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                            online: true
+                        });
+                        showToast('Аккаунт создан!');
+                    } else {
+                        throw e;
                     }
-
-                    let session = await dbGet(STORES.RATCHET_SESSIONS, `session_${currentChatRecipient.uid}`);
-                    if (!session) {
-                        session = await initializeSession(currentChatRecipient, true);
-                    }
-
-                    if (session.Ns >= 50) {
-                        logDiagnostic("Предел эпохи сообщений исчерпан. Ротация DH Ratchet...", "emerald-400");
-                        session.dhStepRequired = true;
-                    }
-
-                    if (session.dhStepRequired) {
-                        logDiagnostic("Продвижение DH Ratchet при отправке...", "emerald-400");
-                        const newDH = await generateExchangeKeyPair(true);
-                        const pubJWK = await window.crypto.subtle.exportKey("jwk", newDH.publicKey);
-                        const myActiveDHPubB64 = btoa(JSON.stringify(pubJWK));
-
-                        const privJWK = await window.crypto.subtle.exportKey("jwk", newDH.privateKey);
-                        const myActiveDHPriv = await window.crypto.subtle.importKey(
-                            "jwk", privJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]
-                        );
-
-                        const partnerDHPub = await importRawPublicKey(session.lastSeenPartnerDHPub, "ECDH", []);
-                        const dhSecret = await computeECDH(myActiveDHPriv, partnerDHPub);
-
-                        const { newRK, newCK } = await kdfRk(base64ToBuffer(session.RK), new Uint8Array(dhSecret));
-                        session.RK = bufferToBase64(newRK);
-                        session.CKs = bufferToBase64(newCK);
-                        session.PN = session.Ns;
-                        session.Ns = 0;
-
-                        session.myActiveDHPriv = myActiveDHPriv;
-                        session.myActiveDHPubB64 = myActiveDHPubB64;
-                        session.dhStepRequired = false;
-                    }
-
-                    const { nextCK, msgKey } = await kdfCk(base64ToBuffer(session.CKs));
-                    session.CKs = bufferToBase64(nextCK);
-                    const msgNum = session.Ns;
-                    session.Ns++;
-
-                    const payloadEnvelope = JSON.stringify({
-                        senderId: currentUser.uid,
-                        recipientId: currentChatRecipient.uid,
-                        text,
-                        type,
-                        filename
-                    });
-
-                    const paddedPlaintext = padMessage(payloadEnvelope);
-
-                    const encResult = await encryptAESGCM(msgKey, paddedPlaintext);
-
-                    const archiveMsgKey = await deriveArchiveMsgKey(localKeys.masterArchiveKey, msgKey);
-                    const selfEncResult = await encryptAESGCM(archiveMsgKey, paddedPlaintext);
-
-                    const chatId = await sha256Hex([currentUser.uid, currentChatRecipient.uid].sort().join('|'));
-                    const messageRef = ref(db, `chats/${chatId}/messages`);
-
-                    const dhPubSig = await signPayload(localKeys.idEcdsaPriv, session.myActiveDHPubB64);
-                    
-                    await push(messageRef, {
-                        senderId: currentUser.uid,
-                        dh_pub: session.myActiveDHPubB64,
-                        dh_pub_sig: dhPubSig,
-                        prekey_hash: currentChatRecipient.spk_hash,
-                        ciphertext: encResult.ciphertext,
-                        iv: encResult.iv,
-                        self_msg_key: selfEncResult.ciphertext, 
-                        self_msg_key_iv: selfEncResult.iv,
-                        msg_key_backup: bufferToBase64(msgKey),
-                        msg_num: msgNum,
-                        prev_chain_len: session.PN,
-                        timestamp: Date.now()
-                    });
-
-                    await saveRatchetSession(currentChatRecipient.uid, session);
-
-                } catch (err) {
-                    alert("Криптографический сбой отправки: " + err.message);
-                } finally {
-                    msgInput.disabled = false;
-                    messageSubmit.disabled = false;
-                    msgInput.focus();
                 }
-            });
-        }
-
-        /* ==========================================================================
-           OFFLINE OUTBOX SYNCHRONIZATION QUEUE
-           ========================================================================== */
-        window.addEventListener('online', async () => {
-            logDiagnostic("Браузер вернулся в сеть. Синхронизация офлайн-очереди...", "emerald-400");
-            const keys = await dbGetAllKeys(STORES.OFFLINE_SEND_QUEUE);
-            for (let key of keys) {
-                const item = await dbGet(STORES.OFFLINE_SEND_QUEUE, key);
-                if (item) {
-                    await executeSendMessage(item.text, item.type, item.filename);
-                    await dbDelete(STORES.OFFLINE_SEND_QUEUE, key);
-                }
+            } catch (error) {
+                showToast('Ошибка: ' + error.message);
+                document.getElementById('authForm').classList.remove('hidden');
+                document.getElementById('authLoading').classList.add('hidden');
             }
         });
 
-        /* ==========================================================================
-           RATCHET SESSION LOCAL SELF-HEALING
-           ========================================================================== */
-        document.getElementById("btn-self-healing").onclick = async () => {
-            if (!currentChatRecipient) return;
-            if (confirm("Выполнить ЛОКАЛЬНОЕ самолечение? Это сбросит запутавшиеся ключи Double Ratchet для этого чата в вашем браузере, не удаляя переписку на сервере.")) {
-                showLoading(true, "Сброс локального состояния...");
-                await dbDelete(STORES.RATCHET_SESSIONS, `session_${currentChatRecipient.uid}`);
-                await dbDelete(STORES.DECRYPTED_MESSAGES, `session_${currentChatRecipient.uid}`);
-                showLoading(false);
-                alert("Локальное состояние очищено! Страница будет перезагружена.");
-                window.location.reload();
-            }
-        };
+        // ==================== PRESENCE ====================
+        function setupPresence(userId) {
+            const userStatusRef = db.ref('users/' + userId);
+            const connectedRef = db.ref('.info/connected');
 
-        /* ==========================================================================
-           ACTIVE CONVERSATIONS LIST (CHARAT(0) AVATAR FIX)
-           ========================================================================== */
-        function loadActiveConversationsList() {
-            const listRef = ref(db, `users/${currentUser.uid}/active_chats`);
-            const unsubChatsList = onValue(listRef, async (snapshot) => {
-                const listContainer = document.getElementById('conversations-list');
-                listContainer.innerHTML = "";
-
-                if (!snapshot.exists()) {
-                    listContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Нет активных диалогов.</div>`;
-                    return;
-                }
-
-                for (let partnerUid of Object.keys(snapshot.val())) {
-                    const profileSnap = await get(ref(db, `users/${partnerUid}`));
-                    if (profileSnap.exists()) {
-                        const partner = profileSnap.val();
-                        const item = document.createElement('div');
-                        item.className = "flex items-center space-x-3 p-3 hover:bg-slate-800/40 cursor-pointer transition-all border-b border-slate-800/20";
-                        if (currentChatRecipient && currentChatRecipient.uid === partner.uid) {
-                            item.className += " bg-slate-800/60 border-l-4 border-emerald-500";
-                        }
-                        
-                        let partnerAvatarMarkup = "";
-                        if (partner.avatarB64) {
-                            partnerAvatarMarkup = `<img src="${partner.avatarB64}" class="w-10 h-10 rounded-full object-cover shadow-md">`;
-                        } else {
-                            partnerAvatarMarkup = `<div class="w-10 h-10 rounded-full bg-gradient-to-tr ${getHashGradient(partner.username)} text-white flex items-center justify-center font-bold text-xs uppercase shadow-md">${getInitials(partner.username)}</div>`;
-                        }
-
-                        item.innerHTML = `
-                            ${partnerAvatarMarkup}
-                            <div class="overflow-hidden flex-1">
-                                <h4 class="font-bold text-xs text-slate-200 truncate">${partner.username}</h4>
-                                <p class="text-[10px] text-emerald-400 font-semibold truncate uppercase tracking-wider">M.E.O.W. Active Session</p>
-                            </div>
-                        `;
-                        item.onclick = () => startChatWith(partner);
-                        listContainer.appendChild(item);
-                    }
-                }
-            });
-            registerListener(unsubChatsList);
-        }
-
-        /* ==========================================================================
-           TELEGRAM-STYLE DIRECT LOOKUP SEARCH (ZERO RULE INDEXES REQUIREMENT)
-           ========================================================================== */
-        const searchForm = document.getElementById('search-form');
-        const searchResult = document.getElementById('search-result');
-
-        searchForm.onsubmit = async (e) => {
-            e.preventDefault();
-            let searchHandle = document.getElementById('search-email').value.trim().replace(/\s+/g, "").toLowerCase();
-            
-            if (searchHandle.startsWith("@")) {
-                searchHandle = searchHandle.substring(1);
-            }
-
-            if (searchHandle.length < 3) {
-                showSearchStatus("Юзернейм слишком короткий!", "error");
-                return;
-            }
-
-            const cleanCurrentUserHandle = document.getElementById('user-username').innerText.replace("@", "").toLowerCase();
-            if (searchHandle === cleanCurrentUserHandle) {
-                showSearchStatus("Поиск самого себя заблокирован!", "error");
-                return;
-            }
-
-            showSearchStatus("Поиск в сети...", "info");
-
-            try {
-                const usernameSnap = await get(ref(db, `usernames/${searchHandle}`));
-                if (usernameSnap.exists()) {
-                    const partnerUid = usernameSnap.val();
-                    const profileSnap = await get(ref(db, `users/${partnerUid}`));
-
-                    if (profileSnap.exists()) {
-                        const targetUser = profileSnap.val();
-                        showSearchStatus(`Пользователь ${targetUser.username} найден!`, "success");
-                        setTimeout(() => {
-                            startChatWith(targetUser);
-                            document.getElementById('search-email').value = "";
-                            searchResult.classList.add('hidden');
-                        }, 800);
-                    } else {
-                        showSearchStatus("Ошибка при получении профиля собеседника!", "error");
-                    }
-                } else {
-                    showSearchStatus("Пользователь с таким юзернеймом не найден!", "error");
-                }
-            } catch (err) {
-                showSearchStatus("Ошибка сети: " + err.message, "error");
-            }
-        };
-
-        function showSearchStatus(msg, type) {
-            searchResult.innerText = msg;
-            searchResult.classList.remove('hidden', 'text-amber-400', 'text-red-400', 'text-emerald-400');
-            if (type === "error") searchResult.classList.add('text-red-400');
-            else if (type === "success") searchResult.classList.add('text-emerald-400');
-            else searchResult.classList.add('text-amber-400');
-        }
-
-        /* ==========================================================================
-           USER AUTHENTICATION
-           ========================================================================== */
-        const authForm = document.getElementById('auth-form');
-        const authError = document.getElementById('auth-error');
-
-        authForm.onsubmit = async (e) => {
-            e.preventDefault();
-            authError.classList.add('hidden');
-            
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            
-            let rawUsername = document.getElementById('auth-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
-            if (rawUsername && rawUsername.startsWith("@")) {
-                rawUsername = rawUsername.substring(1);
-            }
-            
-            const backupPass = document.getElementById('auth-passphrase').value;
-
-            if (!isLogin) {
-                if (rawUsername.length < 3) {
-                    authError.innerText = "Юзернейм должен содержать минимум 3 символа!";
-                    authError.classList.remove('hidden');
-                    return;
-                }
-                if (backupPass.length < 12) {
-                    authError.innerText = "Пароль бэкапа ключей должен содержать минимум 12 символов!";
-                    authError.classList.remove('hidden');
-                    return;
-                }
-            }
-
-            showLoading(true, isLogin ? "Вход в аккаунт..." : "Регистрация аккаунта...");
-
-            try {
-                if (isLogin) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } else {
-                    const usernameCheck = await get(ref(db, `usernames/${rawUsername}`));
-                    if (usernameCheck.exists()) {
-                        throw new Error("Этот юзернейм уже занят другим пользователем!");
-                    }
-
-                    registrationPassphrase = backupPass;
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-
-                    await update(ref(db), {
-                        [`usernames/${rawUsername}`]: user.uid,
-                        [`users/${user.uid}`]: {
-                            uid: user.uid,
-                            email: email.toLowerCase(),
-                            username: "@" + rawUsername,
-                            avatarB64: registrationAvatarB64 || null
-                        }
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    userStatusRef.update({
+                        online: true,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    userStatusRef.onDisconnect().update({
+                        online: false,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
                     });
                 }
-            } catch (err) {
-                authError.innerText = err.message;
-                authError.classList.remove('hidden');
-                showLoading(false);
-                registrationPassphrase = null;
-            }
-        };
+            });
+        }
 
-        onAuthStateChanged(auth, async (user) => {
+        // ==================== AUTH STATE ====================
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
-                showLoading(true, "Синхронизация профиля...");
+                document.getElementById('authScreen').classList.add('hidden');
+                setupPresence(user.uid);
 
-                try {
-                    const snapshot = await get(ref(db, `users/${user.uid}`));
-                    if (!snapshot.exists()) {
-                        throw new Error("Профиль пользователя не найден на сервере.");
-                    }
-                    const userProfile = snapshot.val();
+                const userSnap = await db.ref('users/' + user.uid).once('value');
+                const userData = userSnap.val() || {};
 
-                    document.getElementById('user-username').innerText = userProfile.username;
-                    
-                    const avatarElement = document.getElementById('user-avatar');
-                    if (userProfile.avatarB64) {
-                        avatarElement.innerHTML = `<img src="${userProfile.avatarB64}" class="w-full h-full object-cover">`;
-                    } else {
-                        avatarElement.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white bg-gradient-to-tr ${getHashGradient(userProfile.username)} shadow-md uppercase shrink-0`;
-                        avatarElement.innerText = getInitials(userProfile.username);
-                    }
+                document.getElementById('currentUserName').textContent = userData.displayName || userData.username || 'User';
+                document.getElementById('currentUserHandle').textContent = '@' + (userData.username || 'user');
+                document.getElementById('currentUserAvatar').src = userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username || 'User')}&background=667eea&color=fff`;
 
-                    const dbIdEcdsaPriv = await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv");
-
-                    if (registrationPassphrase) {
-                        await generateAndSaveNewKeys(user.uid, registrationPassphrase, userProfile);
-                        registrationPassphrase = null;
-                    } else if (!dbIdEcdsaPriv) {
-                        showLoading(false);
-                        showKeyWarning();
-                        showScreen('main-screen');
-                        return;
-                    } else {
-                        await initializeLocalKeys(user.uid);
-                    }
-
-                    showScreen('main-screen');
-                    loadActiveConversationsList();
-                } catch (err) {
-                    console.error("Auth init error: ", err);
-                    alert("Ошибка входа: " + err.message);
-                    signOut(auth);
-                } finally {
-                    showLoading(false);
-                }
+                loadUsers();
             } else {
                 currentUser = null;
-                localKeys = null;
-                showScreen('auth-screen');
-                hideKeyWarning();
-                cleanupListeners();
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('authForm').classList.remove('hidden');
+                document.getElementById('authLoading').classList.add('hidden');
             }
         });
 
-        document.getElementById('btn-logout').onclick = async () => {
-            if (confirm("Выйти из аккаунта? Все локальные криптографические ключи будут стерты из IndexedDB! Убедитесь, что сделали бэкап.")) {
-                showLoading(true, "Стирание локальных криптографических отпечатков...");
-                await clearAllStores();
-                signOut(auth);
-            }
-        };
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut();
+        });
 
-        function cleanupListeners() {
-            for (let unsub of activeListeners) {
-                try { unsub(); } catch (e) {}
-            }
-            activeListeners = [];
-            if (currentChatListener) {
-                currentChatListener();
-                currentChatListener = null;
-            }
-            if (currentChatsListListener) {
-                currentChatsListListener();
-                currentChatsListListener = null;
-            }
+        // ==================== USERS LIST ====================
+        function loadUsers() {
+            if (usersRef) usersRef.off();
+
+            usersRef = db.ref('users');
+            usersRef.on('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                const list = document.getElementById('usersList');
+                list.innerHTML = '';
+
+                const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+
+                Object.entries(users).forEach(([uid, data]) => {
+                    if (uid === currentUser.uid) return;
+                    if (searchTerm && !data.username?.toLowerCase().includes(searchTerm)) return;
+
+                    const isOnline = data.online === true;
+                    const lastSeen = data.lastSeen ? formatTime(data.lastSeen) : '';
+
+                    const item = document.createElement('div');
+                    item.className = 'sidebar-item p-3 flex items-center gap-3';
+                    item.dataset.uid = uid;
+                    item.innerHTML = `
+                        <div class="relative">
+                            <img src="${data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username || 'User')}&background=333&color=fff`}" 
+                                 class="avatar ${isOnline ? 'online' : 'offline'}" alt="">
+                            ${isOnline ? '<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></span>' : ''}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-sm truncate">${data.displayName || data.username || 'User'}</p>
+                            <p class="text-xs text-gray-500 truncate">@${data.username || 'user'}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-600">${isOnline ? '<span class="text-green-500">онлайн</span>' : lastSeen}</p>
+                        </div>
+                    `;
+                    item.addEventListener('click', () => startChat(uid, data));
+                    list.appendChild(item);
+                });
+            });
         }
 
-        /* ==========================================================================
-           KEY ACTIONS, ROTATIONS & PBKDF2 BACKUP CODES
-           ========================================================================== */
-        const modalSec = document.getElementById('modal-security');
-        const btnSecurity = document.getElementById('btn-security');
-        const modalClose = document.getElementById('modal-security-close');
+        document.getElementById('searchUsers').addEventListener('input', () => {
+            loadUsers();
+        });
 
-        btnSecurity.onclick = () => { modalSec.classList.remove('hidden'); };
-        modalClose.onclick = () => { modalSec.classList.add('hidden'); };
+        // ==================== CHAT ====================
+        async function startChat(uid, userData) {
+            currentChatUser = { uid, ...userData };
 
-        document.getElementById('btn-force-rotate-prekey').onclick = async () => {
-            await rotateSignedPrekey(currentUser.uid, true);
-            alert("Signed Prekey успешно обновлен на сервере. Предыдущий приватный ключ перемещен в архив.");
-        };
+            // Cleanup previous listeners
+            messageListeners.forEach(ref => ref.off());
+            messageListeners = [];
+            if (typingListener) { typingListener.off(); typingListener = null; }
+            if (presenceListener) { presenceListener.off(); presenceListener = null; }
 
-        document.getElementById('btn-create-backup').onclick = async () => {
-            const password = document.getElementById('backup-password').value;
-            if (password.length < 12) {
-                alert("Длина пароля резервной копии должна составлять не менее 12 символов!");
+            // UI update
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('messagesList').classList.remove('hidden');
+            document.getElementById('chatName').textContent = userData.displayName || userData.username || 'User';
+            document.getElementById('chatAvatar').src = userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username || 'User')}&background=333&color=fff`;
+            document.getElementById('messagesList').innerHTML = '';
+
+            document.getElementById('callBtn').classList.remove('hidden');
+            document.getElementById('videoCallBtn').classList.remove('hidden');
+
+            // Close mobile sidebar
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('mobileOverlay').classList.remove('show');
+
+            // Setup presence for chat user
+            presenceListener = db.ref('users/' + uid);
+            presenceListener.on('value', (snap) => {
+                const data = snap.val();
+                if (data) {
+                    const isOnline = data.online === true;
+                    const lastSeen = data.lastSeen ? new Date(data.lastSeen).toLocaleTimeString('ru-RU') : '';
+                    document.getElementById('chatStatus').innerHTML = `
+                        <span class="${isOnline ? 'online-dot pulse-ring' : 'offline-dot'}"></span>
+                        ${isOnline ? 'онлайн' : 'был(а) в ' + lastSeen}
+                    `;
+                }
+            });
+
+            // Generate shared key
+            await generateSharedKey(uid);
+
+            // Load messages
+            const chatId = getChatId(currentUser.uid, uid);
+            const messagesQuery = db.ref('messages/' + chatId).orderByChild('timestamp');
+
+            messageListeners.push(messagesQuery);
+            messagesQuery.on('child_added', async (snapshot) => {
+                const msg = snapshot.val();
+                await displayMessage(msg, snapshot.key);
+            });
+
+            // Typing indicator
+            typingRef = db.ref('typing/' + chatId + '/' + uid);
+            typingListener = typingRef;
+            typingRef.on('value', (snap) => {
+                document.getElementById('typingIndicator').classList.toggle('hidden', !snap.val());
+            });
+        }
+
+        function getChatId(uid1, uid2) {
+            return uid1 < uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1;
+        }
+
+        async function generateSharedKey(otherUid) {
+            const mySnap = await db.ref('users/' + currentUser.uid).once('value');
+            const myData = mySnap.val();
+            const otherSnap = await db.ref('users/' + otherUid).once('value');
+            const otherData = otherSnap.val();
+
+            if (!myData.publicKey || !otherData.publicKey) {
+                showToast('Ошибка: отсутствует публичный ключ');
                 return;
             }
 
-            showLoading(true, "Генерация безопасной экспортной копии...");
-
-            try {
-                const dbIdEcdsaPriv = await dbGet(STORES.SECURE_KEYS, "id_ecdsa_priv");
-                const dbIdExchangePriv = await dbGet(STORES.SECURE_KEYS, "id_exchange_priv");
-                const dbMasterArchiveSeed = await dbGet(STORES.SECURE_KEYS, "master_archive_seed");
-
-                const idEcdsaJWK = await window.crypto.subtle.exportKey("jwk", dbIdEcdsaPriv);
-                const idExchangeJWK = await window.crypto.subtle.exportKey("jwk", dbIdExchangePriv);
-
-                const keysPayload = JSON.stringify({ 
-                    idEcdsaJWK, 
-                    idExchangeJWK, 
-                    idEcdsaPubB64: localKeys.idEcdsaPubB64,
-                    idExchangePubB64: localKeys.idExchangePubB64,
-                    archiveKey: bufferToBase64(dbMasterArchiveSeed) 
-                });
-
-                const salt = window.crypto.getRandomValues(new Uint8Array(16));
-                const wrapKey = await derivePBKDF2WrappingKey(password, salt);
-                const encResult = await encryptAESGCM(wrapKey, keysPayload);
-
-                const backupBlob = {
-                    salt: bufferToBase64(salt),
-                    iv: encResult.iv,
-                    ciphertext: encResult.ciphertext
+            // Get or create my key pair
+            let myKeyPair;
+            const storedPrivate = sessionStorage.getItem('privateKey_' + currentUser.uid);
+            if (storedPrivate) {
+                const binary = atob(storedPrivate);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                myKeyPair = {
+                    privateKey: await window.crypto.subtle.importKey(
+                        "pkcs8", bytes, { name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]
+                    ),
+                    publicKey: await Crypto.importPublicKey(myData.publicKey)
                 };
-
-                const backupStr = btoa(JSON.stringify(backupBlob));
-                localStorage.setItem(`backup_${currentUser.uid}`, backupStr);
-
-                document.getElementById('backup-output-text').value = backupStr;
-                document.getElementById('backup-output-container').classList.remove('hidden');
-                alert("Резервная копия успешно создана!");
-            } catch (err) {
-                alert("Сбой экспорта: " + err.message);
-            } finally {
-                showLoading(false);
-            }
-        };
-
-        // FULLY REWRITTEN IMPORT BACKUP FLOW (Fixes Restored Keys Bug)
-        document.getElementById('btn-execute-import').onclick = async () => {
-            const backupBlobB64 = document.getElementById('import-backup-blob').value.trim();
-            const password = document.getElementById('import-backup-password').value;
-
-            if (!backupBlobB64 || !password) {
-                alert("Укажите пароль и тело зашифрованного бэкапа!");
-                return;
+            } else {
+                myKeyPair = await Crypto.generateKeyPair();
+                const exportedPriv = await window.crypto.subtle.exportKey("pkcs8", myKeyPair.privateKey);
+                sessionStorage.setItem('privateKey_' + currentUser.uid, 
+                    btoa(String.fromCharCode(...new Uint8Array(exportedPriv))));
+                const newPubKey = await Crypto.exportPublicKey(myKeyPair);
+                await db.ref('users/' + currentUser.uid).update({ publicKey: newPubKey });
             }
 
-            showLoading(true, "Восстановление криптографической среды...");
+            const otherPublicKey = await Crypto.importPublicKey(otherData.publicKey);
+            sharedKey = await Crypto.deriveSharedKey(myKeyPair.privateKey, otherPublicKey);
+        }
+
+        async function displayMessage(msg, msgId) {
+            const isSent = msg.sender === currentUser.uid;
+            const div = document.createElement('div');
+            div.className = 'flex ' + (isSent ? 'justify-end' : 'justify-start');
+            div.id = 'msg_' + msgId;
+
+            let content = '';
 
             try {
-                const envelope = JSON.parse(atob(backupBlobB64));
-                const salt = base64ToBuffer(envelope.salt);
-                
-                const wrapKey = await derivePBKDF2WrappingKey(password, new Uint8Array(salt));
-                const decryptedStr = await decryptAESGCM(wrapKey, envelope.ciphertext, envelope.iv);
-                
-                const keys = JSON.parse(decryptedStr);
-                
-                const idEcdsaPriv = await window.crypto.subtle.importKey(
-                    "jwk", keys.idEcdsaJWK, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
-                );
-                const idExchangePriv = await window.crypto.subtle.importKey(
-                    "jwk", keys.idExchangeJWK, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits", "deriveKey"]
-                );
-                
-                const masterArchiveSeed = base64ToBuffer(keys.archiveKey);
-                const masterArchiveKey = await window.crypto.subtle.importKey(
-                    "raw", masterArchiveSeed, "HKDF", false, ["deriveKey", "deriveBits"]
-                );
-
-                // Передача всех восстановленных сущностей в инициализатор
-                await initializeLocalKeys(currentUser.uid, {
-                    idEcdsaPriv,
-                    idExchangePriv,
-                    idEcdsaPubB64: keys.idEcdsaPubB64,
-                    idExchangePubB64: keys.idExchangePubB64,
-                    masterArchiveKey,
-                    masterArchiveSeed
-                });
-                
-                localStorage.setItem(`backup_${currentUser.uid}`, backupBlobB64);
-
-                alert("База данных IndexedDB успешно восстановлена! Все чаты разблокированы.");
-                document.getElementById('import-backup-blob').value = "";
-                document.getElementById('import-backup-password').value = "";
-                modalSec.classList.add('hidden');
-                window.location.reload();
-            } catch (err) {
-                alert("Ошибка декодирования бэкапа! Неверный пароль или нарушена целостность: " + err.message);
-            } finally {
-                showLoading(false);
+                if (msg.type === 'text') {
+                    const decrypted = await Crypto.decrypt(msg.content, sharedKey);
+                    content = `<p>${escapeHtml(decrypted)}</p>`;
+                } else if (msg.type === 'image') {
+                    const decrypted = await Crypto.decryptFile(msg.content, sharedKey);
+                    const blob = new Blob([decrypted], { type: msg.mimeType || 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    content = `<img src="${url}" class="media-preview" onclick="openModal('image', '${url}')" alt="Image">`;
+                } else if (msg.type === 'video') {
+                    const decrypted = await Crypto.decryptFile(msg.content, sharedKey);
+                    const blob = new Blob([decrypted], { type: msg.mimeType || 'video/mp4' });
+                    const url = URL.createObjectURL(blob);
+                    content = `
+                        <div class="video-container">
+                            <video class="media-preview" id="vid_${msgId}" preload="metadata">
+                                <source src="${url}" type="${msg.mimeType || 'video/mp4'}">
+                            </video>
+                            <div class="video-play-btn" onclick="playVideo('vid_${msgId}', this)">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                content = '<p class="text-red-400 text-sm"><i class="fas fa-lock"></i> Не удалось расшифровать</p>';
             }
-        };
 
-        async function derivePBKDF2WrappingKey(password, salt) {
-            const encoder = new TextEncoder();
-            const baseKey = await window.crypto.subtle.importKey(
-                "raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]
-            );
-            return await window.crypto.subtle.deriveKey(
-                {
-                    name: "PBKDF2",
-                    salt: salt,
-                    iterations: 150000,
-                    hash: "SHA-256"
-                },
-                baseKey,
-                { name: "AES-GCM", length: 256 },
-                false,
-                ["encrypt", "decrypt"]
-            );
+            div.innerHTML = `
+                <div class="chat-bubble ${isSent ? 'sent' : 'received'}">
+                    ${content}
+                    <div class="flex items-center justify-end gap-1 mt-1">
+                        <span class="time-text">${formatTime(msg.timestamp)}</span>
+                        ${isSent ? `<span class="message-status"><i class="fas fa-check-double"></i></span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('messagesList').appendChild(div);
+            scrollToBottom();
         }
 
-        async function verifyPrekeySignature(partnerIdentityPubECDSA, spk_ecdh_pub, spk_signature) {
-            return await verifyPayloadSignature(partnerIdentityPubECDSA, spk_ecdh_pub, spk_signature);
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        document.getElementById('warn-btn-generate').onclick = async () => {
-            if (confirm("ВНИМАНИЕ: Создание новых ключей сотрет локальный контекст. Прошлые переписки станут недоступны без старого бэкапа.")) {
-                await clearAllStores();
-                await initializeLocalKeys(currentUser.uid);
-                alert("Генерация завершена!");
-                window.location.reload();
-            }
-        };
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            container.scrollTop = container.scrollHeight;
+        }
 
-        document.getElementById('warn-btn-import').onclick = () => {
-            modalSec.classList.remove('hidden');
-            document.getElementById('import-backup-blob').focus();
-        };
-
-        document.getElementById('btn-copy-backup').onclick = () => {
-            const el = document.getElementById('backup-output-text');
-            el.select();
-            navigator.clipboard.writeText(el.value);
-            alert("Копия бэкапа скопирована в буфер обмена!");
-        };
-
-        const diagDrawer = document.getElementById("diagnostics-drawer");
-        document.getElementById("btn-diagnostics").onclick = () => {
-            diagDrawer.classList.remove("translate-x-full");
-        };
-        document.getElementById("btn-diagnostics-close").onclick = () => {
-            diagDrawer.classList.add("translate-x-full");
-        };
-
-        // THEME TOGGLE
-        let isDark = true;
-        document.getElementById("theme-toggle").onclick = () => {
-            isDark = !isDark;
-            const body = document.getElementById("body-layout");
-            if (isDark) {
-                body.classList.remove("bg-white", "text-slate-900");
-                body.classList.add("bg-slate-950", "text-slate-100");
-                document.getElementById("theme-toggle").innerText = "🌙";
-            } else {
-                body.classList.remove("bg-slate-950", "text-slate-100");
-                body.classList.add("bg-white", "text-slate-900");
-                document.getElementById("theme-toggle").innerText = "☀️";
-            }
-        };
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === "Escape") {
-                modalSec.classList.add('hidden');
-                diagDrawer.classList.add("translate-x-full");
+        // ==================== SEND MESSAGE ====================
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
             }
         });
 
-        function showScreen(screenId) {
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('main-screen').classList.add('hidden');
-            document.getElementById(screenId).classList.remove('hidden');
+        async function sendMessage() {
+            if (!currentChatUser || !sharedKey) return;
+
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text && !fileToSend) return;
+
+            const chatId = getChatId(currentUser.uid, currentChatUser.uid);
+            const msgRef = db.ref('messages/' + chatId).push();
+
+            let msgData = {
+                sender: currentUser.uid,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                read: false
+            };
+
+            if (fileToSend) {
+                const arrayBuffer = await fileToSend.arrayBuffer();
+                const encrypted = await Crypto.encryptFile(arrayBuffer, sharedKey);
+                msgData.type = fileToSend.type.startsWith('video/') ? 'video' : 'image';
+                msgData.content = encrypted;
+                msgData.mimeType = fileToSend.type;
+                msgData.fileName = fileToSend.name;
+
+                // Reset file
+                fileToSend = null;
+                document.getElementById('filePreview').classList.add('hidden');
+                document.getElementById('fileInput').value = '';
+            } else {
+                const encrypted = await Crypto.encrypt(text, sharedKey);
+                msgData.type = 'text';
+                msgData.content = encrypted;
+            }
+
+            input.value = '';
+            input.style.height = 'auto';
+
+            await msgRef.set(msgData);
+
+            // Update last message for both users
+            const lastMsgData = {
+                lastMessage: fileToSend ? (fileToSend.type.startsWith('video/') ? '🎬 Видео' : '📷 Фото') : text.substring(0, 50),
+                lastMessageTime: firebase.database.ServerValue.TIMESTAMP,
+                lastMessageSender: currentUser.uid
+            };
+
+            db.ref('userChats/' + currentUser.uid + '/' + currentChatUser.uid).update(lastMsgData);
+            db.ref('userChats/' + currentChatUser.uid + '/' + currentUser.uid).update(lastMsgData);
         }
 
-        const toggleLogin = document.getElementById('toggle-login');
-        const toggleRegister = document.getElementById('toggle-register');
-        const usernameField = document.getElementById('username-field');
-        const passphraseField = document.getElementById('passphrase-field');
-        const avatarUploadField = document.getElementById('avatar-upload-field');
-        const submitBtn = document.getElementById('auth-submit-btn');
+        // ==================== FILE HANDLING ====================
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        toggleLogin.onclick = () => {
-            isLogin = true;
-            usernameField.classList.add('hidden');
-            passphraseField.classList.add('hidden');
-            avatarUploadField.classList.add('hidden');
-            submitBtn.innerText = "Войти";
-            toggleLogin.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-md transition-all";
-            toggleRegister.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
-        };
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Файл слишком большой (макс. 5MB)');
+                e.target.value = '';
+                return;
+            }
 
-        toggleRegister.onclick = () => {
-            isLogin = false;
-            usernameField.classList.remove('hidden');
-            passphraseField.classList.remove('hidden');
-            avatarUploadField.classList.remove('hidden');
-            submitBtn.innerText = "Создать аккаунт";
-            toggleRegister.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-md transition-all";
-            toggleLogin.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
-        };
+            fileToSend = file;
+            document.getElementById('filePreviewName').textContent = file.name;
+            document.getElementById('filePreview').classList.remove('hidden');
+        });
+
+        document.getElementById('removeFile').addEventListener('click', () => {
+            fileToSend = null;
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+        });
+
+        // ==================== TYPING INDICATOR ====================
+        document.getElementById('messageInput').addEventListener('input', () => {
+            if (!currentChatUser) return;
+
+            const chatId = getChatId(currentUser.uid, currentChatUser.uid);
+
+            if (!isTyping) {
+                isTyping = true;
+                db.ref('typing/' + chatId + '/' + currentUser.uid).set(true);
+            }
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                db.ref('typing/' + chatId + '/' + currentUser.uid).set(false);
+            }, 2000);
+        });
+
+        // ==================== MODAL ====================
+        function openModal(type, src) {
+            const modal = document.getElementById('mediaModal');
+            const img = document.getElementById('modalImage');
+            const video = document.getElementById('modalVideo');
+
+            if (type === 'image') {
+                img.src = src;
+                img.classList.remove('hidden');
+                video.classList.add('hidden');
+            } else {
+                video.src = src;
+                video.classList.remove('hidden');
+                img.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function playVideo(videoId, btn) {
+            const video = document.getElementById(videoId);
+            video.play();
+            btn.style.display = 'none';
+            video.setAttribute('controls', '');
+        }
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('mediaModal').classList.add('hidden');
+            document.getElementById('modalVideo').pause();
+        });
+
+        document.getElementById('mediaModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('mediaModal')) {
+                document.getElementById('mediaModal').classList.add('hidden');
+                document.getElementById('modalVideo').pause();
+            }
+        });
+
+        // ==================== MOBILE MENU ====================
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('mobileOverlay').classList.add('show');
+        });
+
+        document.getElementById('mobileMenuClose').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('mobileOverlay').classList.remove('show');
+        });
+
+        document.getElementById('mobileOverlay').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('mobileOverlay').classList.remove('show');
+        });
+
+        // ==================== TEXTAREA AUTO-RESIZE ====================
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // ==================== CALL BUTTONS (PLACEHOLDERS) ====================
+        document.getElementById('callBtn').addEventListener('click', () => showToast('Голосовые звонки скоро...'));
+        document.getElementById('videoCallBtn').addEventListener('click', () => showToast('Видеозвонки скоро...'));
+
+        // ==================== CLEANUP ON PAGE CLOSE ====================
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) {
+                db.ref('users/' + currentUser.uid).update({
+                    online: false,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        });
     </script>
 </body>
 </html>
