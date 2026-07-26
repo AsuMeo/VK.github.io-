@@ -85,7 +85,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   display:flex; align-items:center; justify-content:center;
   font-weight:700; font-size:14px; color:#fff;
   border:2px solid rgba(255,255,255,0.1);
+  overflow:hidden; cursor:pointer;
 }
+.top-bar .avatar img { width:100%; height:100%; object-fit:cover; }
 .top-bar .logout-btn {
   padding:8px 16px; border:1px solid rgba(255,255,255,0.15);
   background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7);
@@ -93,10 +95,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 }
 .top-bar .logout-btn:hover { background:rgba(255,100,100,0.15); border-color:rgba(255,100,100,0.3); color:#ff8888; }
 
-/* Side Panel — Users */
+/* Side Panel */
 .side-panel {
   position:fixed; top:clamp(56px,8vh,72px); left:0; bottom:0; z-index:90;
-  width:clamp(260px,30vw,340px);
+  width:clamp(280px,32vw,360px);
   background:rgba(10,10,15,0.85); backdrop-filter:blur(20px);
   border-right:1px solid rgba(255,255,255,0.06);
   transform:translateX(-100%); transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
@@ -129,15 +131,23 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   background:linear-gradient(135deg,#667eea,#764ba2);
   display:flex; align-items:center; justify-content:center;
   font-weight:700; font-size:16px; color:#fff; flex-shrink:0;
+  overflow:hidden;
 }
+.user-item .u-avatar img { width:100%; height:100%; object-fit:cover; }
 .user-item .u-info { flex:1; min-width:0; }
 .user-item .u-name { color:#fff; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .user-item .u-username { color:rgba(255,255,255,0.4); font-size:12px; }
+.user-item .u-status-wrap {
+  display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0;
+}
 .user-item .u-status {
   width:10px; height:10px; border-radius:50%; background:#22c55e;
   box-shadow:0 0 8px #22c55e; flex-shrink:0;
 }
 .user-item .u-status.offline { background:#6b7280; box-shadow:none; }
+.user-item .u-last-seen {
+  font-size:10px; color:rgba(255,255,255,0.3); white-space:nowrap;
+}
 
 /* Toggle Panel Button */
 .panel-toggle {
@@ -151,20 +161,17 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   backdrop-filter:blur(10px);
 }
 .panel-toggle:hover { background:rgba(102,126,234,0.35); }
-.panel-toggle.open { left:clamp(260px,30vw,340px); }
+.panel-toggle.open { left:clamp(280px,32vw,360px); }
 
 /* 3D Room Canvas */
-#room-canvas {
-  position:fixed; inset:0; z-index:1;
-  width:100%; height:100%;
-}
+#room-canvas { position:fixed; inset:0; z-index:1; width:100%; height:100%; }
 
 /* Bottom Input Bar */
 .input-bar {
   position:fixed; bottom:0; left:0; right:0; z-index:100;
   padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px);
   background:linear-gradient(0deg,rgba(10,10,15,0.95) 0%,rgba(10,10,15,0.7) 60%,transparent 100%);
-  display:flex; align-items:center; gap:12px; backdrop-filter:blur(12px);
+  display:flex; align-items:center; gap:10px; backdrop-filter:blur(12px);
 }
 .input-bar .msg-input {
   flex:1; padding:14px 20px;
@@ -174,11 +181,11 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 }
 .input-bar .msg-input:focus { border-color:rgba(102,126,234,0.5); box-shadow:0 0 20px rgba(102,126,234,0.1); }
 .input-bar .msg-input::placeholder { color:rgba(255,255,255,0.3); }
-.input-bar .send-btn, .input-bar .attach-btn {
-  width:48px; height:48px; border-radius:50%;
+.input-bar .send-btn, .input-bar .attach-btn, .input-bar .emoji-btn, .input-bar .music-btn {
+  width:44px; height:44px; border-radius:50%;
   border:none; cursor:pointer; display:flex;
   align-items:center; justify-content:center;
-  font-size:20px; transition:all 0.3s; flex-shrink:0;
+  font-size:18px; transition:all 0.3s; flex-shrink:0;
 }
 .input-bar .attach-btn {
   background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.6);
@@ -191,8 +198,26 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 }
 .input-bar .send-btn:hover { transform:scale(1.05); box-shadow:0 6px 30px rgba(102,126,234,0.5); }
 .input-bar .send-btn:active { transform:scale(0.95); }
+.input-bar .emoji-btn {
+  background:rgba(255,200,0,0.1); color:#ffd700;
+  border:1px solid rgba(255,200,0,0.2); font-size:20px;
+}
+.input-bar .emoji-btn:hover { background:rgba(255,200,0,0.2); }
+.input-bar .music-btn {
+  background:rgba(0,255,150,0.1); color:#00ff96;
+  border:1px solid rgba(0,255,150,0.2); font-size:18px;
+}
+.input-bar .music-btn:hover { background:rgba(0,255,150,0.2); }
+.input-bar .music-btn.playing {
+  background:rgba(0,255,150,0.3);
+  animation:pulseMusic 1s infinite;
+}
+@keyframes pulseMusic {
+  0%,100% { box-shadow:0 0 5px rgba(0,255,150,0.3); }
+  50% { box-shadow:0 0 20px rgba(0,255,150,0.6); }
+}
 
-/* Chat Partner Name (centered above input) */
+/* Chat Partner */
 .chat-partner {
   position:fixed; bottom:clamp(72px,10vh,90px); left:50%; transform:translateX(-50%);
   z-index:80; text-align:center; pointer-events:none;
@@ -204,6 +229,18 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 }
 .chat-partner .partner-hint {
   color:rgba(255,255,255,0.3); font-size:12px; margin-top:4px;
+}
+.chat-partner .partner-status {
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  margin-top:6px;
+}
+.chat-partner .partner-status-dot {
+  width:8px; height:8px; border-radius:50%;
+}
+.chat-partner .partner-status-dot.online { background:#22c55e; box-shadow:0 0 8px #22c55e; }
+.chat-partner .partner-status-dot.offline { background:#6b7280; }
+.chat-partner .partner-status-text {
+  color:rgba(255,255,255,0.4); font-size:12px;
 }
 
 /* ===== MISIDE TEXT EFFECT ===== */
@@ -271,6 +308,134 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   40% { transform:scale(1); }
 }
 
+/* ===== MUSIC PANEL ===== */
+.music-panel {
+  position:fixed; top:50%; right:0; transform:translateY(-50%) translateX(100%);
+  z-index:150; width:280px;
+  background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border-left:1px solid rgba(255,255,255,0.08);
+  border-radius:16px 0 0 16px;
+  padding:20px;
+  transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.music-panel.open { transform:translateY(-50%) translateX(0); }
+.music-panel h3 {
+  font-family:'Orbitron',sans-serif; font-size:16px; color:#fff;
+  margin-bottom:16px; text-align:center;
+}
+.music-track {
+  display:flex; align-items:center; gap:12px;
+  padding:12px; border-radius:12px;
+  background:rgba(255,255,255,0.03);
+  margin-bottom:8px; cursor:pointer;
+  transition:all 0.3s;
+  border:1px solid transparent;
+}
+.music-track:hover { background:rgba(255,255,255,0.06); border-color:rgba(102,126,234,0.3); }
+.music-track.active { background:rgba(102,126,234,0.15); border-color:rgba(102,126,234,0.5); }
+.music-track .track-icon { font-size:24px; }
+.music-track .track-info { flex:1; }
+.music-track .track-name { color:#fff; font-size:13px; font-weight:600; }
+.music-track .track-desc { color:rgba(255,255,255,0.4); font-size:11px; }
+.music-track .track-play { color:#00ff96; font-size:18px; }
+.music-close {
+  position:absolute; top:10px; right:10px;
+  width:32px; height:32px; border-radius:50%;
+  background:rgba(255,255,255,0.1); border:none;
+  color:#fff; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.music-close:hover { background:rgba(255,100,100,0.3); }
+.music-volume {
+  margin-top:16px;
+}
+.music-volume label {
+  color:rgba(255,255,255,0.5); font-size:12px;
+  display:block; margin-bottom:8px;
+}
+.music-volume input[type="range"] {
+  width:100%; -webkit-appearance:none;
+  height:4px; border-radius:2px;
+  background:rgba(255,255,255,0.1);
+  outline:none;
+}
+.music-volume input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:16px; height:16px;
+  border-radius:50%; background:#00ff96;
+  cursor:pointer; box-shadow:0 0 10px rgba(0,255,150,0.5);
+}
+
+/* ===== PROFILE MODAL ===== */
+.profile-modal {
+  position:fixed; inset:0; z-index:300;
+  background:rgba(0,0,0,0.8); backdrop-filter:blur(20px);
+  display:none; align-items:center; justify-content:center;
+}
+.profile-modal.active { display:flex; }
+.profile-card {
+  width:min(90vw,400px);
+  background:rgba(10,10,15,0.95);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px; padding:32px;
+  text-align:center; position:relative;
+}
+.profile-card .profile-avatar {
+  width:100px; height:100px; border-radius:50%;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  margin:0 auto 16px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:40px; color:#fff;
+  overflow:hidden; border:3px solid rgba(102,126,234,0.5);
+  box-shadow:0 0 30px rgba(102,126,234,0.3);
+  cursor:pointer; position:relative;
+}
+.profile-card .profile-avatar img {
+  width:100%; height:100%; object-fit:cover;
+}
+.profile-card .profile-avatar .avatar-overlay {
+  position:absolute; inset:0;
+  background:rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity 0.3s;
+  font-size:14px; color:#fff;
+}
+.profile-card .profile-avatar:hover .avatar-overlay { opacity:1; }
+.profile-card .profile-name { color:#fff; font-size:20px; font-weight:700; margin-bottom:4px; }
+.profile-card .profile-username { color:rgba(255,255,255,0.4); font-size:14px; margin-bottom:20px; }
+.profile-card .profile-btn {
+  width:100%; padding:14px; border:none; border-radius:14px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:#fff; font-size:15px; font-weight:600; cursor:pointer;
+  transition:all 0.3s; margin-bottom:10px;
+}
+.profile-card .profile-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(102,126,234,0.4); }
+.profile-card .profile-btn.secondary {
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+}
+.profile-card .profile-btn.secondary:hover { background:rgba(255,255,255,0.1); }
+.profile-close {
+  position:absolute; top:10px; right:10px;
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(255,255,255,0.1); border:none;
+  color:#fff; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.profile-close:hover { background:rgba(255,100,100,0.3); }
+
+/* ===== EMOJI PICKER ===== */
+.emoji-panel {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+  z-index:120; background:rgba(10,10,15,0.95); backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); border-radius:16px;
+  padding:16px; display:none; opacity:0;
+  transition:all 0.3s; max-width:320px;
+}
+.emoji-panel.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
+.emoji-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; }
+.emoji-grid span { font-size:22px; cursor:pointer; text-align:center; padding:4px; border-radius:6px; transition:all 0.2s; }
+.emoji-grid span:hover { background:rgba(255,255,255,0.1); transform:scale(1.2); }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -296,6 +461,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 @media (max-width:600px) {
   .side-panel { width:80vw; }
   .panel-toggle.open { left:80vw; }
+  .music-panel { width:80vw; }
 }
 </style>
 </head>
@@ -310,7 +476,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="auth-logo">3D MESSENGER</div>
     <div class="auth-sub">Miside Style · Realtime · 3D Room</div>
 
-    <!-- Login -->
     <div class="auth-mode active" id="loginMode">
       <input type="email" class="auth-input" id="loginEmail" placeholder="Email" autocomplete="email">
       <input type="password" class="auth-input" id="loginPass" placeholder="Пароль" autocomplete="current-password">
@@ -319,7 +484,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
       <div class="auth-toggle">Нет аккаунта? <span onclick="switchAuth('register')">Создать</span></div>
     </div>
 
-    <!-- Register -->
     <div class="auth-mode" id="registerMode">
       <input type="text" class="auth-input" id="regUsername" placeholder="Username (для поиска)" maxlength="20">
       <input type="email" class="auth-input" id="regEmail" placeholder="Email" autocomplete="email">
@@ -333,19 +497,16 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 
 <!-- Main UI -->
 <div class="main-ui" id="mainUI">
-  <!-- Top Bar -->
   <div class="top-bar">
     <div class="logo-text">3D MESSENGER</div>
     <div class="user-info">
-      <div class="avatar" id="userAvatar">?</div>
+      <div class="avatar" id="userAvatar" onclick="openProfile()" title="Профиль">?</div>
       <button class="logout-btn" onclick="doLogout()">Выйти</button>
     </div>
   </div>
 
-  <!-- Panel Toggle -->
   <div class="panel-toggle" id="panelToggle" onclick="togglePanel()">›</div>
 
-  <!-- Side Panel -->
   <div class="side-panel" id="sidePanel">
     <div class="panel-header">
       <h3>👥 Пользователи</h3>
@@ -354,26 +515,85 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="users-list" id="usersList"></div>
   </div>
 
-  <!-- 3D Room Canvas -->
   <canvas id="room-canvas"></canvas>
 
-  <!-- Chat Partner -->
   <div class="chat-partner" id="chatPartner">
     <div class="partner-name" id="partnerName">Выберите собеседника</div>
     <div class="partner-hint">Сообщения появятся в 3D пространстве</div>
+    <div class="partner-status" id="partnerStatus" style="display:none;">
+      <div class="partner-status-dot" id="partnerStatusDot"></div>
+      <div class="partner-status-text" id="partnerStatusText"></div>
+    </div>
   </div>
 
-  <!-- Typing -->
   <div class="typing-indicator" id="typingIndicator">
     <span></span><span></span><span></span>
   </div>
 
-  <!-- Input Bar -->
   <div class="input-bar">
+    <button class="music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
+    <button class="emoji-btn" onclick="toggleEmojiPanel()" title="Эмодзи">😊</button>
     <button class="attach-btn" onclick="triggerFile()" title="Фото/Видео">📎</button>
     <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
     <input type="text" class="msg-input" id="msgInput" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" oninput="onTyping()">
     <button class="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<!-- Music Panel -->
+<div class="music-panel" id="musicPanel">
+  <button class="music-close" onclick="toggleMusicPanel()">✕</button>
+  <h3>🎵 Фоновая Музыка</h3>
+  <div class="music-track" data-src="minecraft" onclick="playTrack('minecraft')">
+    <div class="track-icon">⛏️</div>
+    <div class="track-info">
+      <div class="track-name">Minecraft Ambient</div>
+      <div class="track-desc">Спокойная атмосфера</div>
+    </div>
+    <div class="track-play" id="play-minecraft">▶</div>
+  </div>
+  <div class="music-track" data-src="genshin" onclick="playTrack('genshin')">
+    <div class="track-icon">🌸</div>
+    <div class="track-info">
+      <div class="track-name">Genshin Impact</div>
+      <div class="track-desc">Мелодичная фантазия</div>
+    </div>
+    <div class="track-play" id="play-genshin">▶</div>
+  </div>
+  <div class="music-track" data-src="lofi" onclick="playTrack('lofi')">
+    <div class="track-icon">☕</div>
+    <div class="track-info">
+      <div class="track-name">Lo-Fi Chill</div>
+      <div class="track-desc">Расслабляющий бит</div>
+    </div>
+    <div class="track-play" id="play-lofi">▶</div>
+  </div>
+  <div class="music-track" data-src="cyber" onclick="playTrack('cyber')">
+    <div class="track-icon">🌃</div>
+    <div class="track-info">
+      <div class="track-name">Cyberpunk Vibes</div>
+      <div class="track-desc">Неоновая ночь</div>
+    </div>
+    <div class="track-play" id="play-cyber">▶</div>
+  </div>
+  <div class="music-volume">
+    <label>Громкость</label>
+    <input type="range" id="musicVolume" min="0" max="100" value="30" oninput="setVolume(this.value)">
+  </div>
+</div>
+
+<!-- Emoji Panel -->
+<div class="emoji-panel" id="emojiPanel">
+  <div class="emoji-grid">
+    <span onclick="insertEmoji('😀')">😀</span><span onclick="insertEmoji('😂')">😂</span><span onclick="insertEmoji('🥰')">🥰</span><span onclick="insertEmoji('😎')">😎</span>
+    <span onclick="insertEmoji('🤔')">🤔</span><span onclick="insertEmoji('😭')">😭</span><span onclick="insertEmoji('😡')">😡</span><span onclick="insertEmoji('🥳')">🥳</span>
+    <span onclick="insertEmoji('❤️')">❤️</span><span onclick="insertEmoji('🔥')">🔥</span><span onclick="insertEmoji('✨')">✨</span><span onclick="insertEmoji('🎉')">🎉</span>
+    <span onclick="insertEmoji('👍')">👍</span><span onclick="insertEmoji('👎')">👎</span><span onclick="insertEmoji('🙏')">🙏</span><span onclick="insertEmoji('💀')">💀</span>
+    <span onclick="insertEmoji('🌟')">🌟</span><span onclick="insertEmoji('🌙')">🌙</span><span onclick="insertEmoji('☀️')">☀️</span><span onclick="insertEmoji('🌈')">🌈</span>
+    <span onclick="insertEmoji('🎮')">🎮</span><span onclick="insertEmoji('🎵')">🎵</span><span onclick="insertEmoji('🎨')">🎨</span><span onclick="insertEmoji('🚀')">🚀</span>
+    <span onclick="insertEmoji('🐱')">🐱</span><span onclick="insertEmoji('🐶')">🐶</span><span onclick="insertEmoji('🦊')">🦊</span><span onclick="insertEmoji('🐼')">🐼</span>
+    <span onclick="insertEmoji('🍕')">🍕</span><span onclick="insertEmoji('🍔')">🍔</span><span onclick="insertEmoji('🍦')">🍦</span><span onclick="insertEmoji('🍩')">🍩</span>
+    <span onclick="insertEmoji('⚡')">⚡</span><span onclick="insertEmoji('💎')">💎</span><span onclick="insertEmoji('🌺')">🌺</span><span onclick="insertEmoji('🍀')">🍀</span>
   </div>
 </div>
 
@@ -382,6 +602,23 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   <button class="close-media" onclick="closeMedia()">✕</button>
   <div class="media-3d" id="media3d"></div>
   <div class="media-hint">🖱 Перетаскивайте для вращения · 📱 Свайпайте</div>
+</div>
+
+<!-- Profile Modal -->
+<div class="profile-modal" id="profileModal">
+  <div class="profile-card">
+    <button class="profile-close" onclick="closeProfile()">✕</button>
+    <div class="profile-avatar" id="profileAvatar" onclick="triggerAvatarUpload()">
+      <span id="profileAvatarText">?</span>
+      <img id="profileAvatarImg" style="display:none;">
+      <div class="avatar-overlay">📷 Сменить</div>
+    </div>
+    <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">
+    <div class="profile-name" id="profileName">User</div>
+    <div class="profile-username" id="profileUsername">@user</div>
+    <button class="profile-btn" onclick="saveProfile()">Сохранить</button>
+    <button class="profile-btn secondary" onclick="closeProfile()">Закрыть</button>
+  </div>
 </div>
 
 <!-- Miside Text Container -->
@@ -411,8 +648,24 @@ let typingTimeout = null;
 let scene, camera, renderer, roomGroup;
 let messages3D = [];
 let mediaObjects = [];
+let avatar3DObjects = {};
 let animationId;
 let isPanelOpen = false;
+let isMusicPanelOpen = false;
+let currentAudio = null;
+let currentTrack = null;
+let audioVolume = 0.3;
+let userData = {};
+let partnerLastSeen = 0;
+let partnerStatusListener = null;
+
+// ===== MUSIC TRACKS =====
+const MUSIC_TRACKS = {
+  minecraft: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Chris_Zabriskie/Undercover_Vampire_Policeman/Chris_Zabriskie_-_01_-_The_Temperature_of_the_Air_on_the_Bow_of_the_Kaleetan.mp3',
+  genshin: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3',
+  lofi: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Algorithms.mp3',
+  cyber: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Tours/Enthusiast/Tours_-_01_-_Enthusiast.mp3'
+};
 
 // ===== AUTH =====
 function switchAuth(mode) {
@@ -440,7 +693,8 @@ function doRegister() {
         email: email,
         displayName: username,
         createdAt: Date.now(),
-        online: true
+        online: true,
+        avatar: ''
       });
       db.ref('usernames/'+username).set(uid);
     }).catch(e=>err.textContent=e.message);
@@ -457,6 +711,7 @@ function doLogin() {
 
 function doLogout() {
   if(currentUser) db.ref('users/'+currentUser.uid+'/online').set(false);
+  if(currentAudio) { currentAudio.pause(); currentAudio = null; }
   auth.signOut();
 }
 
@@ -464,11 +719,23 @@ auth.onAuthStateChanged(user=>{
   if(user){
     currentUser = user;
     db.ref('users/'+user.uid).once('value').then(snap=>{
-      const data = snap.val()||{};
-      const name = data.displayName || data.username || user.email.split('@')[0];
-      document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+      userData = snap.val()||{};
+      const name = userData.displayName || userData.username || user.email.split('@')[0];
+      document.getElementById('userAvatar').innerHTML = '';
+      if(userData.avatar) {
+        const img = document.createElement('img');
+        img.src = userData.avatar;
+        img.onerror = ()=>{ document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase(); };
+        document.getElementById('userAvatar').appendChild(img);
+      } else {
+        document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+      }
       db.ref('users/'+user.uid+'/online').set(true);
       db.ref('users/'+user.uid+'/lastSeen').set(Date.now());
+      // Update lastSeen every 30s
+      setInterval(()=>{
+        if(currentUser) db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now());
+      }, 30000);
     });
     document.getElementById('authScreen').classList.add('hidden');
     setTimeout(()=>{
@@ -480,13 +747,69 @@ auth.onAuthStateChanged(user=>{
     },800);
   } else {
     currentUser = null;
+    userData = {};
     document.getElementById('authScreen').style.display='flex';
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('mainUI').classList.remove('active');
     document.getElementById('loading').classList.remove('hidden');
     if(renderer) { renderer.dispose(); cancelAnimationFrame(animationId); }
+    Object.values(avatar3DObjects).forEach(obj=>{
+      if(obj.mesh && roomGroup) roomGroup.remove(obj.mesh);
+    });
+    avatar3DObjects = {};
   }
 });
+
+// ===== PROFILE =====
+function openProfile() {
+  if(!currentUser) return;
+  const name = userData.displayName || userData.username || currentUser.email.split('@')[0];
+  document.getElementById('profileName').textContent = name;
+  document.getElementById('profileUsername').textContent = '@' + (userData.username || 'user');
+  document.getElementById('profileAvatarText').style.display = 'none';
+  const img = document.getElementById('profileAvatarImg');
+  if(userData.avatar) {
+    img.src = userData.avatar;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+    document.getElementById('profileAvatarText').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('profileAvatarText').style.display = 'block';
+  }
+  document.getElementById('profileModal').classList.add('active');
+}
+
+function closeProfile() {
+  document.getElementById('profileModal').classList.remove('active');
+}
+
+function triggerAvatarUpload() {
+  document.getElementById('avatarInput').click();
+}
+
+function handleAvatarUpload(input) {
+  const file = input.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    if(currentUser) {
+      db.ref('users/'+currentUser.uid+'/avatar').set(base64);
+      userData.avatar = base64;
+      document.getElementById('profileAvatarImg').src = base64;
+      document.getElementById('profileAvatarImg').style.display = 'block';
+      document.getElementById('profileAvatarText').style.display = 'none';
+      document.getElementById('userAvatar').innerHTML = '<img src="'+base64+'">';
+    }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function saveProfile() {
+  closeProfile();
+}
 
 // ===== USERS =====
 function loadUsers() {
@@ -501,17 +824,39 @@ function loadUsers() {
       div.dataset.uid = uid;
       div.dataset.username = (data.username||'').toLowerCase();
       div.onclick = ()=>selectUser(uid,data);
-      div.innerHTML = `
-        <div class="u-avatar">${(data.displayName||data.username||'U').charAt(0).toUpperCase()}</div>
+
+      const isOnline = data.online === true;
+      const lastSeen = data.lastSeen || 0;
+      const timeAgo = formatTimeAgo(lastSeen);
+
+      let avatarHTML = '<div class="u-avatar">' + (data.displayName||data.username||'U').charAt(0).toUpperCase() + '</div>';
+      if(data.avatar) {
+        avatarHTML = '<div class="u-avatar"><img src="' + data.avatar + '" onerror="this.style.display=\'none\';this.parentNode.textContent=\''+(data.displayName||data.username||'U').charAt(0).toUpperCase()+'\'"></div>';
+      }
+
+      div.innerHTML = avatarHTML + `
         <div class="u-info">
           <div class="u-name">${data.displayName||data.username||'User'}</div>
           <div class="u-username">@${data.username||'user'}</div>
         </div>
-        <div class="u-status ${data.online?'':'offline'}"></div>
+        <div class="u-status-wrap">
+          <div class="u-status ${isOnline?'':'offline'}"></div>
+          <div class="u-last-seen">${isOnline?'online':timeAgo}</div>
+        </div>
       `;
       list.appendChild(div);
     });
   });
+}
+
+function formatTimeAgo(timestamp) {
+  if(!timestamp) return 'давно';
+  const diff = Date.now() - timestamp;
+  const sec = Math.floor(diff/1000);
+  if(sec < 60) return 'только что';
+  if(sec < 3600) return Math.floor(sec/60) + ' мин';
+  if(sec < 86400) return Math.floor(sec/3600) + ' ч';
+  return Math.floor(sec/86400) + ' дн';
 }
 
 function searchUsers() {
@@ -528,27 +873,51 @@ function selectUser(uid,data) {
   document.querySelector(`.user-item[data-uid="${uid}"]`).classList.add('active');
   document.getElementById('partnerName').textContent = data.displayName||data.username;
 
+  const statusWrap = document.getElementById('partnerStatus');
+  const statusDot = document.getElementById('partnerStatusDot');
+  const statusText = document.getElementById('partnerStatusText');
+  statusWrap.style.display = 'flex';
+
+  if(partnerStatusListener) {
+    db.ref('users/'+uid).off('value', partnerStatusListener);
+  }
+  partnerStatusListener = snap=>{
+    const pData = snap.val()||{};
+    const isOnline = pData.online === true;
+    statusDot.className = 'partner-status-dot ' + (isOnline?'online':'offline');
+    statusText.textContent = isOnline ? 'в сети' : 'был(а) ' + formatTimeAgo(pData.lastSeen);
+    partnerLastSeen = pData.lastSeen || 0;
+    updatePartner3DAvatar(pData);
+  };
+  db.ref('users/'+uid).on('value', partnerStatusListener);
+
   const ids = [currentUser.uid,uid].sort();
   chatId = ids.join('_');
 
-  // Clear old messages
-  messages3D.forEach(m=>roomGroup.remove(m.mesh));
+  messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); });
   messages3D = [];
-  mediaObjects.forEach(m=>roomGroup.remove(m.mesh));
+  mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); });
   mediaObjects = [];
 
-  // Load chat history
+  if(avatar3DObjects[uid]) {
+    if(avatar3DObjects[uid].mesh && roomGroup) roomGroup.remove(avatar3DObjects[uid].mesh);
+    delete avatar3DObjects[uid];
+  }
+
   db.ref('chats/'+chatId).off();
   db.ref('chats/'+chatId).limitToLast(20).on('child_added',snap=>{
     const msg = snap.val();
     if(msg.sender!==currentUser.uid) showMisideText(msg.text||'📎 Медиа');
-    if(msg.mediaUrl) create3DMedia(msg.mediaUrl, msg.mediaType, msg.sender===currentUser.uid);
+    if(msg.mediaData) {
+      create3DMedia(msg.mediaData, msg.mediaType, msg.sender===currentUser.uid);
+    }
   });
 
-  // Typing listener
   db.ref('typing/'+uid+'/'+currentUser.uid).on('value',snap=>{
     document.getElementById('typingIndicator').classList.toggle('active', snap.val()===true);
   });
+
+  createPartner3DAvatar(data);
 }
 
 function togglePanel() {
@@ -557,7 +926,6 @@ function togglePanel() {
   document.getElementById('panelToggle').classList.toggle('open', isPanelOpen);
   document.getElementById('panelToggle').textContent = isPanelOpen ? '‹' : '›';
 }
-
 // ===== MESSAGING =====
 function onTyping() {
   if(!currentPartner) return;
@@ -583,6 +951,25 @@ function sendMessage() {
   showMisideText(text);
 }
 
+// ===== EMOJI =====
+function toggleEmojiPanel() {
+  const panel = document.getElementById('emojiPanel');
+  panel.classList.toggle('active');
+}
+
+function insertEmoji(emoji) {
+  const input = document.getElementById('msgInput');
+  input.value += emoji;
+  input.focus();
+  document.getElementById('emojiPanel').classList.remove('active');
+}
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.emoji-panel') && !e.target.closest('.emoji-btn')) {
+    document.getElementById('emojiPanel').classList.remove('active');
+  }
+});
+
 // ===== MISIDE TEXT EFFECT =====
 function showMisideText(text) {
   const container = document.getElementById('misideContainer');
@@ -594,13 +981,12 @@ function showMisideText(text) {
   chars.forEach((char,i)=>{
     const span = document.createElement('span');
     span.className = 'miside-letter';
-    span.textContent = char === ' ' ? ' ' : char;
+    span.textContent = char === ' ' ? '\u00A0' : char;
     span.style.color = `hsl(${200 + Math.random()*60}, 80%, 70%)`;
     container.appendChild(span);
     spans.push(span);
   });
 
-  // Appear animation
   spans.forEach((span,i)=>{
     gsap.to(span, {
       opacity:1, scale:1, y:0,
@@ -609,7 +995,6 @@ function showMisideText(text) {
     });
   });
 
-  // Disappear animation (Miside style)
   const totalTime = Math.max(2000, chars.length * 300);
   setTimeout(()=>{
     spans.forEach((span,i)=>{
@@ -622,8 +1007,48 @@ function showMisideText(text) {
     });
   }, totalTime);
 
-  // Also add to 3D room as floating text
   add3DTextBubble(text);
+}
+
+// ===== MUSIC =====
+function toggleMusicPanel() {
+  isMusicPanelOpen = !isMusicPanelOpen;
+  document.getElementById('musicPanel').classList.toggle('open', isMusicPanelOpen);
+}
+
+function playTrack(trackId) {
+  if(currentTrack === trackId && currentAudio && !currentAudio.paused) {
+    currentAudio.pause();
+    currentAudio = null;
+    currentTrack = null;
+    document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
+    document.getElementById('musicBtn').classList.remove('playing');
+    return;
+  }
+
+  if(currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+
+  const audio = new Audio(MUSIC_TRACKS[trackId]);
+  audio.loop = true;
+  audio.volume = audioVolume;
+  audio.play().catch(e=>console.log('Audio play failed:', e));
+  currentAudio = audio;
+  currentTrack = trackId;
+
+  document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.music-track[data-src="${trackId}"]`).classList.add('active');
+  document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
+  document.getElementById('play-'+trackId).textContent='⏸';
+  document.getElementById('musicBtn').classList.add('playing');
+}
+
+function setVolume(val) {
+  audioVolume = val / 100;
+  if(currentAudio) currentAudio.volume = audioVolume;
 }
 
 // ===== 3D ROOM =====
@@ -647,7 +1072,7 @@ function init3DRoom() {
   // Floor
   const floorGeo = new THREE.PlaneGeometry(30, 30);
   const floorMat = new THREE.MeshStandardMaterial({
-    color:0x0d0d15, roughness:0.8, metalness:0.3,
+    color:0x0d0d15, roughness:0.6, metalness:0.4,
     transparent:true, opacity:0.9
   });
   const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -660,7 +1085,21 @@ function init3DRoom() {
   gridHelper.position.y = 0.01;
   roomGroup.add(gridHelper);
 
-  // Walls (semi-transparent)
+  // Animated floor rings
+  for(let i=1; i<=5; i++){
+    const ringGeo = new THREE.RingGeometry(i*2-0.05, i*2+0.05, 64);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color:0x667eea, transparent:true, opacity:0.1/i,
+      side:THREE.DoubleSide
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI/2;
+    ring.position.y = 0.02;
+    ring.userData = {ringIndex:i, isRing:true};
+    roomGroup.add(ring);
+  }
+
+  // Walls
   const wallMat = new THREE.MeshStandardMaterial({
     color:0x0a0a12, transparent:true, opacity:0.3, side:THREE.DoubleSide
   });
@@ -677,19 +1116,57 @@ function init3DRoom() {
     roomGroup.add(wall);
   });
 
-  // Floating particles
+  // Floating particles with colors
   const particlesGeo = new THREE.BufferGeometry();
-  const particleCount = 200;
+  const particleCount = 300;
   const posArray = new Float32Array(particleCount*3);
-  for(let i=0;i<particleCount*3;i++){
-    posArray[i] = (Math.random()-0.5)*30;
+  const colorArray = new Float32Array(particleCount*3);
+  for(let i=0;i<particleCount;i++){
+    posArray[i*3] = (Math.random()-0.5)*30;
+    posArray[i*3+1] = Math.random()*15;
+    posArray[i*3+2] = (Math.random()-0.5)*30;
+    const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+    colorArray[i*3] = color.r;
+    colorArray[i*3+1] = color.g;
+    colorArray[i*3+2] = color.b;
   }
   particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray,3));
+  particlesGeo.setAttribute('color', new THREE.BufferAttribute(colorArray,3));
   const particlesMat = new THREE.PointsMaterial({
-    size:0.05, color:0x667eea, transparent:true, opacity:0.6
+    size:0.08, transparent:true, opacity:0.7, vertexColors:true
   });
   const particles = new THREE.Points(particlesGeo, particlesMat);
+  particles.userData = {isParticles:true};
   roomGroup.add(particles);
+
+  // Floating geometric shapes
+  const shapes = [
+    new THREE.IcosahedronGeometry(0.3, 0),
+    new THREE.OctahedronGeometry(0.3, 0),
+    new THREE.TetrahedronGeometry(0.3, 0)
+  ];
+  const shapeColors = [0xff6b6b, 0x4ecdc4, 0xa855f7, 0xffd700];
+  for(let i=0; i<12; i++){
+    const geo = shapes[i%3];
+    const mat = new THREE.MeshStandardMaterial({
+      color: shapeColors[i%4], emissive: shapeColors[i%4], emissiveIntensity: 0.3,
+      transparent:true, opacity:0.6, wireframe: Math.random()>0.5
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      (Math.random()-0.5)*20,
+      1 + Math.random()*8,
+      (Math.random()-0.5)*20
+    );
+    mesh.userData = {
+      isFloatingShape:true,
+      speed: 0.2 + Math.random()*0.5,
+      rotSpeed: {x:Math.random()*0.02, y:Math.random()*0.02, z:Math.random()*0.02},
+      baseY: mesh.position.y,
+      phase: Math.random()*Math.PI*2
+    };
+    roomGroup.add(mesh);
+  }
 
   // Lights
   const ambientLight = new THREE.AmbientLight(0x404080, 0.5);
@@ -708,10 +1185,8 @@ function init3DRoom() {
   pointLight3.position.set(-5, 5, -5);
   scene.add(pointLight3);
 
-  // Animate
   animate();
 
-  // Resize
   window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
@@ -758,26 +1233,44 @@ function init3DRoom() {
   },{passive:true});
   canvas.addEventListener('touchend',()=>isDragging=false);
 }
-
 function animate() {
   animationId = requestAnimationFrame(animate);
   const time = Date.now()*0.001;
 
-  // Float messages
   messages3D.forEach((m,i)=>{
-    m.mesh.position.y = m.baseY + Math.sin(time+i)*0.3;
-    m.mesh.rotation.y = Math.sin(time*0.5+i)*0.1;
+    if(m.mesh) {
+      m.mesh.position.y = m.baseY + Math.sin(time+i)*0.3;
+      m.mesh.rotation.y = Math.sin(time*0.5+i)*0.1;
+    }
   });
 
-  // Float media
   mediaObjects.forEach((m,i)=>{
-    m.mesh.position.y = m.baseY + Math.sin(time*0.8+i)*0.2;
-    m.mesh.rotation.y += 0.005;
+    if(m.mesh) {
+      m.mesh.position.y = m.baseY + Math.sin(time*0.8+i)*0.2;
+      m.mesh.rotation.y += 0.005;
+    }
   });
 
-  // Rotate particles
   roomGroup.children.forEach(child=>{
-    if(child.isPoints) child.rotation.y = time*0.05;
+    if(child.userData && child.userData.isParticles) {
+      child.rotation.y = time*0.05;
+      child.rotation.x = Math.sin(time*0.1)*0.1;
+    }
+    if(child.userData && child.userData.isRing) {
+      child.scale.setScalar(1 + Math.sin(time*0.5 + child.userData.ringIndex)*0.05);
+      child.material.opacity = (0.1/child.userData.ringIndex) * (0.5 + Math.sin(time + child.userData.ringIndex)*0.5);
+    }
+    if(child.userData && child.userData.isFloatingShape) {
+      child.position.y = child.userData.baseY + Math.sin(time*child.userData.speed + child.userData.phase)*0.5;
+      child.rotation.x += child.userData.rotSpeed.x;
+      child.rotation.y += child.userData.rotSpeed.y;
+      child.rotation.z += child.userData.rotSpeed.z;
+    }
+    // Animate partner avatar
+    if(child.userData && child.userData.isPartnerAvatar) {
+      child.position.y = child.userData.baseY + Math.sin(time*1.5)*0.2;
+      child.rotation.y = Math.sin(time*0.5)*0.3;
+    }
   });
 
   renderer.render(scene, camera);
@@ -811,16 +1304,138 @@ function add3DTextBubble(text) {
   roomGroup.add(mesh);
   messages3D.push({mesh, baseY:mesh.position.y});
 
-  // Limit bubbles
   if(messages3D.length>10){
     const old = messages3D.shift();
-    roomGroup.remove(old.mesh);
-    old.mesh.geometry.dispose();
-    old.mesh.material.dispose();
+    if(old.mesh) {
+      roomGroup.remove(old.mesh);
+      old.mesh.geometry.dispose();
+      old.mesh.material.dispose();
+    }
   }
 }
 
-// ===== MEDIA =====
+// ===== 3D PARTNER AVATAR =====
+function createPartner3DAvatar(data) {
+  if(!roomGroup) return;
+
+  const uid = data.uid || currentPartner.uid;
+  if(avatar3DObjects[uid]) {
+    if(avatar3DObjects[uid].mesh) roomGroup.remove(avatar3DObjects[uid].mesh);
+    delete avatar3DObjects[uid];
+  }
+
+  // Create avatar platform
+  const platformGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 32);
+  const platformMat = new THREE.MeshStandardMaterial({
+    color:0x667eea, emissive:0x667eea, emissiveIntensity:0.3,
+    transparent:true, opacity:0.6
+  });
+  const platform = new THREE.Mesh(platformGeo, platformMat);
+  platform.position.set(0, 0.05, -4);
+
+  // Avatar image or letter
+  const avatarGroup = new THREE.Group();
+  avatarGroup.add(platform);
+
+  if(data.avatar) {
+    const loader = new THREE.TextureLoader();
+    loader.load(data.avatar, texture=>{
+      const aspect = texture.image.width / texture.image.height;
+      const w = 1.2;
+      const h = w / aspect;
+      const geo = new THREE.PlaneGeometry(w, Math.min(h, 1.5));
+      const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(0, 1.2, -4);
+      mesh.userData = {isPartnerAvatar:true, baseY:1.2};
+      avatarGroup.add(mesh);
+    }, undefined, ()=>{
+      // Fallback to letter
+      createAvatarLetter(data, avatarGroup);
+    });
+  } else {
+    createAvatarLetter(data, avatarGroup);
+  }
+
+  // Name label above avatar
+  const nameCanvas = document.createElement('canvas');
+  const nctx = nameCanvas.getContext('2d');
+  nameCanvas.width = 256; nameCanvas.height = 64;
+  nctx.fillStyle = 'rgba(0,0,0,0.6)';
+  nctx.fillRect(0,0,256,64);
+  nctx.fillStyle = '#fff';
+  nctx.font = 'bold 20px Arial';
+  nctx.textAlign = 'center';
+  const name = (data.displayName||data.username||'User');
+  nctx.fillText(name, 128, 40);
+
+  const nameTexture = new THREE.CanvasTexture(nameCanvas);
+  const nameGeo = new THREE.PlaneGeometry(2, 0.5);
+  const nameMat = new THREE.MeshBasicMaterial({map:nameTexture, transparent:true, side:THREE.DoubleSide});
+  const nameMesh = new THREE.Mesh(nameGeo, nameMat);
+  nameMesh.position.set(0, 2.2, -4);
+  nameMesh.userData = {isPartnerAvatar:true, baseY:2.2};
+  avatarGroup.add(nameMesh);
+
+  // Status indicator
+  const isOnline = data.online === true;
+  const statusColor = isOnline ? 0x22c55e : 0x6b7280;
+  const statusGeo = new THREE.SphereGeometry(0.15, 16, 16);
+  const statusMat = new THREE.MeshBasicMaterial({color:statusColor, emissive:statusColor, emissiveIntensity:0.5});
+  const statusMesh = new THREE.Mesh(statusGeo, statusMat);
+  statusMesh.position.set(0.6, 2.0, -4);
+  statusMesh.userData = {isPartnerAvatar:true, baseY:2.0, isStatus:true};
+  avatarGroup.add(statusMesh);
+
+  roomGroup.add(avatarGroup);
+  avatar3DObjects[uid] = {mesh:avatarGroup, data:data};
+}
+
+function createAvatarLetter(data, group) {
+  const letter = (data.displayName||data.username||'U').charAt(0).toUpperCase();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 128; canvas.height = 128;
+  ctx.fillStyle = '#667eea';
+  ctx.fillRect(0,0,128,128);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 64px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, 64, 64);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const geo = new THREE.PlaneGeometry(1.2, 1.2);
+  const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(0, 1.2, -4);
+  mesh.userData = {isPartnerAvatar:true, baseY:1.2};
+  group.add(mesh);
+}
+
+function updatePartner3DAvatar(data) {
+  const uid = data.uid || currentPartner.uid;
+  if(!avatar3DObjects[uid]) return;
+
+  // Update status color
+  avatar3DObjects[uid].mesh.traverse(child=>{
+    if(child.userData && child.userData.isStatus) {
+      const isOnline = data.online === true;
+      const statusColor = isOnline ? 0x22c55e : 0x6b7280;
+      child.material.color.setHex(statusColor);
+      child.material.emissive.setHex(statusColor);
+    }
+  });
+
+  // Update avatar image if changed
+  if(data.avatar && data.avatar !== avatar3DObjects[uid].data.avatar) {
+    avatar3DObjects[uid].data.avatar = data.avatar;
+    // Recreate avatar
+    createPartner3DAvatar(data);
+  }
+}
+
+// ===== MEDIA (BASE64 REALTIME) =====
 function triggerFile() {
   document.getElementById('fileInput').click();
 }
@@ -830,46 +1445,75 @@ function handleFile(input) {
   if(!file || !chatId) return;
 
   const isVideo = file.type.startsWith('video');
-  const path = `media/${chatId}/${Date.now()}_${file.name}`;
-  const ref = storage.ref(path);
-
-  ref.put(file).then(()=>ref.getDownloadURL()).then(url=>{
-    db.ref('chats/'+chatId).push({
-      mediaUrl: url,
-      mediaType: isVideo?'video':'image',
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    const msg = {
+      mediaData: base64,
+      mediaType: isVideo ? 'video' : 'image',
       sender: currentUser.uid,
       timestamp: Date.now()
-    });
-    create3DMedia(url, isVideo?'video':'image', true);
-  });
+    };
+    db.ref('chats/'+chatId).push(msg);
+    create3DMedia(base64, isVideo?'video':'image', true);
+  };
+  reader.readAsDataURL(file);
   input.value = '';
 }
 
 function create3DMedia(url, type, isOwn) {
   if(!roomGroup) return;
 
-  const loader = new THREE.TextureLoader();
-  loader.load(url, texture=>{
-    const aspect = texture.image.width / texture.image.height;
-    const w = 3;
-    const h = w / aspect;
+  if(type === 'video') {
+    // For video, create a thumbnail using canvas
+    const video = document.createElement('video');
+    video.src = url;
+    video.crossOrigin = 'anonymous';
+    video.onloadeddata = ()=>{
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 144;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, 256, 144);
+      const thumbUrl = canvas.toDataURL();
 
-    const geo = new THREE.PlaneGeometry(w, h);
-    const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
-    const mesh = new THREE.Mesh(geo, mat);
-
-    mesh.position.set(
-      (Math.random()-0.5)*6,
-      2 + Math.random()*2,
-      (Math.random()-0.5)*6
-    );
-
-    roomGroup.add(mesh);
-    mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
-
-    // Click to view
-    mesh.userData = {url, type};
-  });
+      const loader = new THREE.TextureLoader();
+      loader.load(thumbUrl, texture=>{
+        const aspect = 256/144;
+        const w = 3;
+        const h = w / aspect;
+        const geo = new THREE.PlaneGeometry(w, h);
+        const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(
+          (Math.random()-0.5)*6,
+          2 + Math.random()*2,
+          (Math.random()-0.5)*6
+        );
+        mesh.userData = {url:url, type:type, isVideo:true};
+        roomGroup.add(mesh);
+        mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
+      });
+    };
+    video.load();
+  } else {
+    const loader = new THREE.TextureLoader();
+    loader.load(url, texture=>{
+      const aspect = texture.image.width / texture.image.height;
+      const w = 3;
+      const h = w / aspect;
+      const geo = new THREE.PlaneGeometry(w, h);
+      const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        (Math.random()-0.5)*6,
+        2 + Math.random()*2,
+        (Math.random()-0.5)*6
+      );
+      mesh.userData = {url:url, type:type};
+      roomGroup.add(mesh);
+      mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
+    });
+  }
 }
 
 // Raycaster for clicking 3D media
@@ -880,7 +1524,7 @@ document.getElementById('room-canvas').addEventListener('click',e=>{
   mouse.x = (e.clientX/window.innerWidth)*2-1;
   mouse.y = -(e.clientY/window.innerHeight)*2+1;
   raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(roomGroup.children);
+  const intersects = raycaster.intersectObjects(roomGroup.children, true);
   for(let hit of intersects){
     if(hit.object.userData && hit.object.userData.url){
       openMedia(hit.object.userData.url, hit.object.userData.type);
@@ -905,7 +1549,6 @@ function openMedia(url, type) {
 
   viewer.classList.add('active');
 
-  // 3D rotation with GSAP Draggable
   let rotX=0, rotY=0;
   const el = container;
 
