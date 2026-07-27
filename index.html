@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>3D Messenger</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<title>3D Messenger (PlayCanvas)</title>
+<!-- PlayCanvas stable CDN — Самая новая стабильная версия -->
+<script src="https://code.playcanvas.com/playcanvas-stable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
@@ -481,7 +482,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   opacity:0; transform:scale(0.5) translateY(30px);
 }
 
-/* ===== MEDIA VIEWER (clean, rotatable in 3D) ===== */
+/* ===== MEDIA VIEWER (clean, rotatable in 3D via PlayCanvas) ===== */
 .media-viewer {
   position:fixed; inset:0; z-index:200;
   background:#000;
@@ -675,12 +676,12 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 </head>
 <body>
 
-<div class="loading-overlay" id="loading"><div class="loader"></div><p>Загрузка 3D мира...</p></div>
+<div class="loading-overlay" id="loading"><div class="loader"></div><p>Загрузка 3D мира PlayCanvas...</p></div>
 
 <div class="auth-screen" id="authScreen">
   <div class="auth-container">
     <div class="auth-logo">3D MESSENGER</div>
-    <div class="auth-sub">Miside Style · Realtime · 3D Room</div>
+    <div class="auth-sub">Miside Style · Realtime · PlayCanvas 3D Room</div>
     <div class="auth-mode active" id="loginMode">
       <input type="email" class="auth-input" id="loginEmail" placeholder="Email" autocomplete="email">
       <input type="password" class="auth-input" id="loginPass" placeholder="Пароль" autocomplete="current-password">
@@ -861,14 +862,14 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
-<!-- Media Viewer (clean, 3D Rotatable) -->
+<!-- Media Viewer (clean, 3D Rotatable via PlayCanvas) -->
 <div class="media-viewer" id="mediaViewer">
   <button class="close-media" onclick="closeMedia()">✕</button>
   <div class="media-3d" id="media3d"></div>
   <div class="media-info" id="mediaInfo">Тяните для 3D вращения · Зумируйте колесом/щипком</div>
 </div>
 
-<!-- Avatar Viewer (clean, 3D Rotatable) -->
+<!-- Avatar Viewer (clean, 3D Rotatable via PlayCanvas) -->
 <div class="avatar-viewer" id="avatarViewer">
   <button class="close-avatar" onclick="closeAvatarViewer()">✕</button>
   <div class="avatar-3d" id="avatar3d"></div>
@@ -965,12 +966,11 @@ const db = firebase.database();
 // ===== STATE =====
 let currentUser = null, currentPartner = null, chatId = null;
 let typingTimeout = null, typingClearTimeout = null;
-let scene, camera, renderer, roomGroup;
+let app, cameraEntity, roomGroup;
 let messages3D = [], mediaObjects = [], avatar3DObjects = {};
 let gestureAnimations = [], drawings3D = [];
-let rainSound = null, rainParticles = null;
 let sunMesh = null, skyMesh = null;
-let animationId, isPanelOpen = false, isMusicPanelOpen = false;
+let isPanelOpen = false, isMusicPanelOpen = false;
 let currentAudio = null, currentTrack = null, audioVolume = 0.3;
 let userData = {}, partnerStatusListener = null;
 let drawCtx = null, drawColor = '#ff6b6b';
@@ -991,10 +991,9 @@ let tvVideoTexture = null;
 let currentTvUrl = '';
 let tvStateListener = null;
 
-// Media 3D Viewer variables
-let mediaViewerRenderer, mediaViewerScene, mediaViewerCamera, mediaViewerMesh, mediaViewerAnimationId;
-let mediaVideoElementFor3D = null;
-let avatarViewerRenderer, avatarViewerScene, avatarViewerCamera, avatarViewerMesh, avatarViewerAnimationId;
+// Rotatable 3D Viewers using independent PlayCanvas instances
+let activeMediaViewerApp = null;
+let activeAvatarViewerApp = null;
 
 // ===== FULLSCREEN =====
 function toggleFullscreen() {
@@ -1073,7 +1072,7 @@ function doLogout() {
   auth.signOut();
 }
 
-// Online Presence - Instantaneous via Firebase onDisconnect and tab focus/blur
+// Presence (Rapid onDisconnect mapping)
 function startPresence() {
   if(!currentUser) return;
   const userStatusRef = db.ref('users/' + currentUser.uid + '/online');
@@ -1104,6 +1103,12 @@ document.addEventListener('visibilitychange', ()=>{
 window.addEventListener('beforeunload', setOffline);
 window.addEventListener('pagehide', setOffline);
 
+// Time Offset Sync
+let serverTimeOffset = 0;
+db.ref('.info/serverTimeOffset').on('value', snap => {
+  serverTimeOffset = snap.val() || 0;
+});
+
 auth.onAuthStateChanged(user=>{
   if(user){
     currentUser = user;
@@ -1130,7 +1135,6 @@ auth.onAuthStateChanged(user=>{
       loadUsers();
       initDrawCanvas();
       document.getElementById('loading').classList.add('hidden');
-      // Restore last partner
       if(savedPartnerUid && savedPartnerData) {
         setTimeout(()=>{
           selectUser(savedPartnerUid, savedPartnerData);
@@ -1143,8 +1147,7 @@ auth.onAuthStateChanged(user=>{
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('mainUI').classList.remove('active');
     document.getElementById('loading').classList.remove('hidden');
-    if(renderer) { renderer.dispose(); cancelAnimationFrame(animationId); }
-    Object.values(avatar3DObjects).forEach(obj=>{ if(obj.mesh && roomGroup) roomGroup.remove(obj.mesh); });
+    if(app) { app.destroy(); app = null; }
     avatar3DObjects = {};
   }
 });
@@ -1214,7 +1217,7 @@ function formatLastSeen(timestamp, isOnline) {
   if(isOnline) return 'в сети';
   if(!timestamp) return 'давно';
   const date = new Date(timestamp);
-  const now = new Date();
+  const now = new Date(Date.now() + serverTimeOffset);
   const diff = now - date;
   const sec = Math.floor(diff/1000);
   if(sec < 60) return 'только что';
@@ -1234,7 +1237,6 @@ function searchUsers() {
 
 function selectUser(uid,data) {
   currentPartner = {uid,...data};
-  // Save to localStorage
   localStorage.setItem('lastPartnerUid', uid);
   localStorage.setItem('lastPartnerData', JSON.stringify(data));
 
@@ -1264,16 +1266,17 @@ function selectUser(uid,data) {
   const ids = [currentUser.uid,uid].sort();
   chatId = ids.join('_');
 
-  // Clean 3D Room objects on user switch
-  messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
-  mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
-  gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.remove(g.mesh); }); gestureAnimations = [];
-  drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.remove(d.mesh); }); drawings3D = [];
+  // Clean active objects inside PlayCanvas roomGroup
+  messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.removeChild(m.mesh); }); messages3D = [];
+  mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.removeChild(m.mesh); }); mediaObjects = [];
+  gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.removeChild(g.mesh); }); gestureAnimations = [];
+  drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.removeChild(d.mesh); }); drawings3D = [];
   
-  // Clean ALL 3D Avatars to prevent double/multiple photos in lobby
+  // Clean all previous avatars from lobby completely
   Object.keys(avatar3DObjects).forEach(key => {
     if(avatar3DObjects[key] && avatar3DObjects[key].mesh && roomGroup) {
-      roomGroup.remove(avatar3DObjects[key].mesh);
+      roomGroup.removeChild(avatar3DObjects[key].mesh);
+      avatar3DObjects[key].mesh.destroy();
     }
   });
   avatar3DObjects = {};
@@ -1289,12 +1292,17 @@ function selectUser(uid,data) {
     if(msg.mediaData) create3DMedia(msg.mediaData, msg.mediaType, msg.sender===currentUser.uid);
   });
 
-  // Subscribe to shared TV state inside this chat
+  // Share TV state observer
   if (tvStateListener) db.ref('chats/' + chatId + '/tvState').off('value', tvStateListener);
   tvStateListener = snap => {
     const state = snap.val();
     if (!state) {
-      if (tvScreenMesh) tvScreenMesh.material = new THREE.MeshBasicMaterial({ color: 0x112233 });
+      if (tvScreenMesh) {
+        const mat = new pc.StandardMaterial();
+        mat.diffuse = new pc.Color(17/255, 34/255, 51/255);
+        mat.update();
+        tvScreenMesh.render.meshInstances[0].material = mat;
+      }
       if (tvVideo) {
         tvVideo.pause();
         tvVideo.remove();
@@ -1461,10 +1469,10 @@ function clearAllChatHistory() {
   if(!chatId) return;
   if(!confirm('⚠️ ВНИМАНИЕ! Это удалит ВСЮ историю переписки навсегда. Продолжить?')) return;
   db.ref('chats/'+chatId).remove().then(()=>{
-    messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
-    mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
-    gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.remove(g.mesh); }); gestureAnimations = [];
-    drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.remove(d.mesh); }); drawings3D = [];
+    messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.removeChild(m.mesh); }); messages3D = [];
+    mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.removeChild(m.mesh); }); mediaObjects = [];
+    gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.removeChild(g.mesh); }); gestureAnimations = [];
+    drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.removeChild(d.mesh); }); drawings3D = [];
     chatHistoryData = [];
     renderChatHistory();
     alert('История очищена!');
@@ -1499,25 +1507,41 @@ function saveEditMessage() {
 }
 
 // ===== MESSAGING =====
+let typingDebounceTimer = null;
+let typingEndTimer = null;
+
 function onTyping() {
-  if(!currentPartner) return;
-  db.ref('typing/'+currentUser.uid+'/'+currentPartner.uid).set(true);
-  clearTimeout(typingTimeout);
-  clearTimeout(typingClearTimeout);
-  typingTimeout = setTimeout(()=>{
-    db.ref('typing/'+currentUser.uid+'/'+currentPartner.uid).set(false);
-  }, 1000);
+  if (!currentPartner) return;
+  const typingRef = db.ref('typing/' + currentUser.uid + '/' + currentPartner.uid);
+  typingRef.set(true);
+
+  clearTimeout(typingDebounceTimer);
+  typingDebounceTimer = setTimeout(() => {
+    typingRef.set(true);
+  }, 300);
+
+  clearTimeout(typingEndTimer);
+  typingEndTimer = setTimeout(() => {
+    typingRef.set(false);
+  }, 2000);
 }
 
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
   if(!text || !chatId) return;
-  db.ref('chats/'+chatId).push({ text: text, sender: currentUser.uid, timestamp: Date.now() });
-  input.value = '';
-  if(currentPartner) {
-    db.ref('typing/'+currentUser.uid+'/'+currentPartner.uid).set(false);
+  
+  if (currentPartner) {
+    db.ref('typing/' + currentUser.uid + '/' + currentPartner.uid).set(false);
+    clearTimeout(typingEndTimer);
   }
+
+  db.ref('chats/'+chatId).push({
+    text: text,
+    sender: currentUser.uid,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
+  input.value = '';
   showMisideText(text);
   loadChatHistory();
 }
@@ -1563,19 +1587,37 @@ function create3DGesture(type, isOwn) {
   const ctx = canvas.getContext('2d');
   ctx.font = '80px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(config.emoji, 64, 64);
-  const texture = new THREE.CanvasTexture(canvas);
-  const geo = new THREE.PlaneGeometry(1, 1);
-  const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(0, 3, -4);
+  
+  const texture = new pc.Texture(app.graphicsDevice, {
+    format: pc.PIXELFORMAT_R8_G8_B8_A8,
+    autoMipmap: true
+  });
+  texture.setSource(canvas);
+  
+  const mesh = new pc.Entity('gesture');
+  mesh.addComponent('render', { type: 'plane' });
+  mesh.setLocalScale(1, 1, 1);
+  mesh.setLocalEulerAngles(90, 0, 0);
+  mesh.setLocalPosition(0, 3, -4);
+  
+  const mat = new pc.StandardMaterial();
+  mat.diffuseMap = texture;
+  mat.blendType = pc.BLEND_NORMAL;
+  mat.useLighting = false;
+  mat.update();
+  mesh.render.meshInstances[0].material = mat;
+  
   mesh.userData = { isGesture: true, startTime: Date.now() };
-  roomGroup.add(mesh);
+  roomGroup.addChild(mesh);
 
   const gestureObj = { mesh, startTime: Date.now(), duration: 4000, baseY: 3 };
   gestureAnimations.push(gestureObj);
 
   setTimeout(()=>{
-    if(roomGroup) roomGroup.remove(mesh);
+    if(roomGroup) {
+      roomGroup.removeChild(mesh);
+      mesh.destroy();
+    }
     const idx = gestureAnimations.indexOf(gestureObj);
     if(idx > -1) gestureAnimations.splice(idx, 1);
   }, 4000);
@@ -1705,16 +1747,37 @@ function send3DDrawing() {
 
 function create3DDrawing(dataURL, isOwn) {
   if(!roomGroup) return;
-  const loader = new THREE.TextureLoader();
-  loader.load(dataURL, texture=>{
-    const geo = new THREE.PlaneGeometry(2.5, 2.5);
-    const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, opacity: 0.9 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
+  const img = new Image();
+  img.src = dataURL;
+  img.onload = () => {
+    const texture = new pc.Texture(app.graphicsDevice, {
+      format: pc.PIXELFORMAT_R8_G8_B8_A8,
+      autoMipmap: true
+    });
+    texture.setSource(img);
+    
+    const mesh = new pc.Entity('drawingPlane');
+    mesh.addComponent('render', { type: 'plane' });
+    mesh.setLocalScale(2.5, 1, 2.5);
+    mesh.setLocalEulerAngles(90, 0, 0);
+    
+    const rx = (Math.random()-0.5)*5;
+    const ry = 2+Math.random()*2;
+    const rz = (Math.random()-0.5)*5;
+    mesh.setLocalPosition(rx, ry, rz);
+    
+    const mat = new pc.StandardMaterial();
+    mat.diffuseMap = texture;
+    mat.blendType = pc.BLEND_NORMAL;
+    mat.useLighting = false;
+    mat.cull = pc.CULLFACE_NONE;
+    mat.update();
+    mesh.render.meshInstances[0].material = mat;
+    
     mesh.userData = { isDrawing: true };
-    roomGroup.add(mesh);
-    drawings3D.push({ mesh, baseY: mesh.position.y, createdAt: Date.now() });
-  });
+    roomGroup.addChild(mesh);
+    drawings3D.push({ mesh, baseY: ry, createdAt: Date.now() });
+  };
 }
 
 // ===== MUSIC =====
@@ -1749,420 +1812,375 @@ function setVolume(val) {
   if(currentAudio) currentAudio.volume = audioVolume;
 }
 
-// ===== ENVIRONMENT (BRIGHT DAY WINDOW & SUN FIX) =====
+// ===== ENVIRONMENT (SUNNY BRIGHT WINDOW VIEW) =====
 function setEnvironment(type) {
   currentEnvironment = type;
   document.querySelectorAll('.env-btn').forEach(b=>b.classList.remove('active'));
   const foundBtn = document.getElementById('env'+type.charAt(0).toUpperCase()+type.slice(1));
   if (foundBtn) foundBtn.classList.add('active');
-  if(!scene) return;
-  if(rainSound) { rainSound.pause(); rainSound = null; }
+  if(!app) return;
 
   if(type === 'day') {
-    // Beautiful, Bright, Sun-drenched room with real sunlight in the window
-    scene.fog.color.setHex(0xb0d0ff);
-    scene.fog.density = 0.004;
-    if(envLights.ambient) { envLights.ambient.color.setHex(0xFFFFFF); envLights.ambient.intensity = 1.0; }
-    if(envLights.main) { envLights.main.color.setHex(0xfff3d1); envLights.main.intensity = 2.4; envLights.main.position.set(1.5, 4.5, -5); }
-    if(sunMesh) { sunMesh.visible = true; sunMesh.material.color.setHex(0xfffae3); }
-    if(skyMesh) { skyMesh.visible = true; skyMesh.material.color.setHex(0x5ca5e6); skyMesh.material.opacity = 1.0; }
-    if(rainParticles) rainParticles.visible = false;
+    // Beautiful Daylight blue fog
+    cameraEntity.camera.clearColor = new pc.Color(176/255, 208/255, 1.0, 1);
     
-    // Lighten room walls completely
+    if (envLights.ambient) {
+      app.scene.ambientLight = new pc.Color(1, 1, 1);
+    }
+    if (envLights.main) {
+      envLights.main.light.color = new pc.Color(1, 243/255, 209/255);
+      envLights.main.light.intensity = 2.4;
+    }
+    if(sunMesh) sunMesh.enabled = true;
+    if(skyMesh) {
+      skyMesh.enabled = true;
+      const skyMat = skyMesh.render.meshInstances[0].material;
+      skyMat.diffuse = new pc.Color(92/255, 165/255, 230/255);
+      skyMat.update();
+    }
+    
+    // Lighten room walls
     roomGroup.children.forEach(child=>{
-      if(child.material && child.material.color) {
-        if(child.material.color.getHex() === 0x12121a) {
-          child.material.color.setHex(0xc8d6e5);
-          child.material.opacity = 1.0;
-        }
-        if(child.material.color.getHex() === 0x0d0d15) {
-          child.material.color.setHex(0x8395a7);
+      if(child.render && child.render.meshInstances && child.render.meshInstances[0]) {
+        const mat = child.render.meshInstances[0].material;
+        if(mat && mat.diffuse) {
+          if (mat.diffuse.r < 0.1 && mat.diffuse.g < 0.1 && mat.diffuse.b < 0.15) {
+            mat.diffuse = new pc.Color(200/255, 214/255, 229/255);
+            mat.update();
+          }
         }
       }
     });
   }
 }
 
-// ===== 3D APARTMENT ROOM =====
+// ===== Helper function to easily define custom solid colored objects =====
+function createPrimitive(type, scale, position, rotation, colorHex, opacity = 1) {
+  const ent = new pc.Entity();
+  ent.addComponent('render', { type: type });
+  ent.setLocalScale(scale.x, scale.y, scale.z);
+  ent.setLocalPosition(position.x, position.y, position.z);
+  if (rotation) {
+    ent.setLocalEulerAngles(rotation.x, rotation.y, rotation.z);
+  }
+  const mat = new pc.StandardMaterial();
+  const c = new pc.Color().setFromHex(colorHex);
+  mat.diffuse = c;
+  if (opacity < 1) {
+    mat.opacity = opacity;
+    mat.blendType = pc.BLEND_NORMAL;
+  }
+  mat.update();
+  ent.render.meshInstances[0].material = mat;
+  roomGroup.addChild(ent);
+  return ent;
+}
+
+// ===== PLAYCANVAS 3D APARTMENT ROOM =====
 function init3DRoom() {
   const canvas = document.getElementById('room-canvas');
-  scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xb0d0ff, 0.004);
+  
+  // Create PlayCanvas Application instance
+  app = new pc.Application(canvas, {
+    mouse: new pc.Mouse(canvas),
+    touch: new pc.TouchDevice(canvas),
+    elementInput: new pc.ElementInput(canvas)
+  });
+  app.start();
+  app.setCanvasFillMode(pc.FILLMODE_NONE);
+  app.setCanvasResolution(pc.RESOLUTION_AUTO);
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 2.5, 6);
-  camera.lookAt(0, 1.5, 0);
+  roomGroup = new pc.Entity('roomGroup');
+  app.root.addChild(roomGroup);
 
-  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.shadowMap.enabled = false;
+  // ===== CAMERA =====
+  cameraEntity = new pc.Entity('camera');
+  cameraEntity.addComponent('camera', {
+    clearColor: new pc.Color(176/255, 208/255, 1.0, 1)
+  });
+  cameraEntity.setPosition(0, 2.5, 6);
+  cameraEntity.setLocalEulerAngles(-14, 0, 0);
+  app.root.addChild(cameraEntity);
 
-  roomGroup = new THREE.Group();
-  scene.add(roomGroup);
+  // ===== LIGHTING =====
+  const mainLight = new pc.Entity('mainLight');
+  mainLight.addComponent('light', {
+    type: 'directional',
+    color: new pc.Color(1, 243/255, 209/255),
+    intensity: 2.4
+  });
+  mainLight.setLocalEulerAngles(45, 135, 0);
+  app.root.addChild(mainLight);
+  envLights.main = mainLight;
+
+  const ambient = new pc.Color(1, 1, 1);
+  app.scene.ambientLight = ambient;
+  envLights.ambient = true;
+
+  // Add warm secondary point lights for cozy feel
+  const warmLight1 = new pc.Entity();
+  warmLight1.addComponent('light', { type: 'point', color: new pc.Color(1, 107/255, 107/255), range: 10, intensity: 0.5 });
+  warmLight1.setPosition(5, 4, -5);
+  app.root.addChild(warmLight1);
+
+  const coolLight1 = new pc.Entity();
+  coolLight1.addComponent('light', { type: 'point', color: new pc.Color(78/255, 205/255, 196/255), range: 10, intensity: 0.5 });
+  coolLight1.setPosition(-5, 4, 5);
+  app.root.addChild(coolLight1);
 
   // ===== FLOOR =====
-  const floorGeo = new THREE.PlaneGeometry(20, 20);
-  const floorMat = new THREE.MeshBasicMaterial({ color:0x221810 });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI/2;
-  roomGroup.add(floor);
+  createPrimitive('box', new pc.Vec3(20, 0.1, 20), new pc.Vec3(0, -0.05, 0), null, '#221810');
 
   // Floor planks
   for(let i=0; i<10; i++) {
-    const plank = new THREE.Mesh(
-      new THREE.PlaneGeometry(18, 0.15),
-      new THREE.MeshBasicMaterial({ color:0x342418 })
-    );
-    plank.rotation.x = -Math.PI/2;
-    plank.position.set(0, 0.01, -9 + i*2);
-    roomGroup.add(plank);
+    createPrimitive('box', new pc.Vec3(18, 0.01, 0.15), new pc.Vec3(0, 0.01, -9 + i*2), null, '#342418');
   }
 
-  // ===== SPLIT BACK WALL TO CREATE A REAL WINDOW HOLE =====
-  // Leaving a rectangular hole from x=-2 to 2, y=3 to 6 at z=-10
-  const wallMat = new THREE.MeshBasicMaterial({ color:0x12121a, side:THREE.DoubleSide });
-
-  const backWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), wallMat);
-  backWallLeft.position.set(-6, 4, -10);
-  roomGroup.add(backWallLeft);
-
-  const backWallRight = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), wallMat);
-  backWallRight.position.set(6, 4, -10);
-  roomGroup.add(backWallRight);
-
-  const backWallBottom = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), wallMat);
-  backWallBottom.position.set(0, 1.5, -10);
-  roomGroup.add(backWallBottom);
-
-  const backWallTop = new THREE.Mesh(new THREE.PlaneGeometry(4, 2), wallMat);
-  backWallTop.position.set(0, 7, -10);
-  roomGroup.add(backWallTop);
+  // ===== WALLS =====
+  // Create beautiful segmented split wall to generate a real hole window opening
+  createPrimitive('box', new pc.Vec3(8, 8, 0.1), new pc.Vec3(-6, 4, -10), null, '#c8d6e5');
+  createPrimitive('box', new pc.Vec3(8, 8, 0.1), new pc.Vec3(6, 4, -10), null, '#c8d6e5');
+  createPrimitive('box', new pc.Vec3(4, 3, 0.1), new pc.Vec3(0, 1.5, -10), null, '#c8d6e5');
+  createPrimitive('box', new pc.Vec3(4, 2, 0.1), new pc.Vec3(0, 7, -10), null, '#c8d6e5');
 
   // Side Walls
-  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-  leftWall.position.set(-10, 4, 0);
-  leftWall.rotation.y = Math.PI/2;
-  roomGroup.add(leftWall);
+  createPrimitive('box', new pc.Vec3(0.1, 8, 20), new pc.Vec3(-10, 4, 0), null, '#c8d6e5');
+  createPrimitive('box', new pc.Vec3(0.1, 8, 20), new pc.Vec3(10, 4, 0), null, '#c8d6e5');
 
-  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-  rightWall.position.set(10, 4, 0);
-  rightWall.rotation.y = -Math.PI/2;
-  roomGroup.add(rightWall);
-
-  const frontWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(6, 8), wallMat);
-  frontWallLeft.position.set(-7, 4, 10);
-  frontWallLeft.rotation.y = Math.PI;
-  roomGroup.add(frontWallLeft);
-
-  const frontWallRight = new THREE.Mesh(new THREE.PlaneGeometry(6, 8), wallMat);
-  frontWallRight.position.set(7, 4, 10);
-  frontWallRight.rotation.y = Math.PI;
-  roomGroup.add(frontWallRight);
+  // Front Walls
+  createPrimitive('box', new pc.Vec3(6, 8, 0.1), new pc.Vec3(-7, 4, 10), null, '#c8d6e5');
+  createPrimitive('box', new pc.Vec3(6, 8, 0.1), new pc.Vec3(7, 4, 10), null, '#c8d6e5');
 
   // Ceiling
-  const ceiling = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 20),
-    new THREE.MeshBasicMaterial({ color:0x0d0d15, side:THREE.DoubleSide })
-  );
-  ceiling.position.set(0, 8, 0);
-  ceiling.rotation.x = Math.PI/2;
-  roomGroup.add(ceiling);
+  createPrimitive('box', new pc.Vec3(20, 0.1, 20), new pc.Vec3(0, 8, 0), null, '#0d0d15');
 
   // ===== WINDOW =====
-  const windowFrame = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 3, 0.1),
-    new THREE.MeshBasicMaterial({ color:0x2c3e50 })
-  );
-  windowFrame.position.set(0, 4.5, -9.95);
-  roomGroup.add(windowFrame);
-
-  const windowGlass = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.6, 2.6),
-    new THREE.MeshBasicMaterial({ color:0xb3e5fc, transparent:true, opacity:0.25, side:THREE.DoubleSide })
-  );
-  windowGlass.position.set(0, 4.5, -9.9);
-  roomGroup.add(windowGlass);
-
-  // Window cross
-  const crossV = new THREE.Mesh(
-    new THREE.BoxGeometry(0.05, 2.6, 0.05),
-    new THREE.MeshBasicMaterial({ color:0x34495e })
-  );
-  crossV.position.set(0, 4.5, -9.88);
-  roomGroup.add(crossV);
-  const crossH = new THREE.Mesh(
-    new THREE.BoxGeometry(3.6, 0.05, 0.05),
-    new THREE.MeshBasicMaterial({ color:0x34495e })
-  );
-  crossH.position.set(0, 4.5, -9.88);
-  roomGroup.add(crossH);
+  createPrimitive('box', new pc.Vec3(4, 3, 0.12), new pc.Vec3(0, 4.5, -9.95), null, '#2c3e50');
+  createPrimitive('box', new pc.Vec3(3.6, 2.6, 0.01), new pc.Vec3(0, 4.5, -9.9), null, '#b3e5fc', 0.25);
+  createPrimitive('box', new pc.Vec3(0.05, 2.6, 0.05), new pc.Vec3(0, 4.5, -9.88), null, '#34495e');
+  createPrimitive('box', new pc.Vec3(3.6, 0.05, 0.05), new pc.Vec3(0, 4.5, -9.88), null, '#34495e');
 
   // ===== SOFA =====
-  const sofaBase = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 0.8, 1.5),
-    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
-  );
-  sofaBase.position.set(-5, 0.4, -5);
-  roomGroup.add(sofaBase);
-
-  const sofaBack = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 1.2, 0.3),
-    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
-  );
-  sofaBack.position.set(-5, 1.2, -5.6);
-  roomGroup.add(sofaBack);
-
-  const sofaArmL = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.8, 1.5),
-    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
-  );
-  sofaArmL.position.set(-6.8, 0.8, -5);
-  roomGroup.add(sofaArmL);
-
-  const sofaArmR = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.8, 1.5),
-    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
-  );
-  sofaArmR.position.set(-3.2, 0.8, -5);
-  roomGroup.add(sofaArmR);
+  createPrimitive('box', new pc.Vec3(4, 0.8, 1.5), new pc.Vec3(-5, 0.4, -5), null, '#2a1a3a');
+  createPrimitive('box', new pc.Vec3(4, 1.2, 0.3), new pc.Vec3(-5, 1.2, -5.6), null, '#2a1a3a');
+  createPrimitive('box', new pc.Vec3(0.4, 0.8, 1.5), new pc.Vec3(-6.8, 0.8, -5), null, '#2a1a3a');
+  createPrimitive('box', new pc.Vec3(0.4, 0.8, 1.5), new pc.Vec3(-3.2, 0.8, -5), null, '#2a1a3a');
 
   // ===== COFFEE TABLE =====
-  const tableTop = new THREE.Mesh(
-    new THREE.CylinderGeometry(1, 1, 0.1, 16),
-    new THREE.MeshBasicMaterial({ color:0x3a2a1a })
-  );
-  tableTop.position.set(0, 0.6, -3);
-  roomGroup.add(tableTop);
-
-  const tableLeg = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.15, 0.6, 8),
-    new THREE.MeshBasicMaterial({ color:0x3a2a1a })
-  );
-  tableLeg.position.set(0, 0.3, -3);
-  roomGroup.add(tableLeg);
-
-  const tableBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.5, 0.05, 8),
-    new THREE.MeshBasicMaterial({ color:0x3a2a1a })
-  );
-  tableBase.position.set(0, 0.025, -3);
-  roomGroup.add(tableBase);
+  createPrimitive('cylinder', new pc.Vec3(2, 0.1, 2), new pc.Vec3(0, 0.6, -3), null, '#3a2a1a');
+  createPrimitive('cylinder', new pc.Vec3(0.2, 0.6, 0.2), new pc.Vec3(0, 0.3, -3), null, '#3a2a1a');
+  createPrimitive('cylinder', new pc.Vec3(1.0, 0.05, 1.0), new pc.Vec3(0, 0.025, -3), null, '#3a2a1a');
 
   // ===== 3D TELEVISION =====
-  const tvFrame = new THREE.Mesh(
-    new THREE.BoxGeometry(3.5, 2, 0.1),
-    new THREE.MeshBasicMaterial({ color:0x0f0f14 })
-  );
-  tvFrame.position.set(5, 4, -9.95);
-  roomGroup.add(tvFrame);
-
-  tvScreenMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.2, 1.7),
-    new THREE.MeshBasicMaterial({ color:0x112233 })
-  );
-  tvScreenMesh.position.set(5, 4, -9.9);
-  roomGroup.add(tvScreenMesh);
+  createPrimitive('box', new pc.Vec3(3.5, 2, 0.1), new pc.Vec3(5, 4, -9.95), null, '#0f0f14');
+  
+  tvScreenMesh = new pc.Entity('tvScreen');
+  tvScreenMesh.addComponent('render', { type: 'plane' });
+  tvScreenMesh.setLocalScale(3.2, 1, 1.7);
+  tvScreenMesh.setLocalPosition(5, 4, -9.9);
+  tvScreenMesh.setLocalEulerAngles(90, 0, 0);
+  const tvMat = new pc.StandardMaterial();
+  tvMat.diffuse = new pc.Color(17/255, 34/255, 51/255);
+  tvMat.update();
+  tvScreenMesh.render.meshInstances[0].material = tvMat;
+  roomGroup.addChild(tvScreenMesh);
 
   // ===== BOOKSHELF =====
-  const shelf = new THREE.Mesh(
-    new THREE.BoxGeometry(0.3, 5, 2),
-    new THREE.MeshBasicMaterial({ color:0x2a2015 })
-  );
-  shelf.position.set(9.5, 2.5, -5);
-  roomGroup.add(shelf);
-
-  const bookColors = [0xff6b6b, 0x4ecdc4, 0x667eea, 0xffd700, 0xff00ff, 0x00ff96];
+  createPrimitive('box', new pc.Vec3(0.3, 5, 2), new pc.Vec3(9.5, 2.5, -5), null, '#2a2015');
+  const bookColors = ['#ff6b6b', '#4ecdc4', '#667eea', '#ffd700', '#ff00ff', '#00ff96'];
   for(let i=0; i<12; i++) {
-    const book = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.6 + Math.random()*0.4, 0.15),
-      new THREE.MeshBasicMaterial({ color:bookColors[i%bookColors.length] })
-    );
-    book.position.set(9.35, 1 + (i%4)*1.2, -5.8 + (Math.floor(i/4)*0.5));
-    roomGroup.add(book);
+    const bx = 9.35;
+    const by = 1 + (i%4)*1.2;
+    const bz = -5.8 + (Math.floor(i/4)*0.5);
+    createPrimitive('box', new pc.Vec3(0.2, 0.6 + Math.random()*0.4, 0.15), new pc.Vec3(bx, by, bz), null, bookColors[i%bookColors.length]);
   }
 
-  // ===== RUG =====
-  const rug = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, 4),
-    new THREE.MeshBasicMaterial({ color:0x1a0a2e, transparent:true, opacity:0.6, side:THREE.DoubleSide })
-  );
-  rug.rotation.x = -Math.PI/2;
-  rug.position.set(0, 0.02, -2);
-  roomGroup.add(rug);
-
-  const rugInner = new THREE.Mesh(
-    new THREE.PlaneGeometry(4, 2.5),
-    new THREE.MeshBasicMaterial({ color:0x2a1040, transparent:true, opacity:0.4, side:THREE.DoubleSide })
-  );
-  rugInner.rotation.x = -Math.PI/2;
-  rugInner.position.set(0, 0.03, -2);
-  roomGroup.add(rugInner);
+  // ===== RUGS =====
+  createPrimitive('box', new pc.Vec3(6, 0.01, 4), new pc.Vec3(0, 0.01, -2), null, '#1a0a2e', 0.6);
+  createPrimitive('box', new pc.Vec3(4, 0.012, 2.5), new pc.Vec3(0, 0.011, -2), null, '#2a1040', 0.4);
 
   // ===== LAMP =====
-  const lampPole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.03, 3, 8),
-    new THREE.MeshBasicMaterial({ color:0x3a3a4a })
-  );
-  lampPole.position.set(7, 1.5, 5);
-  roomGroup.add(lampPole);
-
-  const lampShade = new THREE.Mesh(
-    new THREE.ConeGeometry(0.4, 0.5, 8, 1, true),
-    new THREE.MeshBasicMaterial({ color:0xffeedd, transparent:true, opacity:0.3, side:THREE.DoubleSide })
-  );
-  lampShade.position.set(7, 3.2, 5);
-  roomGroup.add(lampShade);
-
-  const lampBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.35, 0.1, 8),
-    new THREE.MeshBasicMaterial({ color:0x3a3a4a })
-  );
-  lampBase.position.set(7, 0.05, 5);
-  roomGroup.add(lampBase);
+  createPrimitive('cylinder', new pc.Vec3(0.06, 3, 0.06), new pc.Vec3(7, 1.5, 5), null, '#3a3a4a');
+  createPrimitive('cone', new pc.Vec3(0.8, 0.5, 0.8), new pc.Vec3(7, 3.2, 5), null, '#ffeedd', 0.3);
+  createPrimitive('cylinder', new pc.Vec3(0.6, 0.1, 0.6), new pc.Vec3(7, 0.05, 5), null, '#3a3a4a');
 
   // ===== PLANT =====
-  const pot = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.25, 0.4, 8),
-    new THREE.MeshBasicMaterial({ color:0x8B4513 })
-  );
-  pot.position.set(-8, 0.2, 5);
-  roomGroup.add(pot);
-
+  createPrimitive('cylinder', new pc.Vec3(0.6, 0.4, 0.6), new pc.Vec3(-8, 0.2, 5), null, '#8B4513');
   for(let i=0; i<5; i++) {
-    const leaf = new THREE.Mesh(
-      new THREE.SphereGeometry(0.15, 6, 6),
-      new THREE.MeshBasicMaterial({ color:0x228B22 })
-    );
     const angle = (i/5)*Math.PI*2;
-    leaf.position.set(-8 + Math.cos(angle)*0.2, 0.6 + Math.random()*0.3, 5 + Math.sin(angle)*0.2);
-    leaf.scale.set(1, 1.5, 1);
-    roomGroup.add(leaf);
+    const lx = -8 + Math.cos(angle)*0.2;
+    const ly = 0.6 + Math.random()*0.3;
+    const lz = 5 + Math.sin(angle)*0.2;
+    createPrimitive('sphere', new pc.Vec3(0.3, 0.3, 0.3), new pc.Vec3(lx, ly, lz), null, '#228B22');
   }
 
   // ===== SUN (Outside the window) =====
-  const sunGeo = new THREE.SphereGeometry(1.2, 16, 16);
-  const sunMat = new THREE.MeshBasicMaterial({ color:0xfffae0 });
-  sunMesh = new THREE.Mesh(sunGeo, sunMat);
-  sunMesh.position.set(1.5, 4.5, -15);
-  sunMesh.visible = false;
-  roomGroup.add(sunMesh);
+  sunMesh = createPrimitive('sphere', new pc.Vec3(2.4, 2.4, 2.4), new pc.Vec3(1.5, 4.5, -15), null, '#fffae0');
+  
+  // Sky Sphere
+  skyMesh = createPrimitive('sphere', new pc.Vec3(100, 100, 100), new pc.Vec3(0, 0, 0), null, '#5ca5e6');
+  skyMesh.render.meshInstances[0].material.cull = pc.CULLFACE_FRONT;
+  skyMesh.render.meshInstances[0].material.update();
 
-  const sunGlowGeo = new THREE.SphereGeometry(2.5, 16, 16);
-  const sunGlowMat = new THREE.MeshBasicMaterial({ color:0xffaa00, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending });
-  const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
-  sunGlow.position.copy(sunMesh.position);
-  sunMesh.add(sunGlow);
-
-  // ===== SKY DOME =====
-  const skyGeo = new THREE.SphereGeometry(50, 16, 16);
-  const skyMat = new THREE.MeshBasicMaterial({ color:0x5ca5e6, transparent:true, opacity:0.3, side:THREE.BackSide });
-  skyMesh = new THREE.Mesh(skyGeo, skyMat);
-  skyMesh.visible = false;
-  roomGroup.add(skyMesh);
-
-  // ===== LIGHTS =====
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-  scene.add(ambientLight); envLights.ambient = ambientLight;
-
-  const pointLight = new THREE.PointLight(0xfff3d1, 2.4, 25);
-  pointLight.position.set(1.5, 4.5, -5);
-  scene.add(pointLight); envLights.main = pointLight;
-
-  animate();
-
-  window.addEventListener('resize',()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  // Default Bright Day Environment On Launch
   setEnvironment('day');
 
-  // Touch orbit
-  let isDragging = false, prevX = 0, prevY = 0, rotX = 0, rotY = 0;
+  // Touch & Mouse camera drag rotations
+  let rotY = 0, rotX = 0;
+  let isDragging = false, prevX = 0, prevY = 0;
 
-  canvas.addEventListener('touchstart',e=>{
-    isDragging = true;
-    prevX = e.touches[0].clientX;
-    prevY = e.touches[0].clientY;
-  },{passive:true});
+  const dragStart = (cx, cy) => { isDragging = true; prevX = cx; prevY = cy; };
+  const dragMove = (cx, cy) => {
+    if (!isDragging) return;
+    const dx = cx - prevX;
+    const dy = cy - prevY;
+    rotY += dx * 0.4;
+    rotX += dy * 0.4;
+    rotX = Math.max(-30, Math.min(30, rotX));
+    
+    const rY = rotY * Math.PI / 180;
+    const rX = rotX * Math.PI / 180;
+    const dist = 6;
+    const posX = Math.sin(rY) * Math.cos(rX) * dist;
+    const posZ = Math.cos(rY) * Math.cos(rX) * dist;
+    const posY = 2.5 + Math.sin(rX) * dist;
+    cameraEntity.setPosition(posX, posY, posZ);
+    cameraEntity.lookAt(0, 1.5, 0);
 
-  canvas.addEventListener('touchmove',e=>{
-    if(!isDragging) return;
-    const dx = e.touches[0].clientX - prevX;
-    const dy = e.touches[0].clientY - prevY;
-    rotY += dx*0.008;
-    rotX += dy*0.008;
-    rotX = Math.max(-0.5, Math.min(0.5, rotX));
-    camera.position.x = Math.sin(rotY)*6;
-    camera.position.z = Math.cos(rotY)*6;
-    camera.position.y = 2.5 + rotX*3;
-    camera.lookAt(0,1.5,0);
-    prevX = e.touches[0].clientX;
-    prevY = e.touches[0].clientY;
-  },{passive:true});
+    prevX = cx; prevY = cy;
+  };
 
-  canvas.addEventListener('touchend',()=>isDragging=false);
+  canvas.addEventListener('mousedown', e => dragStart(e.clientX, e.clientY));
+  canvas.addEventListener('mousemove', e => dragMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', () => isDragging = false);
 
-  // Mouse orbit
-  canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
-  canvas.addEventListener('mousemove',e=>{
-    if(!isDragging) return;
-    const dx=e.clientX-prevX, dy=e.clientY-prevY;
-    rotY+=dx*0.008; rotX+=dy*0.008;
-    rotX=Math.max(-0.5,Math.min(0.5,rotX));
-    camera.position.x=Math.sin(rotY)*6; camera.position.z=Math.cos(rotY)*6; camera.position.y=2.5+rotX*3;
-    camera.lookAt(0,1.5,0); prevX=e.clientX; prevY=e.clientY;
-  });
-  canvas.addEventListener('mouseup',()=>isDragging=false);
-}
+  canvas.addEventListener('touchstart', e => { if (e.touches.length > 0) dragStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  canvas.addEventListener('touchmove', e => { if (e.touches.length > 0) dragMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  canvas.addEventListener('touchend', () => isDragging = false);
 
-function animate() {
-  animationId = requestAnimationFrame(animate);
-  const time = Date.now()*0.001;
+  window.addEventListener('resize', () => app.resizeCanvas());
 
-  // Float messages
-  messages3D.forEach((m,i)=>{
-    if(m.mesh) {
-      m.mesh.position.y = m.baseY + Math.sin(time+i)*0.3;
-      m.mesh.rotation.y = Math.sin(time*0.5+i)*0.1;
+  // Picker/Click checking using basic screenToWorld raycasting
+  const pickerRay = new pc.Ray();
+  const pick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    
+    cameraEntity.camera.screenToWorld(cx, cy, cameraEntity.camera.farClip, pickerRay.direction);
+    pickerRay.origin.copy(cameraEntity.getPosition());
+    pickerRay.direction.sub(pickerRay.origin).normalize();
+
+    const distToRay = (point, ray) => {
+      const v = new pc.Vec3().copy(point).sub(ray.origin);
+      const proj = v.dot(ray.direction);
+      if (proj < 0) return Infinity;
+      const projV = new pc.Vec3().copy(ray.direction).scale(proj);
+      return new pc.Vec3().copy(v).sub(projV).length();
+    };
+
+    // TV Trigger Click
+    if (distToRay(new pc.Vec3(5, 4, -9.9), pickerRay) < 1.8) {
+      openTvModal();
+      return;
+    }
+
+    // Media Click Checking
+    for (let obj of mediaObjects) {
+      if (obj.mesh) {
+        if (distToRay(obj.mesh.getPosition(), pickerRay) < 1.5) {
+          openMedia(obj.url, obj.type);
+          return;
+        }
+      }
+    }
+
+    // Partner Avatar Click Checking
+    for (let key in avatar3DObjects) {
+      const avatar = avatar3DObjects[key];
+      if (avatar && avatar.mesh) {
+        avatar.mesh.children.forEach(child => {
+          if (child.userData && child.userData.isAvatarImage && child.userData.avatarUrl) {
+            if (distToRay(child.getPosition(), pickerRay) < 1.0) {
+              openAvatarViewer(child.userData.avatarUrl);
+              return;
+            }
+          }
+        });
+      }
+    }
+  };
+  canvas.addEventListener('click', pick);
+
+  // Core Render Update loop
+  app.on('update', (dt) => {
+    const time = Date.now() * 0.001;
+
+    // Float messages
+    messages3D.forEach((m, i) => {
+      if (m.mesh) {
+        m.mesh.setLocalPosition(
+          m.mesh.getLocalPosition().x,
+          m.baseY + Math.sin(time + i) * 0.3,
+          m.mesh.getLocalPosition().z
+        );
+        m.mesh.setLocalEulerAngles(90, Math.sin(time * 0.5 + i) * 5, 0);
+      }
+    });
+
+    // Float media
+    mediaObjects.forEach((m, i) => {
+      if (m.mesh) {
+        m.mesh.setLocalPosition(
+          m.mesh.getLocalPosition().x,
+          m.baseY + Math.sin(time * 0.8 + i) * 0.2,
+          m.mesh.getLocalPosition().z
+        );
+        m.mesh.rotate(0, 0, 10 * dt);
+      }
+    });
+
+    // Animate gestures
+    gestureAnimations.forEach(gesture => {
+      const age = Date.now() - gesture.startTime;
+      const progress = age / gesture.duration;
+      if (progress > 1) return;
+      const py = gesture.baseY + Math.sin(progress * Math.PI * 4) * 0.5;
+      gesture.mesh.setLocalPosition(0, py, -4);
+      const scaleScalar = 1 + Math.sin(progress * Math.PI) * 0.3;
+      gesture.mesh.setLocalScale(scaleScalar, 1, scaleScalar);
+      
+      const mat = gesture.mesh.render.meshInstances[0].material;
+      mat.opacity = 1 - progress;
+      mat.update();
+    });
+
+    // Float drawings
+    drawings3D.forEach(d => {
+      if (d.mesh) {
+        d.mesh.setLocalPosition(
+          d.mesh.getLocalPosition().x,
+          d.baseY + Math.sin(time + d.createdAt * 0.001) * 0.15,
+          d.mesh.getLocalPosition().z
+        );
+      }
+    });
+
+    // Animate partner avatar
+    roomGroup.children.forEach(child => {
+      if (child.userData && child.userData.isPartnerAvatar) {
+        child.setLocalPosition(
+          child.getLocalPosition().x,
+          child.userData.baseY + Math.sin(time * 1.5) * 0.2,
+          child.getLocalPosition().z
+        );
+      }
+    });
+
+    // Share TV video texture frame upload
+    if (tvVideo && tvVideo.readyState >= 2 && tvVideoTexture) {
+      tvVideoTexture.upload();
     }
   });
-
-  // Float media
-  mediaObjects.forEach((m,i)=>{
-    if(m.mesh) {
-      m.mesh.position.y = m.baseY + Math.sin(time*0.8+i)*0.2;
-      m.mesh.rotation.y += 0.005;
-    }
-  });
-
-  // Animate gestures
-  gestureAnimations.forEach(gesture=>{
-    const age = Date.now() - gesture.startTime;
-    const progress = age / gesture.duration;
-    if(progress > 1) return;
-    gesture.mesh.position.y = gesture.baseY + Math.sin(progress * Math.PI * 4) * 0.5;
-    gesture.mesh.scale.setScalar(1 + Math.sin(progress * Math.PI) * 0.3);
-    gesture.mesh.material.opacity = 1 - progress;
-    gesture.mesh.material.transparent = true;
-  });
-
-  // Float drawings
-  drawings3D.forEach(d=>{
-    if(d.mesh) d.mesh.position.y = d.baseY + Math.sin(time + d.createdAt*0.001)*0.15;
-  });
-
-  // Animate partner avatar
-  roomGroup.children.forEach(child=>{
-    if(child.userData && child.userData.isPartnerAvatar) {
-      child.position.y = child.userData.baseY + Math.sin(time*1.5)*0.2;
-    }
-  });
-
-  renderer.render(scene, camera);
 }
 
 function add3DTextBubble(text) {
@@ -2176,18 +2194,40 @@ function add3DTextBubble(text) {
   ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'center';
   ctx.fillText(text.substring(0,35), 256, 75);
-  const texture = new THREE.CanvasTexture(canvas2d);
-  const geo = new THREE.PlaneGeometry(4,1);
-  const mat = new THREE.MeshBasicMaterial({map:texture, transparent:true, side:THREE.DoubleSide});
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set((Math.random()-0.5)*7, 1.5+Math.random()*3, (Math.random()-0.5)*7);
-  mesh.lookAt(camera.position);
+  
+  const texture = new pc.Texture(app.graphicsDevice, {
+    format: pc.PIXELFORMAT_R8_G8_B8_A8,
+    autoMipmap: true
+  });
+  texture.setSource(canvas2d);
+  
+  const mesh = new pc.Entity('textBubble');
+  mesh.addComponent('render', { type: 'plane' });
+  mesh.setLocalScale(4, 1, 1);
+  mesh.setLocalEulerAngles(90, 0, 0);
+  
+  const rx = (Math.random()-0.5)*7;
+  const ry = 1.5+Math.random()*3;
+  const rz = (Math.random()-0.5)*7;
+  mesh.setLocalPosition(rx, ry, rz);
+  
+  const mat = new pc.StandardMaterial();
+  mat.diffuseMap = texture;
+  mat.blendType = pc.BLEND_NORMAL;
+  mat.useLighting = false;
+  mat.update();
+  mesh.render.meshInstances[0].material = mat;
+  
   mesh.userData = { isMessage: true };
-  roomGroup.add(mesh);
-  messages3D.push({mesh, baseY:mesh.position.y});
+  roomGroup.addChild(mesh);
+  
+  messages3D.push({mesh: mesh, baseY: ry});
   if(messages3D.length>10){
     const old = messages3D.shift();
-    if(old.mesh) { roomGroup.remove(old.mesh); old.mesh.geometry.dispose(); old.mesh.material.dispose(); }
+    if(old.mesh) {
+      roomGroup.removeChild(old.mesh);
+      old.mesh.destroy();
+    }
   }
 }
 
@@ -2196,38 +2236,75 @@ function createPartner3DAvatar(data) {
   if(!roomGroup) return;
   const uid = data.uid || currentPartner.uid;
   if(avatar3DObjects[uid]) {
-    if(avatar3DObjects[uid].mesh) roomGroup.remove(avatar3DObjects[uid].mesh);
+    if(avatar3DObjects[uid].mesh) {
+      roomGroup.removeChild(avatar3DObjects[uid].mesh);
+      avatar3DObjects[uid].mesh.destroy();
+    }
     delete avatar3DObjects[uid];
   }
 
-  const avatarGroup = new THREE.Group();
+  const avatarGroup = new pc.Entity('avatarGroup');
 
   // Platform
-  const platformGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.08, 16);
-  const platformMat = new THREE.MeshBasicMaterial({ color:0x667eea, transparent:true, opacity:0.5 });
-  const platform = new THREE.Mesh(platformGeo, platformMat);
-  platform.position.set(0, 0.04, -4);
-  avatarGroup.add(platform);
+  const platform = new pc.Entity('platform');
+  platform.addComponent('render', { type: 'cylinder' });
+  platform.setLocalScale(1.4, 0.08, 1.4);
+  platform.setLocalPosition(0, 0.04, -4);
+  const platMat = new pc.StandardMaterial();
+  platMat.diffuse = new pc.Color(102/255, 126/255, 234/255);
+  platMat.opacity = 0.5;
+  platMat.blendType = pc.BLEND_NORMAL;
+  platMat.update();
+  platform.render.meshInstances[0].material = platMat;
+  avatarGroup.addChild(platform);
 
-  // Avatar image or letter
+  const finishAvatarImage = (texture) => {
+    const mesh = new pc.Entity('avatarImg');
+    mesh.addComponent('render', { type: 'plane' });
+    mesh.setLocalScale(1.2, 1, 1.2);
+    mesh.setLocalEulerAngles(90, 0, 0);
+    mesh.setLocalPosition(0, 1.1, -4);
+    
+    const mat = new pc.StandardMaterial();
+    mat.diffuseMap = texture;
+    mat.cull = pc.CULLFACE_NONE;
+    mat.update();
+    mesh.render.meshInstances[0].material = mat;
+    
+    mesh.userData = {isPartnerAvatar:true, baseY:1.1, isAvatarImage:true, avatarUrl:data.avatar};
+    avatarGroup.addChild(mesh);
+  };
+
+  // Avatar image or default letter
   if(data.avatar) {
-    const loader = new THREE.TextureLoader();
-    loader.load(data.avatar, texture=>{
-      const imgW = texture.image.width;
-      const imgH = texture.image.height;
-      const aspect = imgW / imgH;
-      let w = 1.2, h = 1.2;
-      if(aspect > 1) { h = w / aspect; }
-      else { w = h * aspect; }
-      const geo = new THREE.PlaneGeometry(w, h);
-      const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(0, 1.1, -4);
-      mesh.userData = {isPartnerAvatar:true, baseY:1.1, isAvatarImage:true, avatarUrl:data.avatar};
-      avatarGroup.add(mesh);
-    }, undefined, ()=>{ createAvatarLetter(data, avatarGroup); });
+    const img = new Image();
+    img.src = data.avatar;
+    img.onload = () => {
+      const texture = new pc.Texture(app.graphicsDevice, {
+        format: pc.PIXELFORMAT_R8_G8_B8_A8,
+        autoMipmap: true
+      });
+      texture.setSource(img);
+      finishAvatarImage(texture);
+    };
   } else {
-    createAvatarLetter(data, avatarGroup);
+    const letter = (data.displayName||data.username||'U').charAt(0).toUpperCase();
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#667eea';
+    ctx.fillRect(0,0,128,128);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 64px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(letter, 64, 64);
+    
+    const texture = new pc.Texture(app.graphicsDevice, {
+      format: pc.PIXELFORMAT_R8_G8_B8_A8,
+      autoMipmap: true
+    });
+    texture.setSource(canvas);
+    finishAvatarImage(texture);
   }
 
   // Name label
@@ -2240,66 +2317,72 @@ function createPartner3DAvatar(data) {
   nctx.font = 'bold 18px Arial';
   nctx.textAlign = 'center'; nctx.textBaseline = 'middle';
   nctx.fillText((data.displayName||data.username||'User'), 128, 28);
-  const nameTexture = new THREE.CanvasTexture(nameCanvas);
-  const nameGeo = new THREE.PlaneGeometry(1.8, 0.4);
-  const nameMat = new THREE.MeshBasicMaterial({map:nameTexture, transparent:true, side:THREE.DoubleSide});
-  const nameMesh = new THREE.Mesh(nameGeo, nameMat);
-  nameMesh.position.set(0, 2.0, -4);
+  
+  const nameTexture = new pc.Texture(app.graphicsDevice, {
+    format: pc.PIXELFORMAT_R8_G8_B8_A8,
+    autoMipmap: true
+  });
+  nameTexture.setSource(nameCanvas);
+  
+  const nameMesh = new pc.Entity('nameLabel');
+  nameMesh.addComponent('render', { type: 'plane' });
+  nameMesh.setLocalScale(1.8, 1, 0.4);
+  nameMesh.setLocalEulerAngles(90, 0, 0);
+  nameMesh.setLocalPosition(0, 2.0, -4);
+  
+  const nameMat = new pc.StandardMaterial();
+  nameMat.diffuseMap = nameTexture;
+  nameMat.blendType = pc.BLEND_NORMAL;
+  nameMat.useLighting = false;
+  nameMat.cull = pc.CULLFACE_NONE;
+  nameMat.update();
+  nameMesh.render.meshInstances[0].material = nameMat;
   nameMesh.userData = {isPartnerAvatar:true, baseY:2.0};
-  avatarGroup.add(nameMesh);
+  avatarGroup.addChild(nameMesh);
 
   // Status indicator
   const isOnline = data.online === true;
-  const statusColor = isOnline ? 0x22c55e : 0x6b7280;
-  const statusGeo = new THREE.SphereGeometry(0.12, 8, 8);
-  const statusMat = new THREE.MeshBasicMaterial({color:statusColor});
-  const statusMesh = new THREE.Mesh(statusGeo, statusMat);
-  statusMesh.position.set(0.55, 1.85, -4);
+  const statusColorHex = isOnline ? '#22c55e' : '#6b7280';
+  const statusMesh = new pc.Entity('statusIndicator');
+  statusMesh.addComponent('render', { type: 'sphere' });
+  statusMesh.setLocalScale(0.24, 0.24, 0.24);
+  statusMesh.setLocalPosition(0.55, 1.85, -4);
+  
+  const statusMat = new pc.StandardMaterial();
+  statusMat.diffuse = new pc.Color().setFromHex(statusColorHex);
+  statusMat.update();
+  statusMesh.render.meshInstances[0].material = statusMat;
   statusMesh.userData = {isPartnerAvatar:true, baseY:1.85, isStatus:true};
-  avatarGroup.add(statusMesh);
+  avatarGroup.addChild(statusMesh);
 
-  // Online glow ring
+  // Online platform glow ring
   if(isOnline) {
-    const glowGeo = new THREE.RingGeometry(0.8, 0.9, 16);
-    const glowMat = new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0.2, side:THREE.DoubleSide});
-    const glow = new THREE.Mesh(glowGeo, glowMat);
-    glow.rotation.x = -Math.PI/2;
-    glow.position.set(0, 0.05, -4);
-    avatarGroup.add(glow);
+    const glow = new pc.Entity('glowRing');
+    glow.addComponent('render', { type: 'cylinder' });
+    glow.setLocalScale(1.8, 0.01, 1.8);
+    glow.setLocalPosition(0, 0.05, -4);
+    const glowMat = new pc.StandardMaterial();
+    glowMat.diffuse = new pc.Color().setFromHex('#22c55e');
+    glowMat.opacity = 0.2;
+    glowMat.blendType = pc.BLEND_NORMAL;
+    glowMat.update();
+    glow.render.meshInstances[0].material = glowMat;
+    avatarGroup.addChild(glow);
   }
 
-  roomGroup.add(avatarGroup);
+  roomGroup.addChild(avatarGroup);
   avatar3DObjects[uid] = {mesh:avatarGroup, data:data};
-}
-
-function createAvatarLetter(data, group) {
-  const letter = (data.displayName||data.username||'U').charAt(0).toUpperCase();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = 128; canvas.height = 128;
-  ctx.fillStyle = '#667eea';
-  ctx.fillRect(0,0,128,128);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 64px Arial';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(letter, 64, 64);
-  const texture = new THREE.CanvasTexture(canvas);
-  const geo = new THREE.PlaneGeometry(1.1, 1.1);
-  const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(0, 1.1, -4);
-  mesh.userData = {isPartnerAvatar:true, baseY:1.1};
-  group.add(mesh);
 }
 
 function updatePartner3DAvatar(data) {
   const uid = data.uid || currentPartner.uid;
   if(!avatar3DObjects[uid]) return;
-  avatar3DObjects[uid].mesh.traverse(child=>{
+  avatar3DObjects[uid].mesh.children.forEach(child => {
     if(child.userData && child.userData.isStatus) {
       const isOnline = data.online === true;
-      const statusColor = isOnline ? 0x22c55e : 0x6b7280;
-      child.material.color.setHex(statusColor);
+      const statusColorHex = isOnline ? '#22c55e' : '#6b7280';
+      child.render.meshInstances[0].material.diffuse = new pc.Color().setFromHex(statusColorHex);
+      child.render.meshInstances[0].material.update();
     }
   });
   if(data.avatar && data.avatar !== avatar3DObjects[uid].data.avatar) {
@@ -2308,42 +2391,43 @@ function updatePartner3DAvatar(data) {
   }
 }
 
-// ===== 3D ROTATABLE MEDIA & AVATAR VIEWERS =====
-function openMedia(url, type) {
-  const viewer = document.getElementById('mediaViewer');
-  const container = document.getElementById('media3d');
-  container.innerHTML = '';
-  viewer.classList.add('active');
-
+// ===== PINCH ZOOMABLE ROTATABLE 3D MEDIA & AVATAR VIEWERS =====
+function create3DViewer(canvasId, url, type) {
   const canvas = document.createElement('canvas');
   canvas.style.width = '100%';
   canvas.style.height = '100%';
-  container.appendChild(canvas);
-
-  mediaViewerScene = new THREE.Scene();
-  mediaViewerCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
-  mediaViewerCamera.position.z = 3;
-
-  mediaViewerRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-  mediaViewerRenderer.setSize(container.clientWidth, container.clientHeight);
-  mediaViewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-
-  const light = new THREE.AmbientLight(0xffffff, 1.0);
-  mediaViewerScene.add(light);
-
-  const textureLoader = new THREE.TextureLoader();
-
-  const setupMesh = (texture) => {
-    const imgW = texture.image ? texture.image.width : 320;
-    const imgH = texture.image ? texture.image.height : 180;
-    const aspect = imgW / imgH;
-    let w = 2.2, h = 2.2;
-    if (aspect > 1) { h = w / aspect; } else { w = h * aspect; }
-
-    const geo = new THREE.PlaneGeometry(w, h);
-    const mat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-    mediaViewerMesh = new THREE.Mesh(geo, mat);
-    mediaViewerScene.add(mediaViewerMesh);
+  document.getElementById(canvasId).appendChild(canvas);
+  
+  const viewerApp = new pc.Application(canvas, {
+    mouse: new pc.Mouse(canvas),
+    touch: new pc.TouchDevice(canvas)
+  });
+  viewerApp.start();
+  viewerApp.setCanvasFillMode(pc.FILLMODE_NONE);
+  viewerApp.setCanvasResolution(pc.RESOLUTION_AUTO);
+  
+  const camera = new pc.Entity('camera');
+  camera.addComponent('camera', { clearColor: new pc.Color(0,0,0,1) });
+  camera.setPosition(0, 0, 3);
+  viewerApp.root.addChild(camera);
+  
+  const light = new pc.Entity('light');
+  light.addComponent('light', { type: 'directional', color: new pc.Color(1,1,1) });
+  light.setLocalEulerAngles(45, 135, 0);
+  viewerApp.root.addChild(light);
+  
+  const mesh = new pc.Entity('mediaPlane');
+  mesh.addComponent('render', { type: 'plane' });
+  mesh.setLocalEulerAngles(90, 0, 0);
+  viewerApp.root.addChild(mesh);
+  
+  const setupTexture = (texture) => {
+    const mat = new pc.StandardMaterial();
+    mat.diffuseMap = texture;
+    mat.useLighting = false;
+    mat.cull = pc.CULLFACE_NONE;
+    mat.update();
+    mesh.render.meshInstances[0].material = mat;
   };
 
   if (type === 'video') {
@@ -2354,240 +2438,117 @@ function openMedia(url, type) {
     vid.muted = true;
     vid.playsInline = true;
     vid.crossOrigin = 'anonymous';
-    mediaVideoElementFor3D = vid;
     vid.onloadeddata = () => {
-      const texture = new THREE.VideoTexture(vid);
-      setupMesh(texture);
+      const texture = new pc.Texture(viewerApp.graphicsDevice, {
+        format: pc.PIXELFORMAT_R8_G8_B8,
+        autoMipmap: false
+      });
+      texture.setSource(vid);
+      setupTexture(texture);
       vid.play().catch(()=>{});
+      viewerApp.on('update', () => texture.upload());
     };
     vid.load();
+    viewerApp._videoElement = vid;
   } else {
-    textureLoader.load(url, (texture) => {
-      setupMesh(texture);
-    });
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      const texture = new pc.Texture(viewerApp.graphicsDevice, {
+        format: pc.PIXELFORMAT_R8_G8_B8_A8,
+        autoMipmap: true
+      });
+      texture.setSource(img);
+      setupTexture(texture);
+    };
   }
-
+  
   let isDragging = false;
   let prevX = 0, prevY = 0;
-  let zoomScale = 1;
-
-  const onPointerDown = (e) => {
-    isDragging = true;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    prevX = clientX;
-    prevY = clientY;
+  let scale = 1;
+  
+  const dragStart = (cx, cy) => { isDragging = true; prevX = cx; prevY = cy; };
+  const dragMove = (cx, cy) => {
+    if(!isDragging) return;
+    const dx = cx - prevX;
+    const dy = cy - prevY;
+    mesh.rotate(dy * 0.4, dx * 0.4, 0);
+    prevX = cx; prevY = cy;
   };
-
-  const onPointerMove = (e) => {
-    if (!isDragging || !mediaViewerMesh) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = clientX - prevX;
-    const dy = clientY - prevY;
-
-    mediaViewerMesh.rotation.y += dx * 0.01;
-    mediaViewerMesh.rotation.x += dy * 0.01;
-
-    prevX = clientX;
-    prevY = clientY;
+  
+  canvas.addEventListener('mousedown', e => dragStart(e.clientX, e.clientY));
+  canvas.addEventListener('mousemove', e => dragMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', () => isDragging = false);
+  
+  canvas.addEventListener('touchstart', e => { if (e.touches.length > 0) dragStart(e.touches[0].clientX, e.touches[0].clientY); });
+  canvas.addEventListener('touchmove', e => { if (e.touches.length > 0) dragMove(e.touches[0].clientX, e.touches[0].clientY); });
+  canvas.addEventListener('touchend', () => isDragging = false);
+  
+  const zoom = (delta) => {
+    scale += delta;
+    scale = Math.max(0.3, Math.min(4, scale));
+    camera.setPosition(0, 0, 3 / scale);
   };
-
-  const onPointerUp = () => { isDragging = false; };
-
-  canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('mouseup', onPointerUp);
-
-  canvas.addEventListener('touchstart', onPointerDown, { passive: true });
-  canvas.addEventListener('touchmove', onPointerMove, { passive: true });
-  canvas.addEventListener('touchend', onPointerUp);
-
+  
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoom(e.deltaY * -0.001);
+  }, {passive: false});
+  
   let lastDist = 0;
   canvas.addEventListener('touchmove', e => {
     if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       if (lastDist > 0) {
-        const delta = dist - lastDist;
-        zoomScale += delta * 0.005;
-        zoomScale = Math.max(0.3, Math.min(4, zoomScale));
-        mediaViewerCamera.position.z = 3 / zoomScale;
+        zoom((dist - lastDist) * 0.005);
       }
       lastDist = dist;
     }
-  }, { passive: false });
-
-  canvas.addEventListener('touchend', e => {
-    if (e.touches.length < 2) lastDist = 0;
   });
+  canvas.addEventListener('touchend', () => { lastDist = 0; });
+  
+  window.addEventListener('resize', () => viewerApp.resizeCanvas());
+  
+  return viewerApp;
+}
 
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    zoomScale += e.deltaY * -0.001;
-    zoomScale = Math.max(0.3, Math.min(4, zoomScale));
-    mediaViewerCamera.position.z = 3 / zoomScale;
-  }, { passive: false });
-
-  const animateMediaViewer = () => {
-    mediaViewerAnimationId = requestAnimationFrame(animateMediaViewer);
-    if (mediaViewerRenderer) {
-      mediaViewerRenderer.render(mediaViewerScene, mediaViewerCamera);
-    }
-  };
-  animateMediaViewer();
-
-  const resizeMedia = () => {
-    if (!mediaViewerRenderer) return;
-    mediaViewerCamera.aspect = container.clientWidth / container.clientHeight;
-    mediaViewerCamera.updateProjectionMatrix();
-    mediaViewerRenderer.setSize(container.clientWidth, container.clientHeight);
-  };
-  window.addEventListener('resize', resizeMedia);
+function openMedia(url, type) {
+  closeMedia();
+  const viewer = document.getElementById('mediaViewer');
+  viewer.classList.add('active');
+  activeMediaViewerApp = create3DViewer('media3d', url, type);
 }
 
 function closeMedia() {
   document.getElementById('mediaViewer').classList.remove('active');
-  cancelAnimationFrame(mediaViewerAnimationId);
-  if (mediaVideoElementFor3D) {
-    mediaVideoElementFor3D.pause();
-    mediaVideoElementFor3D = null;
+  if (activeMediaViewerApp) {
+    if (activeMediaViewerApp._videoElement) {
+      activeMediaViewerApp._videoElement.pause();
+      activeMediaViewerApp._videoElement.remove();
+    }
+    activeMediaViewerApp.destroy();
+    activeMediaViewerApp = null;
   }
-  if (mediaViewerRenderer) {
-    mediaViewerRenderer.dispose();
-    mediaViewerRenderer = null;
-  }
-  mediaViewerScene = null;
-  mediaViewerCamera = null;
-  mediaViewerMesh = null;
   document.getElementById('media3d').innerHTML = '';
 }
 
 function openAvatarViewer(url) {
+  closeAvatarViewer();
   const viewer = document.getElementById('avatarViewer');
-  const container = document.getElementById('avatar3d');
-  container.innerHTML = '';
   viewer.classList.add('active');
-
-  const canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  container.appendChild(canvas);
-
-  avatarViewerScene = new THREE.Scene();
-  avatarViewerCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
-  avatarViewerCamera.position.z = 3;
-
-  avatarViewerRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-  avatarViewerRenderer.setSize(container.clientWidth, container.clientHeight);
-  avatarViewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-
-  const light = new THREE.AmbientLight(0xffffff, 1.0);
-  avatarViewerScene.add(light);
-
-  const loader = new THREE.TextureLoader();
-  loader.load(url, texture => {
-    const imgW = texture.image.width;
-    const imgH = texture.image.height;
-    const aspect = imgW / imgH;
-    let w = 2.2, h = 2.2;
-    if (aspect > 1) { h = w / aspect; } else { w = h * aspect; }
-
-    const geo = new THREE.PlaneGeometry(w, h);
-    const mat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-    avatarViewerMesh = new THREE.Mesh(geo, mat);
-    avatarViewerScene.add(avatarViewerMesh);
-  });
-
-  let isDragging = false;
-  let prevX = 0, prevY = 0;
-  let zoomScale = 1;
-
-  const onPointerDown = (e) => {
-    isDragging = true;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    prevX = clientX;
-    prevY = clientY;
-  };
-
-  const onPointerMove = (e) => {
-    if (!isDragging || !avatarViewerMesh) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = clientX - prevX;
-    const dy = clientY - prevY;
-
-    avatarViewerMesh.rotation.y += dx * 0.01;
-    avatarViewerMesh.rotation.x += dy * 0.01;
-
-    prevX = clientX;
-    prevY = clientY;
-  };
-
-  const onPointerUp = () => { isDragging = false; };
-
-  canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('mouseup', onPointerUp);
-
-  canvas.addEventListener('touchstart', onPointerDown, { passive: true });
-  canvas.addEventListener('touchmove', onPointerMove, { passive: true });
-  canvas.addEventListener('touchend', onPointerUp);
-
-  let lastDist = 0;
-  canvas.addEventListener('touchmove', e => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      if (lastDist > 0) {
-        const delta = dist - lastDist;
-        zoomScale += delta * 0.005;
-        zoomScale = Math.max(0.3, Math.min(4, zoomScale));
-        avatarViewerCamera.position.z = 3 / zoomScale;
-      }
-      lastDist = dist;
-    }
-  }, { passive: false });
-
-  canvas.addEventListener('touchend', e => {
-    if (e.touches.length < 2) lastDist = 0;
-  });
-
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    zoomScale += e.deltaY * -0.001;
-    zoomScale = Math.max(0.3, Math.min(4, zoomScale));
-    avatarViewerCamera.position.z = 3 / zoomScale;
-  }, { passive: false });
-
-  const animateAvatarViewer = () => {
-    avatarViewerAnimationId = requestAnimationFrame(animateAvatarViewer);
-    if (avatarViewerRenderer) {
-      avatarViewerRenderer.render(avatarViewerScene, avatarViewerCamera);
-    }
-  };
-  animateAvatarViewer();
+  activeAvatarViewerApp = create3DViewer('avatar3d', url, 'image');
 }
 
 function closeAvatarViewer() {
   document.getElementById('avatarViewer').classList.remove('active');
-  cancelAnimationFrame(avatarViewerAnimationId);
-  if (avatarViewerRenderer) {
-    avatarViewerRenderer.dispose();
-    avatarViewerRenderer = null;
+  if (activeAvatarViewerApp) {
+    activeAvatarViewerApp.destroy();
+    activeAvatarViewerApp = null;
   }
-  avatarViewerScene = null;
-  avatarViewerCamera = null;
-  avatarViewerMesh = null;
   document.getElementById('avatar3d').innerHTML = '';
 }
 
-// ===== MEDIA =====
+// ===== MEDIA MOUNTING =====
 function triggerFile() {
   document.getElementById('fileInput').accept = 'image/*';
   document.getElementById('fileInput').click();
@@ -2619,6 +2580,28 @@ function handleFile(input) {
 
 function create3DMedia(url, type, isOwn) {
   if(!roomGroup) return;
+  const finishMedia = (texture) => {
+    const mesh = new pc.Entity('mediaPlane');
+    mesh.addComponent('render', { type: 'plane' });
+    mesh.setLocalScale(2.5, 1, 1.4);
+    mesh.setLocalEulerAngles(90, 0, 0);
+    const rx = (Math.random()-0.5)*5;
+    const ry = 2+Math.random()*2;
+    const rz = (Math.random()-0.5)*5;
+    mesh.setLocalPosition(rx, ry, rz);
+    
+    const mat = new pc.StandardMaterial();
+    mat.diffuseMap = texture;
+    mat.useLighting = false;
+    mat.cull = pc.CULLFACE_NONE;
+    mat.update();
+    mesh.render.meshInstances[0].material = mat;
+    
+    mesh.userData = {url:url, type:type};
+    roomGroup.addChild(mesh);
+    mediaObjects.push({mesh, baseY: ry, url, type});
+  };
+
   if(type === 'video') {
     const video = document.createElement('video');
     video.src = url; video.crossOrigin = 'anonymous';
@@ -2627,65 +2610,28 @@ function create3DMedia(url, type, isOwn) {
       canvas.width = 256; canvas.height = 144;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, 256, 144);
-      const thumbUrl = canvas.toDataURL();
-      const loader = new THREE.TextureLoader();
-      loader.load(thumbUrl, texture=>{
-        const w = 2.5; const h = w * 0.56;
-        const geo = new THREE.PlaneGeometry(w, h);
-        const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
-        mesh.userData = {url:url, type:type};
-        roomGroup.add(mesh);
-        mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
+      
+      const texture = new pc.Texture(app.graphicsDevice, {
+        format: pc.PIXELFORMAT_R8_G8_B8_A8,
+        autoMipmap: true
       });
+      texture.setSource(canvas);
+      finishMedia(texture);
     };
     video.load();
   } else {
-    const loader = new THREE.TextureLoader();
-    loader.load(url, texture=>{
-      const imgW = texture.image.width;
-      const imgH = texture.image.height;
-      const aspect = imgW / imgH;
-      let w = 2.5, h = 2.5;
-      if(aspect > 1) { h = w / aspect; }
-      else { w = h * aspect; }
-      const geo = new THREE.PlaneGeometry(w, h);
-      const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
-      mesh.userData = {url:url, type:type};
-      roomGroup.add(mesh);
-      mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
-    });
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      const texture = new pc.Texture(app.graphicsDevice, {
+        format: pc.PIXELFORMAT_R8_G8_B8_A8,
+        autoMipmap: true
+      });
+      texture.setSource(img);
+      finishMedia(texture);
+    };
   }
 }
-
-// Raycaster Click Checker
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-document.getElementById('room-canvas').addEventListener('click',e=>{
-  mouse.x = (e.clientX/window.innerWidth)*2-1;
-  mouse.y = -(e.clientY/window.innerHeight)*2+1;
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(roomGroup.children, true);
-  for(let hit of intersects){
-    if(hit.object.userData && hit.object.userData.url){
-      openMedia(hit.object.userData.url, hit.object.userData.type);
-      break;
-    }
-    if(hit.object.userData && hit.object.userData.isAvatarImage && hit.object.userData.avatarUrl){
-      openAvatarViewer(hit.object.userData.avatarUrl);
-      break;
-    }
-    // INTERACTIVE TV MESH CLICK
-    if(hit.object === tvScreenMesh || hit.object.position.distanceTo(new THREE.Vector3(5, 4, -9.9)) < 1.5) {
-      openTvModal();
-      break;
-    }
-  }
-});
 
 // ===== SHARED 3D TV CONTROLS =====
 function openTvModal() {
@@ -2711,9 +2657,22 @@ function setupTvVideoTexture(url) {
   document.body.appendChild(tvVideo);
 
   tvVideo.onloadeddata = () => {
-    tvVideoTexture = new THREE.VideoTexture(tvVideo);
+    tvVideoTexture = new pc.Texture(app.graphicsDevice, {
+      format: pc.PIXELFORMAT_R8_G8_B8,
+      autoMipmap: false,
+      minFilter: pc.FILTER_LINEAR,
+      magFilter: pc.FILTER_LINEAR,
+      addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+      addressV: pc.ADDRESS_CLAMP_TO_EDGE
+    });
+    tvVideoTexture.setSource(tvVideo);
     if (tvScreenMesh) {
-      tvScreenMesh.material = new THREE.MeshBasicMaterial({ map: tvVideoTexture, side: THREE.DoubleSide });
+      const mat = new pc.StandardMaterial();
+      mat.diffuseMap = tvVideoTexture;
+      mat.useLighting = false;
+      mat.cull = pc.CULLFACE_NONE;
+      mat.update();
+      tvScreenMesh.render.meshInstances[0].material = mat;
     }
   };
   tvVideo.load();
