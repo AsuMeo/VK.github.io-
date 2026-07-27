@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>3D Messenger (MiSide+ Day Edition)</title>
+<title>3D Messenger</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
@@ -273,7 +273,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   transition:all 0.3s; max-width:280px; width:90vw;
 }
 .attach-menu.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
-.attach-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.attach-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
 .attach-item {
   padding:14px 4px; border-radius:12px;
   background:rgba(255,255,255,0.04);
@@ -404,25 +404,20 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   background:#00ff96; cursor:pointer;
 }
 
-/* ===== TV PANEL ===== */
-.tv-panel {
-  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9);
-  z-index:220; background:rgba(10,10,15,0.96); backdrop-filter:blur(25px);
-  border:1px solid rgba(255,255,255,0.08); border-radius:18px;
-  padding:20px; display:none; opacity:0;
-  transition:all 0.3s cubic-bezier(0.16,1,0.3,1); width:min(92vw,360px);
-  box-shadow:0 10px 40px rgba(0,0,0,0.5);
+/* ===== ENVIRONMENT CONTROLS ===== */
+.env-controls {
+  position:fixed; top:60px; left:10px; z-index:70;
+  display:flex; flex-direction:column; gap:6px;
 }
-.tv-panel.active { display:block; opacity:1; transform:translate(-50%,-50%) scale(1); }
-.tv-panel h3 { color:#fff; font-family:'Orbitron',sans-serif; font-size:14px; margin-bottom:12px; text-align:center; letter-spacing:1px; }
-.tv-close {
-  position:absolute; top:12px; right:12px;
-  width:28px; height:28px; border-radius:50%;
-  background:rgba(255,255,255,0.1); border:none;
-  color:#fff; font-size:14px; cursor:pointer;
+.env-btn {
+  width:36px; height:36px; border-radius:10px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  color:#fff; font-size:16px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s;
 }
-.tv-close:active { background:rgba(255,255,255,0.2); }
+.env-btn:active { transform:scale(0.9); }
+.env-btn.active { background:rgba(102,126,234,0.3); border-color:rgba(102,126,234,0.5); }
 
 /* ===== PROFILE MODAL ===== */
 .profile-modal {
@@ -486,11 +481,11 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   opacity:0; transform:scale(0.5) translateY(30px);
 }
 
-/* ===== MEDIA VIEWER (truly 3D rotatable) ===== */
+/* ===== MEDIA VIEWER (clean, rotatable in 3D) ===== */
 .media-viewer {
   position:fixed; inset:0; z-index:200;
-  background:#050508;
-  display:none; flex-direction:column; align-items:center; justify-content:center;
+  background:#000;
+  display:none; align-items:center; justify-content:center;
 }
 .media-viewer.active { display:flex; }
 .media-viewer .media-3d {
@@ -498,19 +493,21 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
 }
+.media-viewer .media-3d canvas {
+  width:100%; height:100%;
+}
 .media-viewer .close-media {
   position:absolute; top:16px; right:16px;
   width:44px; height:44px; border-radius:50%;
-  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.1);
+  background:rgba(0,0,0,0.5); border:none;
   color:#fff; font-size:20px; cursor:pointer;
-  z-index:210; display:flex; align-items:center; justify-content:center;
+  z-index:10;
 }
-.media-viewer .close-media:active { background:rgba(255,255,255,0.25); }
 .media-viewer .media-info {
   position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
-  color:rgba(255,255,255,0.7); font-size:12px;
-  background:rgba(0,0,0,0.6); padding:8px 16px; border-radius:10px;
-  z-index:210; border:1px solid rgba(255,255,255,0.08); pointer-events:none;
+  color:rgba(255,255,255,0.5); font-size:12px;
+  background:rgba(0,0,0,0.5); padding:6px 14px; border-radius:10px;
+  z-index:10;
 }
 
 /* ===== CHAT HISTORY PANEL ===== */
@@ -609,6 +606,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   background:rgba(10,10,15,0.95);
   border:1px solid rgba(255,255,255,0.08);
   border-radius:20px; padding:24px;
+  position:relative;
 }
 .edit-card h3 { color:#fff; font-family:'Orbitron',sans-serif; font-size:14px; margin-bottom:14px; text-align:center; }
 .edit-card textarea {
@@ -663,10 +661,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
 }
-.avatar-viewer .avatar-3d img {
-  max-width:100%; max-height:100%;
-  object-fit:contain;
-  transition:transform 0.1s ease-out;
+.avatar-viewer .avatar-3d canvas {
+  width:100%; height:100%;
 }
 .avatar-viewer .close-avatar {
   position:absolute; top:16px; right:16px;
@@ -684,7 +680,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
 <div class="auth-screen" id="authScreen">
   <div class="auth-container">
     <div class="auth-logo">3D MESSENGER</div>
-    <div class="auth-sub">MiSide+ Style · Realtime · Day Bedroom</div>
+    <div class="auth-sub">Miside Style · Realtime · 3D Room</div>
     <div class="auth-mode active" id="loginMode">
       <input type="email" class="auth-input" id="loginEmail" placeholder="Email" autocomplete="email">
       <input type="password" class="auth-input" id="loginPass" placeholder="Пароль" autocomplete="current-password">
@@ -724,6 +720,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="users-list" id="usersList"></div>
   </div>
 
+  <div class="env-controls" id="envControls">
+    <button class="env-btn active" id="envDay" onclick="setEnvironment('day')" title="День">☀️</button>
+  </div>
+
   <canvas id="room-canvas"></canvas>
 
   <div class="chat-partner" id="chatPartner">
@@ -740,7 +740,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   <div class="input-bar">
     <button class="action-btn icon-btn music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
     <button class="action-btn icon-btn" onclick="toggleGesturePanel()" title="Жесты и эмодзи">🎭</button>
-    <button class="action-btn icon-btn" onclick="toggleTvPanel()" title="Телевизор 3D">📺</button>
     <button class="action-btn icon-btn" onclick="toggleAttachMenu()" title="Прикрепить">📎</button>
     <button class="action-btn icon-btn" onclick="toggleChatHistory()" title="История чата">💬</button>
     <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
@@ -789,33 +788,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
-<!-- 3D Synced TV Panel -->
-<div class="tv-panel" id="tvPanel">
-  <button class="tv-close" onclick="toggleTvPanel()">✕</button>
-  <h3>📺 3D Телевизор Sync</h3>
-  <div id="tvStatusText" style="color:rgba(255,255,255,0.4);font-size:11px;text-align:center;margin-bottom:12px;">Нет активного видео</div>
-  
-  <div class="tv-input-section">
-    <input type="text" id="tvUrlInput" class="auth-input" style="font-size:13px;padding:10px;margin-bottom:6px;" placeholder="Вставьте прямую ссылку на .mp4">
-    <button class="auth-btn" style="padding:10px;font-size:13px;margin-top:2px;" onclick="loadTvVideoFromUrl()">Загрузить по ссылке</button>
-    <div style="text-align:center;color:rgba(255,255,255,0.3);font-size:10px;margin:8px 0;">или выберите файл</div>
-    <button class="auth-btn secondary" style="padding:10px;font-size:13px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;" onclick="triggerTvUpload()">Выбрать из галереи 🎬</button>
-    <input type="file" id="tvFileInput" accept="video/*" style="display:none;" onchange="handleTvUpload(this)">
-  </div>
-  
-  <div class="tv-controls" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
-    <div style="display:flex;gap:6px;margin-bottom:10px;">
-      <button id="tvPlayBtn" class="auth-btn" style="padding:10px;font-size:13px;flex:1;" onclick="toggleTvPlay()">▶ Старт</button>
-      <button id="tvMuteBtn" class="auth-btn secondary" style="padding:10px;font-size:13px;width:80px;background:rgba(255,255,255,0.05);color:#fff;" onclick="toggleTvMute()">🔊 Звук</button>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <button class="auth-btn secondary" style="padding:6px;width:50px;font-size:12px;margin:0;background:rgba(255,255,255,0.05);color:#fff;" onclick="seekTv(-10)">-10с</button>
-      <input type="range" id="tvSeekRange" style="flex:1;" min="0" max="100" value="0" oninput="onTvSeek(this.value)">
-      <button class="auth-btn secondary" style="padding:6px;width:50px;font-size:12px;margin:0;background:rgba(255,255,255,0.05);color:#fff;" onclick="seekTv(10)">+10с</button>
-    </div>
-  </div>
-</div>
-
 <!-- Attachment Menu -->
 <div class="attach-menu" id="attachMenu">
   <div class="attach-grid">
@@ -830,6 +802,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
     <div class="attach-item" onclick="toggleDrawPanel(); toggleAttachMenu();">
       <span class="attach-icon">✏️</span>
       <span class="attach-name">Рисовать</span>
+    </div>
+    <div class="attach-item" onclick="openTvModal(); toggleAttachMenu();">
+      <span class="attach-icon">📺</span>
+      <span class="attach-name">ТВ</span>
     </div>
     <div class="attach-item" onclick="toggleAttachMenu()">
       <span class="attach-icon">📁</span>
@@ -885,14 +861,14 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
-<!-- Media Viewer (3D rotatable, clean) -->
+<!-- Media Viewer (clean, 3D Rotatable) -->
 <div class="media-viewer" id="mediaViewer">
   <button class="close-media" onclick="closeMedia()">✕</button>
   <div class="media-3d" id="media3d"></div>
-  <div class="media-info" id="mediaInfo">Вращайте пальцем · Щипок для зума</div>
+  <div class="media-info" id="mediaInfo">Тяните для 3D вращения · Зумируйте колесом/щипком</div>
 </div>
 
-<!-- Avatar Viewer (clean) -->
+<!-- Avatar Viewer (clean, 3D Rotatable) -->
 <div class="avatar-viewer" id="avatarViewer">
   <button class="close-avatar" onclick="closeAvatarViewer()">✕</button>
   <div class="avatar-3d" id="avatar3d"></div>
@@ -939,6 +915,35 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-
   </div>
 </div>
 
+<!-- TV Modal -->
+<div class="edit-modal" id="tvModal">
+  <div class="edit-card" style="max-width:400px;">
+    <button class="profile-close" onclick="closeTvModal()">✕</button>
+    <h3 style="margin-bottom:12px;">📺 3D Телевизор (Совместный просмотр)</h3>
+    <div style="margin-bottom:12px;">
+      <input type="text" class="auth-input" id="tvUrlInput" placeholder="Ссылка на mp4 видео..." style="margin-bottom:8px;">
+      <input type="file" id="tvFileInput" accept="video/*" style="display:none;" onchange="handleTvFileUpload(this)">
+      <button class="auth-btn" style="background:#4ecdc4;margin-bottom:8px;" onclick="document.getElementById('tvFileInput').click()">📁 Загрузить видео из галереи</button>
+      <button class="auth-btn" onclick="sendTvVideoLink()">Запустить по ссылке 🚀</button>
+    </div>
+    
+    <div id="tvControlsArea" style="display:none; border-top: 1px solid rgba(255,255,255,0.1); padding-top:12px; margin-top:12px;">
+      <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:12px;">
+        <button class="action-btn icon-btn" id="tvPlayBtn" onclick="toggleTvPlay()" style="width:50px; height:50px; font-size:24px;">▶</button>
+        <button class="action-btn icon-btn" onclick="syncTvTime()" style="font-size:14px; width:auto; padding:0 12px; border-radius:10px; height:36px;">🔄 Синхронизировать</button>
+      </div>
+      <div>
+        <label style="color:rgba(255,255,255,0.5); font-size:11px; display:block; margin-bottom:4px;">Перемотка</label>
+        <input type="range" id="tvProgress" min="0" max="100" value="0" oninput="seekTv(this.value)" style="width:100%; height:4px; border-radius:2px; background:rgba(255,255,255,0.1); outline:none; -webkit-appearance:none;">
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:rgba(255,255,255,0.4); margin-top:4px;">
+          <span id="tvCurrentTime">0:00</span>
+          <span id="tvDuration">0:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="miside-text-container" id="misideContainer"></div>
 
 <script>
@@ -963,28 +968,33 @@ let typingTimeout = null, typingClearTimeout = null;
 let scene, camera, renderer, roomGroup;
 let messages3D = [], mediaObjects = [], avatar3DObjects = {};
 let gestureAnimations = [], drawings3D = [];
+let rainSound = null, rainParticles = null;
 let sunMesh = null, skyMesh = null;
 let animationId, isPanelOpen = false, isMusicPanelOpen = false;
 let currentAudio = null, currentTrack = null, audioVolume = 0.3;
 let userData = {}, partnerStatusListener = null;
 let drawCtx = null, drawColor = '#ff6b6b';
-
-// ===== Synced TV state variables =====
-let tvVideo = null, tvVideoTexture = null;
-let tvStateListener = null;
-
-// ===== 3D Full Screen Media Viewer State =====
-let mediaScene, mediaCamera, mediaRenderer, mediaAnimId;
-let isMediaDragging = false, prevMediaX = 0, prevMediaY = 0;
-let mediaRotX = 0, mediaRotY = 0, mediaZoom = 1;
-let mediaVideoElement = null;
-
+let currentEnvironment = 'day';
+let envLights = {};
 let chatHistoryData = [];
 let editingMessageId = null;
 let isChatHistoryOpen = false;
 let isAttachMenuOpen = false;
 let savedPartnerUid = localStorage.getItem('lastPartnerUid');
 let savedPartnerData = JSON.parse(localStorage.getItem('lastPartnerData') || 'null');
+let activePartnerUid = null;
+
+// TV State Variables
+let tvScreenMesh = null;
+let tvVideo = null;
+let tvVideoTexture = null;
+let currentTvUrl = '';
+let tvStateListener = null;
+
+// Media 3D Viewer variables
+let mediaViewerRenderer, mediaViewerScene, mediaViewerCamera, mediaViewerMesh, mediaViewerAnimationId;
+let mediaVideoElementFor3D = null;
+let avatarViewerRenderer, avatarViewerScene, avatarViewerCamera, avatarViewerMesh, avatarViewerAnimationId;
 
 // ===== FULLSCREEN =====
 function toggleFullscreen() {
@@ -1056,8 +1066,6 @@ function doLogout() {
   if(currentUser) {
     db.ref('users/'+currentUser.uid+'/online').set(false);
     db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now());
-    db.ref('users/'+currentUser.uid+'/online').onDisconnect().cancel();
-    db.ref('users/'+currentUser.uid+'/lastSeen').onDisconnect().cancel();
   }
   if(currentAudio) { currentAudio.pause(); currentAudio = null; }
   localStorage.removeItem('lastPartnerUid');
@@ -1065,23 +1073,36 @@ function doLogout() {
   auth.signOut();
 }
 
-// Realtime connection status listener
-function listenConnection() {
-  if (currentUser) {
-    const connectedRef = db.ref(".info/connected");
-    connectedRef.on("value", (snap) => {
-      if (snap.val() === true) {
-        const userStatusRef = db.ref('users/' + currentUser.uid + '/online');
-        const lastSeenRef = db.ref('users/' + currentUser.uid + '/lastSeen');
-        
-        userStatusRef.set(true);
-        // Instant update offline status when connection is terminated (tab/browser close)
-        userStatusRef.onDisconnect().set(false);
-        lastSeenRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
-      }
+// Online Presence - Instantaneous via Firebase onDisconnect and tab focus/blur
+function startPresence() {
+  if(!currentUser) return;
+  const userStatusRef = db.ref('users/' + currentUser.uid + '/online');
+  const lastSeenRef = db.ref('users/' + currentUser.uid + '/lastSeen');
+
+  db.ref('.info/connected').on('value', (snapshot) => {
+    if (snapshot.val() === false) {
+      return;
+    }
+    userStatusRef.onDisconnect().set(false).then(() => {
+      lastSeenRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+      userStatusRef.set(true);
+      lastSeenRef.set(firebase.database.ServerValue.TIMESTAMP);
     });
+  });
+}
+
+function setOffline() {
+  if(currentUser) {
+    db.ref('users/'+currentUser.uid).update({ online: false, lastSeen: Date.now() });
   }
 }
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) setOffline();
+  else if(currentUser) db.ref('users/'+currentUser.uid).update({ online: true, lastSeen: Date.now() });
+});
+window.addEventListener('beforeunload', setOffline);
+window.addEventListener('pagehide', setOffline);
 
 auth.onAuthStateChanged(user=>{
   if(user){
@@ -1098,7 +1119,8 @@ auth.onAuthStateChanged(user=>{
       } else {
         document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
       }
-      listenConnection();
+      db.ref('users/'+user.uid).update({ online: true, lastSeen: Date.now() });
+      startPresence();
     });
     document.getElementById('authScreen').classList.add('hidden');
     setTimeout(()=>{
@@ -1217,14 +1239,20 @@ function selectUser(uid,data) {
   localStorage.setItem('lastPartnerData', JSON.stringify(data));
 
   document.querySelectorAll('.user-item').forEach(i=>i.classList.remove('active'));
-  const userItemNode = document.querySelector(`.user-item[data-uid="${uid}"]`);
-  if (userItemNode) userItemNode.classList.add('active');
+  const foundItem = document.querySelector(`.user-item[data-uid="${uid}"]`);
+  if (foundItem) foundItem.classList.add('active');
+
   document.getElementById('partnerName').textContent = data.displayName||data.username;
   const statusWrap = document.getElementById('partnerStatus');
   const statusDot = document.getElementById('partnerStatusDot');
   const statusText = document.getElementById('partnerStatusText');
   statusWrap.style.display = 'flex';
-  if(partnerStatusListener) db.ref('users/'+uid).off('value', partnerStatusListener);
+
+  if(activePartnerUid && partnerStatusListener) {
+    db.ref('users/'+activePartnerUid).off('value', partnerStatusListener);
+  }
+  activePartnerUid = uid;
+
   partnerStatusListener = snap=>{
     const pData = snap.val()||{};
     const isOnline = pData.online === true;
@@ -1235,19 +1263,20 @@ function selectUser(uid,data) {
   db.ref('users/'+uid).on('value', partnerStatusListener);
   const ids = [currentUser.uid,uid].sort();
   chatId = ids.join('_');
+
+  // Clean 3D Room objects on user switch
   messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
   mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
   gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.remove(g.mesh); }); gestureAnimations = [];
   drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.remove(d.mesh); }); drawings3D = [];
-  if(avatar3DObjects[uid]) { if(avatar3DObjects[uid].mesh && roomGroup) roomGroup.remove(avatar3DObjects[uid].mesh); delete avatar3DObjects[uid]; }
   
-  // Clear TV on swap
-  if (tvVideo) {
-    tvVideo.pause();
-    tvVideo.src = '';
-    tvVideoTexture.needsUpdate = true;
-    document.getElementById('tvStatusText').textContent = 'Нет активного видео';
-  }
+  // Clean ALL 3D Avatars to prevent double/multiple photos in lobby
+  Object.keys(avatar3DObjects).forEach(key => {
+    if(avatar3DObjects[key] && avatar3DObjects[key].mesh && roomGroup) {
+      roomGroup.remove(avatar3DObjects[key].mesh);
+    }
+  });
+  avatar3DObjects = {};
 
   db.ref('chats/'+chatId).off();
   db.ref('chats/'+chatId).limitToLast(30).on('child_added',snap=>{
@@ -1256,18 +1285,62 @@ function selectUser(uid,data) {
       if(msg.text) showMisideText(msg.text);
       if(msg.gestureType) create3DGesture(msg.gestureType, false);
       if(msg.drawingData) create3DDrawing(msg.drawingData, false);
-    } else {
-      if(msg.drawingData) create3DDrawing(msg.drawingData, true);
     }
     if(msg.mediaData) create3DMedia(msg.mediaData, msg.mediaType, msg.sender===currentUser.uid);
   });
+
+  // Subscribe to shared TV state inside this chat
+  if (tvStateListener) db.ref('chats/' + chatId + '/tvState').off('value', tvStateListener);
+  tvStateListener = snap => {
+    const state = snap.val();
+    if (!state) {
+      if (tvScreenMesh) tvScreenMesh.material = new THREE.MeshBasicMaterial({ color: 0x112233 });
+      if (tvVideo) {
+        tvVideo.pause();
+        tvVideo.remove();
+        tvVideo = null;
+        tvVideoTexture = null;
+        currentTvUrl = '';
+      }
+      updateTvControlUI(null);
+      return;
+    }
+    updateTvControlUI(state);
+    if (state.videoUrl && state.videoUrl !== currentTvUrl) {
+      currentTvUrl = state.videoUrl;
+      setupTvVideoTexture(state.videoUrl);
+    }
+    setTimeout(() => {
+      if (tvVideo) {
+        if (state.playing) {
+          if (tvVideo.paused) {
+            tvVideo.play().catch(()=>{});
+          }
+          const serverTime = state.currentTime;
+          const timeDiff = (Date.now() - state.updatedAt) / 1000;
+          const expectedTime = serverTime + timeDiff;
+          if (Math.abs(tvVideo.currentTime - expectedTime) > 1.5) {
+            tvVideo.currentTime = expectedTime;
+          }
+        } else {
+          if (!tvVideo.paused) {
+            tvVideo.pause();
+          }
+          if (Math.abs(tvVideo.currentTime - state.currentTime) > 1.0) {
+            tvVideo.currentTime = state.currentTime;
+          }
+        }
+      }
+    }, 300);
+  };
+  db.ref('chats/' + chatId + '/tvState').on('value', tvStateListener);
+
   db.ref('typing/'+uid+'/'+currentUser.uid).on('value',snap=>{
     document.getElementById('typingIndicator').classList.toggle('active', snap.val()===true);
   });
-  
+
   createPartner3DAvatar(data);
   loadChatHistory();
-  listenToTvState();
 }
 
 function togglePanel() {
@@ -1304,9 +1377,7 @@ function loadChatHistory() {
     const messages = snap.val()||{};
     chatHistoryData = [];
     Object.entries(messages).forEach(([key,msg])=>{
-      if (key !== 'tvState') {
-        chatHistoryData.push({id:key,...msg});
-      }
+      chatHistoryData.push({id:key,...msg});
     });
     chatHistoryData.sort((a,b)=>a.timestamp-b.timestamp);
     renderChatHistory();
@@ -1510,7 +1581,7 @@ function create3DGesture(type, isOwn) {
   }, 4000);
 }
 
-// ===== DRAWING (FIXED DRAW COORDINATES & ALIGNMENT) =====
+// ===== DRAWING (TOUCH & MOUSE FIXED 1:1 COORDINATES) =====
 function toggleDrawPanel() {
   const panel = document.getElementById('drawPanel');
   panel.classList.toggle('active');
@@ -1524,18 +1595,15 @@ function initDrawCanvas() {
   if(!canvas) return;
 
   const wrap = document.getElementById('drawCanvasWrap');
-  const width = wrap.offsetWidth || 360;
-  const height = wrap.offsetHeight || 240;
-  
-  canvas.width = width * window.devicePixelRatio;
-  canvas.height = height * window.devicePixelRatio;
-  canvas.style.width = width + 'px';
-  canvas.style.height = height + 'px';
+  const rect = wrap.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
 
   drawCtx = canvas.getContext('2d');
-  drawCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
   drawCtx.fillStyle = 'rgba(255,255,255,0.02)';
-  drawCtx.fillRect(0, 0, width, height);
+  drawCtx.fillRect(0, 0, rect.width, rect.height);
   drawCtx.strokeStyle = drawColor;
   drawCtx.lineWidth = 3;
   drawCtx.lineCap = 'round';
@@ -1544,10 +1612,8 @@ function initDrawCanvas() {
   let drawing = false;
   let lastX = 0, lastY = 0;
 
-  // Fully precise coordinate resolver pointing to the active targeted event element
   const getPos = (e) => {
-    const target = e.currentTarget;
-    const cRect = target.getBoundingClientRect();
+    const cRect = canvas.getBoundingClientRect();
     let clientX, clientY;
     if(e.touches && e.touches.length > 0) {
       clientX = e.touches[0].clientX;
@@ -1583,19 +1649,17 @@ function initDrawCanvas() {
     drawing = false;
   };
 
-  // Rebuild listener bindings on clean clone
   const newCanvas = canvas.cloneNode(true);
   canvas.parentNode.replaceChild(newCanvas, canvas);
 
   const freshCanvas = document.getElementById('drawCanvas');
-  freshCanvas.width = width * window.devicePixelRatio;
-  freshCanvas.height = height * window.devicePixelRatio;
-  freshCanvas.style.width = width + 'px';
-  freshCanvas.style.height = height + 'px';
+  freshCanvas.width = rect.width;
+  freshCanvas.height = rect.height;
+  freshCanvas.style.width = rect.width + 'px';
+  freshCanvas.style.height = rect.height + 'px';
   drawCtx = freshCanvas.getContext('2d');
-  drawCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
   drawCtx.fillStyle = 'rgba(255,255,255,0.02)';
-  drawCtx.fillRect(0, 0, width, height);
+  drawCtx.fillRect(0, 0, rect.width, rect.height);
   drawCtx.strokeStyle = drawColor;
   drawCtx.lineWidth = 3;
   drawCtx.lineCap = 'round';
@@ -1634,6 +1698,7 @@ function send3DDrawing() {
   db.ref('chats/'+chatId).push({
     drawingData: dataURL, sender: currentUser.uid, timestamp: Date.now()
   });
+  create3DDrawing(dataURL, true);
   toggleDrawPanel();
   loadChatHistory();
 }
@@ -1684,150 +1749,45 @@ function setVolume(val) {
   if(currentAudio) currentAudio.volume = audioVolume;
 }
 
-// ===== TV SYNCHRONIZED PLAYBACK =====
-let isTvPanelOpen = false;
+// ===== ENVIRONMENT (BRIGHT DAY WINDOW & SUN FIX) =====
+function setEnvironment(type) {
+  currentEnvironment = type;
+  document.querySelectorAll('.env-btn').forEach(b=>b.classList.remove('active'));
+  const foundBtn = document.getElementById('env'+type.charAt(0).toUpperCase()+type.slice(1));
+  if (foundBtn) foundBtn.classList.add('active');
+  if(!scene) return;
+  if(rainSound) { rainSound.pause(); rainSound = null; }
 
-function toggleTvPanel() {
-  isTvPanelOpen = !isTvPanelOpen;
-  document.getElementById('tvPanel').classList.toggle('active', isTvPanelOpen);
-}
-
-function loadTvVideoFromUrl() {
-  const url = document.getElementById('tvUrlInput').value.trim();
-  if (!url) return;
-  sendTvState(false, 0, url);
-  document.getElementById('tvUrlInput').value = '';
-}
-
-function triggerTvUpload() {
-  document.getElementById('tvFileInput').click();
-}
-
-function handleTvUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 15 * 1024 * 1024) {
-    alert('Файл слишком большой! Лимит загрузки в Firebase RTDB - 15 МБ.');
-    return;
+  if(type === 'day') {
+    // Beautiful, Bright, Sun-drenched room with real sunlight in the window
+    scene.fog.color.setHex(0xb0d0ff);
+    scene.fog.density = 0.004;
+    if(envLights.ambient) { envLights.ambient.color.setHex(0xFFFFFF); envLights.ambient.intensity = 1.0; }
+    if(envLights.main) { envLights.main.color.setHex(0xfff3d1); envLights.main.intensity = 2.4; envLights.main.position.set(1.5, 4.5, -5); }
+    if(sunMesh) { sunMesh.visible = true; sunMesh.material.color.setHex(0xfffae3); }
+    if(skyMesh) { skyMesh.visible = true; skyMesh.material.color.setHex(0x5ca5e6); skyMesh.material.opacity = 1.0; }
+    if(rainParticles) rainParticles.visible = false;
+    
+    // Lighten room walls completely
+    roomGroup.children.forEach(child=>{
+      if(child.material && child.material.color) {
+        if(child.material.color.getHex() === 0x12121a) {
+          child.material.color.setHex(0xc8d6e5);
+          child.material.opacity = 1.0;
+        }
+        if(child.material.color.getHex() === 0x0d0d15) {
+          child.material.color.setHex(0x8395a7);
+        }
+      }
+    });
   }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const base64 = e.target.result;
-    sendTvState(false, 0, base64);
-  };
-  reader.readAsDataURL(file);
-  input.value = '';
 }
 
-function sendTvState(isPlaying, currentTime, videoUrl = null) {
-  if (!chatId) return;
-  const url = videoUrl || tvVideo.src || '';
-  if (!url) return;
-  db.ref('chats/' + chatId + '/tvState').set({
-    videoUrl: url,
-    isPlaying: isPlaying,
-    currentTime: currentTime,
-    lastUpdated: Date.now(),
-    sender: currentUser.uid
-  });
-}
-
-function toggleTvPlay() {
-  if (!tvVideo.src) return;
-  const isPlaying = tvVideo.paused;
-  sendTvState(isPlaying, tvVideo.currentTime);
-}
-
-function toggleTvMute() {
-  if (!tvVideo) return;
-  tvVideo.muted = !tvVideo.muted;
-  document.getElementById('tvMuteBtn').textContent = tvVideo.muted ? '🔇 Мут' : '🔊 Звук';
-  document.getElementById('tvMuteBtn').style.color = tvVideo.muted ? 'rgba(255,255,255,0.4)' : '#00ff96';
-}
-
-function seekTv(seconds) {
-  if (!tvVideo || !tvVideo.src) return;
-  let targetTime = tvVideo.currentTime + seconds;
-  targetTime = Math.max(0, Math.min(tvVideo.duration || 0, targetTime));
-  sendTvState(!tvVideo.paused, targetTime);
-}
-
-function onTvSeek(value) {
-  if (!tvVideo || !tvVideo.src) return;
-  sendTvState(!tvVideo.paused, parseFloat(value));
-}
-
-function listenToTvState() {
-  if (!chatId) return;
-  if (tvStateListener) db.ref('chats/' + chatId + '/tvState').off('value', tvStateListener);
-  
-  tvStateListener = db.ref('chats/' + chatId + '/tvState').on('value', snap => {
-    const state = snap.val();
-    if (!state) {
-      if (tvVideo) {
-        tvVideo.pause();
-        tvVideo.src = '';
-        tvVideoTexture.needsUpdate = true;
-      }
-      document.getElementById('tvStatusText').textContent = 'Нет активного видео';
-      return;
-    }
-    
-    // 1. Swap source if mismatched
-    if (tvVideo.src !== state.videoUrl) {
-      tvVideo.src = state.videoUrl;
-      tvVideo.load();
-    }
-    
-    // 2. Playback math offsets for latency compensation
-    let targetTime = state.currentTime;
-    if (state.isPlaying) {
-      const elapsed = (Date.now() - state.lastUpdated) / 1000;
-      targetTime += elapsed;
-    }
-    
-    // 3. Play or seek on threshold gaps
-    if (state.isPlaying) {
-      if (tvVideo.paused) {
-        tvVideo.currentTime = targetTime;
-        tvVideo.play().catch(e => console.log("TV play failed:", e));
-      } else if (Math.abs(tvVideo.currentTime - targetTime) > 1.5) {
-        tvVideo.currentTime = targetTime;
-      }
-      document.getElementById('tvPlayBtn').textContent = '⏸ Пауза';
-      document.getElementById('tvStatusText').textContent = 'Воспроизведение';
-    } else {
-      if (!tvVideo.paused) {
-        tvVideo.pause();
-      }
-      if (Math.abs(tvVideo.currentTime - state.currentTime) > 1.0) {
-        tvVideo.currentTime = state.currentTime;
-      }
-      document.getElementById('tvPlayBtn').textContent = '▶ Старт';
-      document.getElementById('tvStatusText').textContent = 'Пауза';
-    }
-    
-    tvVideo.onloadedmetadata = () => {
-      document.getElementById('tvSeekRange').max = Math.floor(tvVideo.duration || 100);
-    };
-  });
-}
-
-// Synced seek updates
-setInterval(() => {
-  if (tvVideo && !tvVideo.paused) {
-    document.getElementById('tvSeekRange').value = Math.floor(tvVideo.currentTime);
-  }
-}, 1000);
-
-
-// ===== 3D APARTMENT ROOM (BRIGHT DAY, PINK WALLS - MISIDE STYLE) =====
+// ===== 3D APARTMENT ROOM =====
 function init3DRoom() {
   const canvas = document.getElementById('room-canvas');
   scene = new THREE.Scene();
-  
-  // Sunny warm bright day haze (MiSide+ soft pastel color palette)
-  scene.fog = new THREE.FogExp2(0xffccd5, 0.008);
+  scene.fog = new THREE.FogExp2(0xb0d0ff, 0.004);
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
   camera.position.set(0, 2.5, 6);
@@ -1841,31 +1801,45 @@ function init3DRoom() {
   roomGroup = new THREE.Group();
   scene.add(roomGroup);
 
-  // ===== FLOOR (Soft cream flooring) =====
+  // ===== FLOOR =====
   const floorGeo = new THREE.PlaneGeometry(20, 20);
-  const floorMat = new THREE.MeshBasicMaterial({ color:0xffeef2 });
+  const floorMat = new THREE.MeshBasicMaterial({ color:0x221810 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI/2;
   roomGroup.add(floor);
 
-  // Cute parquet lining grids
+  // Floor planks
   for(let i=0; i<10; i++) {
     const plank = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 0.15),
-      new THREE.MeshBasicMaterial({ color:0xffdae0 })
+      new THREE.MeshBasicMaterial({ color:0x342418 })
     );
     plank.rotation.x = -Math.PI/2;
     plank.position.set(0, 0.01, -9 + i*2);
     roomGroup.add(plank);
   }
 
-  // ===== WALLS (Lovely warm sweet pink wallpaper like in MiSide+) =====
-  const wallMat = new THREE.MeshBasicMaterial({ color:0xffb3c1, side:THREE.DoubleSide });
+  // ===== SPLIT BACK WALL TO CREATE A REAL WINDOW HOLE =====
+  // Leaving a rectangular hole from x=-2 to 2, y=3 to 6 at z=-10
+  const wallMat = new THREE.MeshBasicMaterial({ color:0x12121a, side:THREE.DoubleSide });
 
-  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-  backWall.position.set(0, 4, -10);
-  roomGroup.add(backWall);
+  const backWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), wallMat);
+  backWallLeft.position.set(-6, 4, -10);
+  roomGroup.add(backWallLeft);
 
+  const backWallRight = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), wallMat);
+  backWallRight.position.set(6, 4, -10);
+  roomGroup.add(backWallRight);
+
+  const backWallBottom = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), wallMat);
+  backWallBottom.position.set(0, 1.5, -10);
+  roomGroup.add(backWallBottom);
+
+  const backWallTop = new THREE.Mesh(new THREE.PlaneGeometry(4, 2), wallMat);
+  backWallTop.position.set(0, 7, -10);
+  roomGroup.add(backWallTop);
+
+  // Side Walls
   const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
   leftWall.position.set(-10, 4, 0);
   leftWall.rotation.y = Math.PI/2;
@@ -1886,15 +1860,10 @@ function init3DRoom() {
   frontWallRight.rotation.y = Math.PI;
   roomGroup.add(frontWallRight);
 
-  // White baseboards
-  const baseboardBack = new THREE.Mesh(new THREE.BoxGeometry(20, 0.4, 0.1), new THREE.MeshBasicMaterial({color: 0xffffff}));
-  baseboardBack.position.set(0, 0.2, -9.9);
-  roomGroup.add(baseboardBack);
-
   // Ceiling
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 20),
-    new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color:0x0d0d15, side:THREE.DoubleSide })
   );
   ceiling.position.set(0, 8, 0);
   ceiling.rotation.x = Math.PI/2;
@@ -1903,144 +1872,102 @@ function init3DRoom() {
   // ===== WINDOW =====
   const windowFrame = new THREE.Mesh(
     new THREE.BoxGeometry(4, 3, 0.1),
-    new THREE.MeshBasicMaterial({ color:0xffffff }) // Cute white frame
+    new THREE.MeshBasicMaterial({ color:0x2c3e50 })
   );
-  windowFrame.position.set(-6, 4.5, -9.95);
+  windowFrame.position.set(0, 4.5, -9.95);
   roomGroup.add(windowFrame);
 
   const windowGlass = new THREE.Mesh(
     new THREE.PlaneGeometry(3.6, 2.6),
-    new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.25, side:THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color:0xb3e5fc, transparent:true, opacity:0.25, side:THREE.DoubleSide })
   );
-  windowGlass.position.set(-6, 4.5, -9.9);
+  windowGlass.position.set(0, 4.5, -9.9);
   roomGroup.add(windowGlass);
 
   // Window cross
   const crossV = new THREE.Mesh(
     new THREE.BoxGeometry(0.05, 2.6, 0.05),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
+    new THREE.MeshBasicMaterial({ color:0x34495e })
   );
-  crossV.position.set(-6, 4.5, -9.88);
+  crossV.position.set(0, 4.5, -9.88);
   roomGroup.add(crossV);
   const crossH = new THREE.Mesh(
     new THREE.BoxGeometry(3.6, 0.05, 0.05),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
+    new THREE.MeshBasicMaterial({ color:0x34495e })
   );
-  crossH.position.set(-6, 4.5, -9.88);
+  crossH.position.set(0, 4.5, -9.88);
   roomGroup.add(crossH);
 
-  // ===== SUN (Highly visible bright sun outside the window) =====
-  const sunGeo = new THREE.SphereGeometry(1.5, 32, 32);
-  const sunMat = new THREE.MeshBasicMaterial({ color: 0xfffaa0 });
-  sunMesh = new THREE.Mesh(sunGeo, sunMat);
-  sunMesh.position.set(-9, 5.8, -18);
-  roomGroup.add(sunMesh);
-
-  // Giant glowing sun corona
-  const coronaGeo = new THREE.RingGeometry(1.6, 3.8, 32);
-  const coronaMat = new THREE.MeshBasicMaterial({
-    color: 0xffbb55,
-    transparent: true,
-    opacity: 0.45,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending
-  });
-  const corona = new THREE.Mesh(coronaGeo, coronaMat);
-  corona.position.copy(sunMesh.position);
-  corona.position.z += 0.1;
-  roomGroup.add(corona);
-
-  // ===== COZY SOFA (Pastel styling) =====
+  // ===== SOFA =====
   const sofaBase = new THREE.Mesh(
     new THREE.BoxGeometry(4, 0.8, 1.5),
-    new THREE.MeshBasicMaterial({ color:0xfff0f5 })
+    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
   );
-  sofaBase.position.set(0, 0.4, 3); // sofa facing the back wall (TV screen)
+  sofaBase.position.set(-5, 0.4, -5);
   roomGroup.add(sofaBase);
 
   const sofaBack = new THREE.Mesh(
     new THREE.BoxGeometry(4, 1.2, 0.3),
-    new THREE.MeshBasicMaterial({ color:0xfff0f5 })
+    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
   );
-  sofaBack.position.set(0, 1.2, 3.6);
+  sofaBack.position.set(-5, 1.2, -5.6);
   roomGroup.add(sofaBack);
 
   const sofaArmL = new THREE.Mesh(
     new THREE.BoxGeometry(0.4, 0.8, 1.5),
-    new THREE.MeshBasicMaterial({ color:0xffccd5 })
+    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
   );
-  sofaArmL.position.set(-1.8, 0.8, 3);
+  sofaArmL.position.set(-6.8, 0.8, -5);
   roomGroup.add(sofaArmL);
 
   const sofaArmR = new THREE.Mesh(
     new THREE.BoxGeometry(0.4, 0.8, 1.5),
-    new THREE.MeshBasicMaterial({ color:0xffccd5 })
+    new THREE.MeshBasicMaterial({ color:0x2a1a3a })
   );
-  sofaArmR.position.set(1.8, 0.8, 3);
+  sofaArmR.position.set(-3.2, 0.8, -5);
   roomGroup.add(sofaArmR);
-
-  // Decorative sofa pillows
-  const pillowL = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.6, 0.3),
-    new THREE.MeshBasicMaterial({ color: 0xff6b81 })
-  );
-  pillowL.position.set(-1.2, 0.7, 3.2);
-  pillowL.rotation.y = Math.PI / 4;
-  roomGroup.add(pillowL);
-
-  const pillowR = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.6, 0.3),
-    new THREE.MeshBasicMaterial({ color: 0xff6b81 })
-  );
-  pillowR.position.set(1.2, 0.7, 3.2);
-  pillowR.rotation.y = -Math.PI / 4;
-  roomGroup.add(pillowR);
 
   // ===== COFFEE TABLE =====
   const tableTop = new THREE.Mesh(
-    new THREE.CylinderGeometry(1, 1, 0.05, 16),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
+    new THREE.CylinderGeometry(1, 1, 0.1, 16),
+    new THREE.MeshBasicMaterial({ color:0x3a2a1a })
   );
-  tableTop.position.set(0, 0.6, -1.5);
+  tableTop.position.set(0, 0.6, -3);
   roomGroup.add(tableTop);
 
   const tableLeg = new THREE.Mesh(
     new THREE.CylinderGeometry(0.1, 0.15, 0.6, 8),
-    new THREE.MeshBasicMaterial({ color:0xffccd5 })
+    new THREE.MeshBasicMaterial({ color:0x3a2a1a })
   );
-  tableLeg.position.set(0, 0.3, -1.5);
+  tableLeg.position.set(0, 0.3, -3);
   roomGroup.add(tableLeg);
 
-  // ===== 3D SYNCED TELEVISION (Centered on sweet back wall) =====
-  const tvFrame = new THREE.Mesh(
-    new THREE.BoxGeometry(4.2, 2.5, 0.1),
-    new THREE.MeshBasicMaterial({ color:0xffffff }) // Cute modern white frame
+  const tableBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.5, 0.05, 8),
+    new THREE.MeshBasicMaterial({ color:0x3a2a1a })
   );
-  tvFrame.position.set(0, 3.5, -9.95);
+  tableBase.position.set(0, 0.025, -3);
+  roomGroup.add(tableBase);
+
+  // ===== 3D TELEVISION =====
+  const tvFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 2, 0.1),
+    new THREE.MeshBasicMaterial({ color:0x0f0f14 })
+  );
+  tvFrame.position.set(5, 4, -9.95);
   roomGroup.add(tvFrame);
 
-  // Setup offscreen HTML video player element mapped onto 3D Screen texture
-  tvVideo = document.createElement('video');
-  tvVideo.crossOrigin = "anonymous";
-  tvVideo.loop = true;
-  tvVideo.muted = true; // Auto-muted by default to fulfill browser permission policies
-  tvVideo.playsInline = true;
-  tvVideo.webkitPlaysInline = true;
-
-  tvVideoTexture = new THREE.VideoTexture(tvVideo);
-  tvVideoTexture.minFilter = THREE.LinearFilter;
-  tvVideoTexture.magFilter = THREE.LinearFilter;
-
-  const tvScreenGeo = new THREE.PlaneGeometry(4.0, 2.3);
-  const tvScreenMat = new THREE.MeshBasicMaterial({ map: tvVideoTexture, side: THREE.DoubleSide });
-  const tvScreen = new THREE.Mesh(tvScreenGeo, tvScreenMat);
-  tvScreen.position.set(0, 3.5, -9.9);
-  roomGroup.add(tvScreen);
+  tvScreenMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.2, 1.7),
+    new THREE.MeshBasicMaterial({ color:0x112233 })
+  );
+  tvScreenMesh.position.set(5, 4, -9.9);
+  roomGroup.add(tvScreenMesh);
 
   // ===== BOOKSHELF =====
   const shelf = new THREE.Mesh(
     new THREE.BoxGeometry(0.3, 5, 2),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
+    new THREE.MeshBasicMaterial({ color:0x2a2015 })
   );
   shelf.position.set(9.5, 2.5, -5);
   roomGroup.add(shelf);
@@ -2055,47 +1982,49 @@ function init3DRoom() {
     roomGroup.add(book);
   }
 
-  // ===== PASTEL RUG =====
+  // ===== RUG =====
   const rug = new THREE.Mesh(
-    new THREE.CylinderGeometry(2.5, 2.5, 0.01, 32),
-    new THREE.MeshBasicMaterial({ color: 0xffe4e1, transparent: true, opacity: 0.9 })
+    new THREE.PlaneGeometry(6, 4),
+    new THREE.MeshBasicMaterial({ color:0x1a0a2e, transparent:true, opacity:0.6, side:THREE.DoubleSide })
   );
-  rug.position.set(0, 0.02, 1);
+  rug.rotation.x = -Math.PI/2;
+  rug.position.set(0, 0.02, -2);
   roomGroup.add(rug);
 
   const rugInner = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.8, 1.8, 0.01, 32),
-    new THREE.MeshBasicMaterial({ color: 0xffccd5, transparent: true, opacity: 0.8 })
+    new THREE.PlaneGeometry(4, 2.5),
+    new THREE.MeshBasicMaterial({ color:0x2a1040, transparent:true, opacity:0.4, side:THREE.DoubleSide })
   );
-  rugInner.position.set(0, 0.03, 1);
+  rugInner.rotation.x = -Math.PI/2;
+  rugInner.position.set(0, 0.03, -2);
   roomGroup.add(rugInner);
 
-  // ===== LAMP (White/Gold) =====
+  // ===== LAMP =====
   const lampPole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.03, 0.03, 3, 8),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
+    new THREE.MeshBasicMaterial({ color:0x3a3a4a })
   );
   lampPole.position.set(7, 1.5, 5);
   roomGroup.add(lampPole);
 
   const lampShade = new THREE.Mesh(
     new THREE.ConeGeometry(0.4, 0.5, 8, 1, true),
-    new THREE.MeshBasicMaterial({ color:0xffeedd, transparent:true, opacity:0.8, side:THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color:0xffeedd, transparent:true, opacity:0.3, side:THREE.DoubleSide })
   );
   lampShade.position.set(7, 3.2, 5);
   roomGroup.add(lampShade);
 
   const lampBase = new THREE.Mesh(
     new THREE.CylinderGeometry(0.3, 0.35, 0.1, 8),
-    new THREE.MeshBasicMaterial({ color:0xffccd5 })
+    new THREE.MeshBasicMaterial({ color:0x3a3a4a })
   );
   lampBase.position.set(7, 0.05, 5);
   roomGroup.add(lampBase);
 
-  // ===== COZY DECORATIVE PLANT =====
+  // ===== PLANT =====
   const pot = new THREE.Mesh(
     new THREE.CylinderGeometry(0.3, 0.25, 0.4, 8),
-    new THREE.MeshBasicMaterial({ color:0xffccd5 })
+    new THREE.MeshBasicMaterial({ color:0x8B4513 })
   );
   pot.position.set(-8, 0.2, 5);
   roomGroup.add(pot);
@@ -2103,7 +2032,7 @@ function init3DRoom() {
   for(let i=0; i<5; i++) {
     const leaf = new THREE.Mesh(
       new THREE.SphereGeometry(0.15, 6, 6),
-      new THREE.MeshBasicMaterial({ color:0x4ecdc4 }) // Pastel foliage
+      new THREE.MeshBasicMaterial({ color:0x228B22 })
     );
     const angle = (i/5)*Math.PI*2;
     leaf.position.set(-8 + Math.cos(angle)*0.2, 0.6 + Math.random()*0.3, 5 + Math.sin(angle)*0.2);
@@ -2111,19 +2040,34 @@ function init3DRoom() {
     roomGroup.add(leaf);
   }
 
-  // ===== COPIOUS BRIGHT SHINING DAYLIGHTS =====
-  const fillLight = new THREE.AmbientLight(0xfff5f7, 1.2); // Massive clean room glow
-  scene.add(fillLight);
+  // ===== SUN (Outside the window) =====
+  const sunGeo = new THREE.SphereGeometry(1.2, 16, 16);
+  const sunMat = new THREE.MeshBasicMaterial({ color:0xfffae0 });
+  sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  sunMesh.position.set(1.5, 4.5, -15);
+  sunMesh.visible = false;
+  roomGroup.add(sunMesh);
 
-  const windowSunLight = new THREE.DirectionalLight(0xfffaec, 1.4); // Sunny beam projecting through room
-  windowSunLight.position.set(-8, 5.8, -5);
-  scene.add(windowSunLight);
+  const sunGlowGeo = new THREE.SphereGeometry(2.5, 16, 16);
+  const sunGlowMat = new THREE.MeshBasicMaterial({ color:0xffaa00, transparent:true, opacity:0.15, blending:THREE.AdditiveBlending });
+  const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
+  sunGlow.position.copy(sunMesh.position);
+  sunMesh.add(sunGlow);
 
-  const colorfulGlowL = new THREE.PointLight(0xff6b81, 0.4, 12);
-  colorfulGlowL.position.set(5, 3, -5); scene.add(colorfulGlowL);
+  // ===== SKY DOME =====
+  const skyGeo = new THREE.SphereGeometry(50, 16, 16);
+  const skyMat = new THREE.MeshBasicMaterial({ color:0x5ca5e6, transparent:true, opacity:0.3, side:THREE.BackSide });
+  skyMesh = new THREE.Mesh(skyGeo, skyMat);
+  skyMesh.visible = false;
+  roomGroup.add(skyMesh);
 
-  const colorfulGlowR = new THREE.PointLight(0x4ecdc4, 0.3, 12);
-  colorfulGlowR.position.set(-5, 3, 5); scene.add(colorfulGlowR);
+  // ===== LIGHTS =====
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+  scene.add(ambientLight); envLights.ambient = ambientLight;
+
+  const pointLight = new THREE.PointLight(0xfff3d1, 2.4, 25);
+  pointLight.position.set(1.5, 4.5, -5);
+  scene.add(pointLight); envLights.main = pointLight;
 
   animate();
 
@@ -2133,7 +2077,10 @@ function init3DRoom() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Drag Orbit
+  // Default Bright Day Environment On Launch
+  setEnvironment('day');
+
+  // Touch orbit
   let isDragging = false, prevX = 0, prevY = 0, rotX = 0, rotY = 0;
 
   canvas.addEventListener('touchstart',e=>{
@@ -2159,6 +2106,7 @@ function init3DRoom() {
 
   canvas.addEventListener('touchend',()=>isDragging=false);
 
+  // Mouse orbit
   canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
   canvas.addEventListener('mousemove',e=>{
     if(!isDragging) return;
@@ -2207,21 +2155,12 @@ function animate() {
     if(d.mesh) d.mesh.position.y = d.baseY + Math.sin(time + d.createdAt*0.001)*0.15;
   });
 
-  if(sunMesh) {
-    sunMesh.rotation.y += 0.002;
-  }
-
   // Animate partner avatar
   roomGroup.children.forEach(child=>{
     if(child.userData && child.userData.isPartnerAvatar) {
       child.position.y = child.userData.baseY + Math.sin(time*1.5)*0.2;
     }
   });
-
-  // Constantly flag video texture updates during loop
-  if (tvVideoTexture) {
-    tvVideoTexture.needsUpdate = true;
-  }
 
   renderer.render(scene, camera);
 }
@@ -2265,7 +2204,7 @@ function createPartner3DAvatar(data) {
 
   // Platform
   const platformGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.08, 16);
-  const platformMat = new THREE.MeshBasicMaterial({ color:0xff6b81, transparent:true, opacity:0.5 });
+  const platformMat = new THREE.MeshBasicMaterial({ color:0x667eea, transparent:true, opacity:0.5 });
   const platform = new THREE.Mesh(platformGeo, platformMat);
   platform.position.set(0, 0.04, -4);
   avatarGroup.add(platform);
@@ -2323,6 +2262,7 @@ function createPartner3DAvatar(data) {
   if(isOnline) {
     const glowGeo = new THREE.RingGeometry(0.8, 0.9, 16);
     const glowMat = new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0.2, side:THREE.DoubleSide});
+    const glow = new THREE.Mesh(glowGeo, glowMat);
     glow.rotation.x = -Math.PI/2;
     glow.position.set(0, 0.05, -4);
     avatarGroup.add(glow);
@@ -2337,7 +2277,7 @@ function createAvatarLetter(data, group) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = 128; canvas.height = 128;
-  ctx.fillStyle = '#ff6b81';
+  ctx.fillStyle = '#667eea';
   ctx.fillRect(0,0,128,128);
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 64px Arial';
@@ -2368,20 +2308,283 @@ function updatePartner3DAvatar(data) {
   }
 }
 
-// ===== AVATAR VIEWER =====
+// ===== 3D ROTATABLE MEDIA & AVATAR VIEWERS =====
+function openMedia(url, type) {
+  const viewer = document.getElementById('mediaViewer');
+  const container = document.getElementById('media3d');
+  container.innerHTML = '';
+  viewer.classList.add('active');
+
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+
+  mediaViewerScene = new THREE.Scene();
+  mediaViewerCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
+  mediaViewerCamera.position.z = 3;
+
+  mediaViewerRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  mediaViewerRenderer.setSize(container.clientWidth, container.clientHeight);
+  mediaViewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+  const light = new THREE.AmbientLight(0xffffff, 1.0);
+  mediaViewerScene.add(light);
+
+  const textureLoader = new THREE.TextureLoader();
+
+  const setupMesh = (texture) => {
+    const imgW = texture.image ? texture.image.width : 320;
+    const imgH = texture.image ? texture.image.height : 180;
+    const aspect = imgW / imgH;
+    let w = 2.2, h = 2.2;
+    if (aspect > 1) { h = w / aspect; } else { w = h * aspect; }
+
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+    mediaViewerMesh = new THREE.Mesh(geo, mat);
+    mediaViewerScene.add(mediaViewerMesh);
+  };
+
+  if (type === 'video') {
+    const vid = document.createElement('video');
+    vid.src = url;
+    vid.autoplay = true;
+    vid.loop = true;
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.crossOrigin = 'anonymous';
+    mediaVideoElementFor3D = vid;
+    vid.onloadeddata = () => {
+      const texture = new THREE.VideoTexture(vid);
+      setupMesh(texture);
+      vid.play().catch(()=>{});
+    };
+    vid.load();
+  } else {
+    textureLoader.load(url, (texture) => {
+      setupMesh(texture);
+    });
+  }
+
+  let isDragging = false;
+  let prevX = 0, prevY = 0;
+  let zoomScale = 1;
+
+  const onPointerDown = (e) => {
+    isDragging = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    prevX = clientX;
+    prevY = clientY;
+  };
+
+  const onPointerMove = (e) => {
+    if (!isDragging || !mediaViewerMesh) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = clientX - prevX;
+    const dy = clientY - prevY;
+
+    mediaViewerMesh.rotation.y += dx * 0.01;
+    mediaViewerMesh.rotation.x += dy * 0.01;
+
+    prevX = clientX;
+    prevY = clientY;
+  };
+
+  const onPointerUp = () => { isDragging = false; };
+
+  canvas.addEventListener('mousedown', onPointerDown);
+  canvas.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
+  canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+  canvas.addEventListener('touchmove', onPointerMove, { passive: true });
+  canvas.addEventListener('touchend', onPointerUp);
+
+  let lastDist = 0;
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (lastDist > 0) {
+        const delta = dist - lastDist;
+        zoomScale += delta * 0.005;
+        zoomScale = Math.max(0.3, Math.min(4, zoomScale));
+        mediaViewerCamera.position.z = 3 / zoomScale;
+      }
+      lastDist = dist;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    if (e.touches.length < 2) lastDist = 0;
+  });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomScale += e.deltaY * -0.001;
+    zoomScale = Math.max(0.3, Math.min(4, zoomScale));
+    mediaViewerCamera.position.z = 3 / zoomScale;
+  }, { passive: false });
+
+  const animateMediaViewer = () => {
+    mediaViewerAnimationId = requestAnimationFrame(animateMediaViewer);
+    if (mediaViewerRenderer) {
+      mediaViewerRenderer.render(mediaViewerScene, mediaViewerCamera);
+    }
+  };
+  animateMediaViewer();
+
+  const resizeMedia = () => {
+    if (!mediaViewerRenderer) return;
+    mediaViewerCamera.aspect = container.clientWidth / container.clientHeight;
+    mediaViewerCamera.updateProjectionMatrix();
+    mediaViewerRenderer.setSize(container.clientWidth, container.clientHeight);
+  };
+  window.addEventListener('resize', resizeMedia);
+}
+
+function closeMedia() {
+  document.getElementById('mediaViewer').classList.remove('active');
+  cancelAnimationFrame(mediaViewerAnimationId);
+  if (mediaVideoElementFor3D) {
+    mediaVideoElementFor3D.pause();
+    mediaVideoElementFor3D = null;
+  }
+  if (mediaViewerRenderer) {
+    mediaViewerRenderer.dispose();
+    mediaViewerRenderer = null;
+  }
+  mediaViewerScene = null;
+  mediaViewerCamera = null;
+  mediaViewerMesh = null;
+  document.getElementById('media3d').innerHTML = '';
+}
+
 function openAvatarViewer(url) {
   const viewer = document.getElementById('avatarViewer');
   const container = document.getElementById('avatar3d');
   container.innerHTML = '';
-  const img = document.createElement('img');
-  img.src = url;
-  img.style.transform = 'scale(1)';
-  container.appendChild(img);
   viewer.classList.add('active');
+
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  container.appendChild(canvas);
+
+  avatarViewerScene = new THREE.Scene();
+  avatarViewerCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
+  avatarViewerCamera.position.z = 3;
+
+  avatarViewerRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  avatarViewerRenderer.setSize(container.clientWidth, container.clientHeight);
+  avatarViewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+  const light = new THREE.AmbientLight(0xffffff, 1.0);
+  avatarViewerScene.add(light);
+
+  const loader = new THREE.TextureLoader();
+  loader.load(url, texture => {
+    const imgW = texture.image.width;
+    const imgH = texture.image.height;
+    const aspect = imgW / imgH;
+    let w = 2.2, h = 2.2;
+    if (aspect > 1) { h = w / aspect; } else { w = h * aspect; }
+
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+    avatarViewerMesh = new THREE.Mesh(geo, mat);
+    avatarViewerScene.add(avatarViewerMesh);
+  });
+
+  let isDragging = false;
+  let prevX = 0, prevY = 0;
+  let zoomScale = 1;
+
+  const onPointerDown = (e) => {
+    isDragging = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    prevX = clientX;
+    prevY = clientY;
+  };
+
+  const onPointerMove = (e) => {
+    if (!isDragging || !avatarViewerMesh) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = clientX - prevX;
+    const dy = clientY - prevY;
+
+    avatarViewerMesh.rotation.y += dx * 0.01;
+    avatarViewerMesh.rotation.x += dy * 0.01;
+
+    prevX = clientX;
+    prevY = clientY;
+  };
+
+  const onPointerUp = () => { isDragging = false; };
+
+  canvas.addEventListener('mousedown', onPointerDown);
+  canvas.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
+  canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+  canvas.addEventListener('touchmove', onPointerMove, { passive: true });
+  canvas.addEventListener('touchend', onPointerUp);
+
+  let lastDist = 0;
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (lastDist > 0) {
+        const delta = dist - lastDist;
+        zoomScale += delta * 0.005;
+        zoomScale = Math.max(0.3, Math.min(4, zoomScale));
+        avatarViewerCamera.position.z = 3 / zoomScale;
+      }
+      lastDist = dist;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    if (e.touches.length < 2) lastDist = 0;
+  });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomScale += e.deltaY * -0.001;
+    zoomScale = Math.max(0.3, Math.min(4, zoomScale));
+    avatarViewerCamera.position.z = 3 / zoomScale;
+  }, { passive: false });
+
+  const animateAvatarViewer = () => {
+    avatarViewerAnimationId = requestAnimationFrame(animateAvatarViewer);
+    if (avatarViewerRenderer) {
+      avatarViewerRenderer.render(avatarViewerScene, avatarViewerCamera);
+    }
+  };
+  animateAvatarViewer();
 }
 
 function closeAvatarViewer() {
   document.getElementById('avatarViewer').classList.remove('active');
+  cancelAnimationFrame(avatarViewerAnimationId);
+  if (avatarViewerRenderer) {
+    avatarViewerRenderer.dispose();
+    avatarViewerRenderer = null;
+  }
+  avatarViewerScene = null;
+  avatarViewerCamera = null;
+  avatarViewerMesh = null;
+  document.getElementById('avatar3d').innerHTML = '';
 }
 
 // ===== MEDIA =====
@@ -2407,6 +2610,7 @@ function handleFile(input) {
       mediaData: base64, mediaType: isVideo?'video':'image',
       sender: currentUser.uid, timestamp: Date.now()
     });
+    create3DMedia(base64, isVideo?'video':'image', true);
     loadChatHistory();
   };
   reader.readAsDataURL(file);
@@ -2457,7 +2661,7 @@ function create3DMedia(url, type, isOwn) {
   }
 }
 
-// Raycaster
+// Raycaster Click Checker
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -2475,205 +2679,157 @@ document.getElementById('room-canvas').addEventListener('click',e=>{
       openAvatarViewer(hit.object.userData.avatarUrl);
       break;
     }
+    // INTERACTIVE TV MESH CLICK
+    if(hit.object === tvScreenMesh || hit.object.position.distanceTo(new THREE.Vector3(5, 4, -9.9)) < 1.5) {
+      openTvModal();
+      break;
+    }
   }
 });
 
-// ===== MEDIA VIEWER (TRULY 3D ROTATABLE VIEWER PORTED) =====
-function openMedia(url, type) {
-  const viewer = document.getElementById('mediaViewer');
-  const container = document.getElementById('media3d');
-  container.innerHTML = '';
-  viewer.classList.add('active');
+// ===== SHARED 3D TV CONTROLS =====
+function openTvModal() {
+  document.getElementById('tvModal').classList.add('active');
+}
 
-  mediaScene = new THREE.Scene();
-  mediaScene.background = new THREE.Color(0x050508);
+function closeTvModal() {
+  document.getElementById('tvModal').classList.remove('active');
+}
 
-  mediaCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-  mediaCamera.position.set(0, 0, 5);
+function setupTvVideoTexture(url) {
+  if (tvVideo) {
+    tvVideo.pause();
+    tvVideo.remove();
+  }
+  tvVideo = document.createElement('video');
+  tvVideo.src = url;
+  tvVideo.crossOrigin = 'anonymous';
+  tvVideo.loop = true;
+  tvVideo.muted = false;
+  tvVideo.playsInline = true;
+  tvVideo.style.display = 'none';
+  document.body.appendChild(tvVideo);
 
-  mediaRenderer = new THREE.WebGLRenderer({ antialias: true });
-  mediaRenderer.setSize(container.clientWidth, container.clientHeight);
-  mediaRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  container.appendChild(mediaRenderer.domElement);
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-  mediaScene.add(ambientLight);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  dirLight.position.set(2, 2, 5);
-  mediaScene.add(dirLight);
-
-  const cardGroup = new THREE.Group();
-  mediaScene.add(cardGroup);
-
-  const loadGeometryAndMaterial = (texture, aspect) => {
-    let w = 2.5, h = 2.5;
-    if (aspect > 1) { h = w / aspect; }
-    else { w = h * aspect; }
-
-    // White elegant 3D polaroid photo style frame
-    const frameWidth = w + 0.15;
-    const frameHeight = h + 0.15;
-    const frameGeo = new THREE.BoxGeometry(frameWidth, frameHeight, 0.05);
-    const frameMat = new THREE.MeshPhongMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.1 });
-    const frameMesh = new THREE.Mesh(frameGeo, frameMat);
-    cardGroup.add(frameMesh);
-
-    // Front photo face plane
-    const screenGeo = new THREE.PlaneGeometry(w, h);
-    const screenMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-    const screenMesh = new THREE.Mesh(screenGeo, screenMat);
-    screenMesh.position.z = 0.026;
-    cardGroup.add(screenMesh);
-
-    // Back card face plane
-    const backGeo = new THREE.PlaneGeometry(w, h);
-    const backMat = new THREE.MeshBasicMaterial({ color: 0xe0e0e0, side: THREE.DoubleSide });
-    const backMesh = new THREE.Mesh(backGeo, backMat);
-    backMesh.position.z = -0.026;
-    backMesh.rotation.y = Math.PI;
-    cardGroup.add(backMesh);
+  tvVideo.onloadeddata = () => {
+    tvVideoTexture = new THREE.VideoTexture(tvVideo);
+    if (tvScreenMesh) {
+      tvScreenMesh.material = new THREE.MeshBasicMaterial({ map: tvVideoTexture, side: THREE.DoubleSide });
+    }
   };
+  tvVideo.load();
+}
 
-  if (type === 'video') {
-    const vid = document.createElement('video');
-    vid.src = url;
-    vid.crossOrigin = 'anonymous';
-    vid.loop = true;
-    vid.muted = false;
-    vid.autoplay = true;
-    vid.playsInline = true;
-    vid.webkitPlaysInline = true;
-    mediaVideoElement = vid;
+function sendTvVideoLink() {
+  const url = document.getElementById('tvUrlInput').value.trim();
+  if(!url || !chatId) return;
+  db.ref('chats/' + chatId + '/tvState').set({
+    videoUrl: url,
+    playing: true,
+    currentTime: 0,
+    updatedAt: Date.now(),
+    sender: currentUser.uid
+  });
+  document.getElementById('tvUrlInput').value = '';
+}
 
-    vid.onloadedmetadata = () => {
-      const aspect = vid.videoWidth / vid.videoHeight;
-      const texture = new THREE.VideoTexture(vid);
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      loadGeometryAndMaterial(texture, aspect);
-    };
-    vid.play().catch(e => console.log("Viewer video play failed:", e));
-  } else {
-    const loader = new THREE.TextureLoader();
-    loader.load(url, texture => {
-      const aspect = texture.image.width / texture.image.height;
-      loadGeometryAndMaterial(texture, aspect);
+function handleTvFileUpload(input) {
+  const file = input.files[0];
+  if (!file || !chatId) return;
+  if (file.size > 15 * 1024 * 1024) {
+    alert('Файл слишком большой! Максимум 15 МБ.');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    db.ref('chats/' + chatId + '/tvState').set({
+      videoUrl: base64,
+      playing: true,
+      currentTime: 0,
+      updatedAt: Date.now(),
+      sender: currentUser.uid
     });
-  }
-
-  // Interaction controls
-  mediaRotX = 0; mediaRotY = 0; mediaZoom = 1;
-
-  const onPointerDown = (e) => {
-    isMediaDragging = true;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    prevMediaX = clientX;
-    prevMediaY = clientY;
   };
-
-  const onPointerMove = (e) => {
-    if (!isMediaDragging) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = clientX - prevMediaX;
-    const dy = clientY - prevMediaY;
-
-    mediaRotY += dx * 0.01;
-    mediaRotX += dy * 0.01;
-
-    cardGroup.rotation.y = mediaRotY;
-    cardGroup.rotation.x = mediaRotX;
-
-    prevMediaX = clientX;
-    prevMediaY = clientY;
-  };
-
-  const onPointerUp = () => { isMediaDragging = false; };
-
-  const dom = mediaRenderer.domElement;
-  dom.addEventListener('mousedown', onPointerDown);
-  dom.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('mouseup', onPointerUp);
-
-  dom.addEventListener('touchstart', onPointerDown, { passive: true });
-  dom.addEventListener('touchmove', onPointerMove, { passive: true });
-  window.addEventListener('touchend', onPointerUp);
-
-  // Scroll Zoom
-  dom.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    mediaZoom += e.deltaY * -0.001;
-    mediaZoom = Math.max(0.5, Math.min(3, mediaZoom));
-    cardGroup.scale.setScalar(mediaZoom);
-  }, { passive: false });
-
-  // Pinch Zoom
-  let touchStartDist = 0;
-  dom.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 2) {
-      touchStartDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-    }
-  }, { passive: true });
-
-  dom.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const delta = dist - touchStartDist;
-      mediaZoom += delta * 0.005;
-      mediaZoom = Math.max(0.5, Math.min(3, mediaZoom));
-      cardGroup.scale.setScalar(mediaZoom);
-      touchStartDist = dist;
-    }
-  }, { passive: true });
-
-  function animateMedia() {
-    mediaAnimId = requestAnimationFrame(animateMedia);
-    if (!isMediaDragging) {
-      cardGroup.rotation.y += 0.002;
-    }
-    mediaRenderer.render(mediaScene, mediaCamera);
-  }
-  animateMedia();
-
-  const onViewerResize = () => {
-    if (!mediaRenderer || !mediaCamera) return;
-    mediaCamera.aspect = container.clientWidth / container.clientHeight;
-    mediaCamera.updateProjectionMatrix();
-    mediaRenderer.setSize(container.clientWidth, container.clientHeight);
-  };
-  window.addEventListener('resize', onViewerResize);
-  viewer.userData = { onResize: onViewerResize };
+  reader.readAsDataURL(file);
+  input.value = '';
 }
 
-function closeMedia() {
-  document.getElementById('mediaViewer').classList.remove('active');
-  cancelAnimationFrame(mediaAnimId);
-  if (mediaVideoElement) {
-    mediaVideoElement.pause();
-    mediaVideoElement.src = "";
-    mediaVideoElement = null;
+function updateTvControlUI(state) {
+  const controlsArea = document.getElementById('tvControlsArea');
+  if(!state) {
+    controlsArea.style.display = 'none';
+    return;
   }
-  const viewer = document.getElementById('mediaViewer');
-  if (viewer.userData && viewer.userData.onResize) {
-    window.removeEventListener('resize', viewer.userData.onResize);
+  controlsArea.style.display = 'block';
+  const playBtn = document.getElementById('tvPlayBtn');
+  playBtn.textContent = state.playing ? '⏸' : '▶';
+
+  if (tvVideo) {
+    const progress = document.getElementById('tvProgress');
+    const curTimeSpan = document.getElementById('tvCurrentTime');
+    const durTimeSpan = document.getElementById('tvDuration');
+    
+    const formatTime = (secs) => {
+      if (isNaN(secs)) return '0:00';
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    };
+
+    const updateSlider = () => {
+      if (!tvVideo) return;
+      const cur = tvVideo.currentTime;
+      const dur = tvVideo.duration || 100;
+      progress.value = (cur / dur) * 100;
+      curTimeSpan.textContent = formatTime(cur);
+      durTimeSpan.textContent = formatTime(dur);
+    };
+    
+    if (tvVideo && !tvVideo._interval) {
+      tvVideo._interval = setInterval(updateSlider, 500);
+    }
   }
-  if (mediaRenderer) {
-    mediaRenderer.dispose();
-    mediaRenderer = null;
-  }
-  mediaScene = null;
-  mediaCamera = null;
-  document.getElementById('media3d').innerHTML = '';
 }
 
+function toggleTvPlay() {
+  if (!chatId || !tvVideo) return;
+  db.ref('chats/' + chatId + '/tvState').once('value').then(snap => {
+    const state = snap.val() || {};
+    db.ref('chats/' + chatId + '/tvState').update({
+      playing: !state.playing,
+      currentTime: tvVideo.currentTime,
+      updatedAt: Date.now(),
+      sender: currentUser.uid
+    });
+  });
+}
+
+function seekTv(val) {
+  if (!chatId || !tvVideo) return;
+  const dur = tvVideo.duration || 100;
+  const targetTime = (val / 100) * dur;
+  db.ref('chats/' + chatId + '/tvState').once('value').then(snap => {
+    const state = snap.val() || {};
+    db.ref('chats/' + chatId + '/tvState').update({
+      currentTime: targetTime,
+      updatedAt: Date.now(),
+      sender: currentUser.uid
+    });
+  });
+}
+
+function syncTvTime() {
+  if (!chatId || !tvVideo) return;
+  db.ref('chats/' + chatId + '/tvState').once('value').then(snap => {
+    const state = snap.val();
+    if (state && tvVideo) {
+      const serverTime = state.currentTime;
+      const timeDiff = (Date.now() - state.updatedAt) / 1000;
+      tvVideo.currentTime = serverTime + (state.playing ? timeDiff : 0);
+    }
+  });
+}
 
 // ===== MISIDE TEXT =====
 function showMisideText(text) {
@@ -2685,7 +2841,7 @@ function showMisideText(text) {
     const span = document.createElement('span');
     span.className = 'miside-letter';
     span.textContent = char === ' ' ? '\u00A0' : char;
-    span.style.color = `hsl(${340 + Math.random()*40}, 100%, 75%)`; // Pink theme typography
+    span.style.color = `hsl(${200 + Math.random()*60}, 80%, 70%)`;
     container.appendChild(span); spans.push(span);
   });
   spans.forEach((span,i)=>{
