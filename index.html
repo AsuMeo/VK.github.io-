@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anime Frame FX — 4K Anime Effects</title>
+<title>Anime Frame FX — Ultimate 4K Anime Converter</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -22,14 +22,30 @@
     position: relative; z-index: 1;
     max-width: 1400px; margin: 0 auto; padding: 40px 20px;
   }
+  .header-area {
+    text-align: center; margin-bottom: 40px;
+  }
   h1 {
-    text-align: center; font-size: 2.8rem;
+    font-size: 3rem;
     background: linear-gradient(90deg, #ff6b9d, #c44569, #f8b500);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     margin-bottom: 10px; text-shadow: 0 0 40px rgba(255,107,157,0.3);
   }
   .subtitle {
-    text-align: center; color: #888; font-size: 1rem; margin-bottom: 40px;
+    color: #888; font-size: 1rem; margin-bottom: 15px;
+  }
+  .engine-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; color: #aaa;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #f8b500;
+    box-shadow: 0 0 8px #f8b500;
+    transition: 0.3s;
+  }
+  .status-dot.ready {
+    background: #2ecc71; box-shadow: 0 0 8px #2ecc71;
   }
   .upload-zone {
     border: 2px dashed #ff6b9d55;
@@ -111,7 +127,7 @@
   .close-btn:hover { background: rgba(255,255,255,0.1); }
   .editor-body {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 340px;
     gap: 30px; padding: 30px 40px;
     max-width: 1600px; margin: 0 auto;
   }
@@ -142,7 +158,7 @@
     display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
   }
   .slider-row label {
-    font-size: 0.8rem; color: #aaa; min-width: 80px;
+    font-size: 0.8rem; color: #aaa; min-width: 90px;
   }
   .slider-row input[type="range"] {
     flex: 1; -webkit-appearance: none; height: 4px;
@@ -157,9 +173,9 @@
   .slider-row span {
     font-size: 0.75rem; color: #666; min-width: 30px; text-align: right;
   }
-  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .fx-btn {
-    flex: 1; min-width: 100px; padding: 10px;
+    padding: 10px;
     background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
     color: #ccc; border-radius: 8px; cursor: pointer;
     font-size: 0.8rem; transition: 0.2s; text-align: center;
@@ -200,34 +216,25 @@
     animation: spin 1s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading p { margin-top: 20px; color: #ff6b9d; font-size: 1.1rem; font-weight: 500; }
+  .loading p { margin-top: 20px; color: #ff6b9d; font-size: 1.1rem; font-weight: 500; text-align: center; }
   
-  /* Стили для визуального прогресс-бара */
   .progress-container {
-    width: 300px;
-    height: 8px;
+    width: 300px; height: 8px;
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    margin-top: 15px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 107, 157, 0.2);
+    border-radius: 10px; margin-top: 15px;
+    overflow: hidden; border: 1px solid rgba(255, 107, 157, 0.2);
   }
   .progress-bar {
-    width: 0%;
-    height: 100%;
+    width: 0%; height: 100%;
     background: linear-gradient(90deg, #ff6b9d, #f8b500);
     box-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
     transition: width 0.1s ease-out;
   }
   .progress-percent {
-    margin-top: 8px;
-    font-size: 1.2rem;
-    color: #ff6b9d;
-    font-weight: bold;
+    margin-top: 8px; font-size: 1.2rem;
+    color: #ff6b9d; font-weight: bold;
     text-shadow: 0 0 10px rgba(255, 107, 157, 0.3);
   }
-  
-  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 </style>
 </head>
 <body>
@@ -236,7 +243,7 @@
 
 <div class="loading" id="loading">
   <div class="spinner"></div>
-  <p id="loadingText">Обработка 4K аниме-эффектов...</p>
+  <p id="loadingText">Инициализация ИИ-фильтров OpenCV...</p>
   <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
   </div>
@@ -244,14 +251,20 @@
 </div>
 
 <div class="container">
-  <h1>✦ Anime Frame FX</h1>
-  <p class="subtitle">Выбери фото — получи настоящий аниме-кадр. Все эффекты локальные, в браузере.</p>
+  <div class="header-area">
+    <h1>✦ Anime Frame FX Pro</h1>
+    <p class="subtitle">Удаление шума, сглаживание текстур и векторизация линий в реальном времени</p>
+    <div class="engine-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Загрузка ИИ-движка OpenCV.js...</span>
+    </div>
+  </div>
 
   <div class="upload-zone" id="uploadZone">
     <input type="file" id="fileInput" accept="image/*" multiple>
     <div class="upload-icon">📁</div>
-    <p style="font-size:1.1rem; margin-bottom:8px;"&gt;Перетащи фото сюда или кликни</p>
-    <p style="color:#666; font-size:0.85rem;"&gt;Поддерживаются JPG, PNG, WEBP</p>
+    <p style="font-size:1.1rem; margin-bottom:8px;">Перетащи фото сюда или кликни</p>
+    <p style="color:#666; font-size:0.85rem;">Поддерживаются JPG, PNG, WEBP</p>
   </div>
 
   <div class="gallery" id="gallery"></div>
@@ -259,7 +272,7 @@
 
 <div class="editor" id="editor">
   <div class="editor-header">
-    <h2>🎨 Редактор аниме-эффектов</h2>
+    <h2>🎨 Редактор аниме-кадров (OpenCV WASM)</h2>
     <button class="close-btn" onclick="closeEditor()">✕ Закрыть</button>
   </div>
   <div class="editor-body">
@@ -282,21 +295,35 @@
       </div>
 
       <div class="control-group">
-        <h3>⚡ Усиление</h3>
+        <h3>✨ ИИ Очистка и Линии</h3>
+        <div class="slider-row">
+          <label>Очистка шума</label>
+          <input type="range" id="denoise" min="0" max="100" value="40" oninput="updateEffect()">
+          <span id="denoiseVal">40</span>
+        </div>
+        <div class="slider-row">
+          <label>Аниме-контур</label>
+          <input type="range" id="contours" min="0" max="100" value="30" oninput="updateEffect()">
+          <span id="contoursVal">30</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>⚡ Усиление цвета</h3>
         <div class="slider-row">
           <label>Резкость</label>
-          <input type="range" id="sharpness" min="0" max="200" value="80" oninput="updateEffect()">
-          <span id="sharpVal">80</span>
+          <input type="range" id="sharpness" min="0" max="200" value="60" oninput="updateEffect()">
+          <span id="sharpVal">60</span>
         </div>
         <div class="slider-row">
           <label>Насыщенность</label>
-          <input type="range" id="saturation" min="0" max="200" value="120" oninput="updateEffect()">
-          <span id="satVal">120</span>
+          <input type="range" id="saturation" min="0" max="200" value="130" oninput="updateEffect()">
+          <span id="satVal">130</span>
         </div>
         <div class="slider-row">
           <label>Контраст</label>
-          <input type="range" id="contrast" min="50" max="200" value="110" oninput="updateEffect()">
-          <span id="contVal">110</span>
+          <input type="range" id="contrast" min="50" max="200" value="115" oninput="updateEffect()">
+          <span id="contVal">115</span>
         </div>
         <div class="slider-row">
           <label>Яркость</label>
@@ -306,26 +333,21 @@
       </div>
 
       <div class="control-group">
-        <h3>🌸 Эффекты</h3>
+        <h3>🌸 Эффекты свечения</h3>
         <div class="slider-row">
-          <label>Свечение</label>
-          <input type="range" id="bloom" min="0" max="100" value="20" oninput="updateEffect()">
-          <span id="bloomVal">20</span>
-        </div>
-        <div class="slider-row">
-          <label>Зернистость</label>
-          <input type="range" id="grain" min="0" max="100" value="10" oninput="updateEffect()">
-          <span id="grainVal">10</span>
+          <label>Свечение (Bloom)</label>
+          <input type="range" id="bloom" min="0" max="100" value="25" oninput="updateEffect()">
+          <span id="bloomVal">25</span>
         </div>
         <div class="slider-row">
           <label>Виньетка</label>
-          <input type="range" id="vignette" min="0" max="100" value="30" oninput="updateEffect()">
-          <span id="vigVal">30</span>
+          <input type="range" id="vignette" min="0" max="100" value="20" oninput="updateEffect()">
+          <span id="vigVal">20</span>
         </div>
         <div class="slider-row">
-          <label>Хроматическая аберрация</label>
-          <input type="range" id="chromatic" min="0" max="50" value="5" oninput="updateEffect()">
-          <span id="chromVal">5</span>
+          <label>Хром. аберрация</label>
+          <input type="range" id="chromatic" min="0" max="50" value="4" oninput="updateEffect()">
+          <span id="chromVal">4</span>
         </div>
       </div>
 
@@ -333,8 +355,8 @@
         <h3>🎨 Цветокоррекция</h3>
         <div class="slider-row">
           <label>Теплота</label>
-          <input type="range" id="warmth" min="-50" max="50" value="10" oninput="updateEffect()">
-          <span id="warmVal">10</span>
+          <input type="range" id="warmth" min="-50" max="50" value="15" oninput="updateEffect()">
+          <span id="warmVal">15</span>
         </div>
         <div class="slider-row">
           <label>Оттенок</label>
@@ -342,9 +364,9 @@
           <span id="tintVal">5</span>
         </div>
         <div class="slider-row">
-          <label>Линейный контраст</label>
-          <input type="range" id="levels" min="0" max="100" value="15" oninput="updateEffect()">
-          <span id="levVal">15</span>
+          <label>S-Кривая</label>
+          <input type="range" id="levels" min="0" max="100" value="20" oninput="updateEffect()">
+          <span id="levVal">20</span>
         </div>
       </div>
 
@@ -353,6 +375,9 @@
     </div>
   </div>
 </div>
+
+<!-- Загружаем высокопроизводительный OpenCV.js для ИИ-обработки контуров и денойза -->
+<script async src="https://cdn.jsdelivr.net/npm/@techstardev/opencv-js@4.5.4-2/opencv.js" onload="onOpenCvReady()"></script>
 
 <script>
 // === PARTICLES BACKGROUND ===
@@ -386,6 +411,15 @@ function drawParticles(){
   requestAnimationFrame(drawParticles);
 }
 drawParticles();
+
+// === OPENCV LOAD CHECK ===
+let cvReady = false;
+function onOpenCvReady() {
+  cvReady = true;
+  document.getElementById('statusDot').classList.add('ready');
+  document.getElementById('statusText').textContent = "ИИ-движок OpenCV готов к работе";
+  console.log('OpenCV.js Loaded Successfully.');
+}
 
 // === UPLOAD ===
 const uploadZone = document.getElementById('uploadZone');
@@ -441,14 +475,14 @@ const ctx = canvas.getContext('2d', {willReadFrequently: true});
 const editor = document.getElementById('editor');
 
 let presets = {
-  anime4k: {sharpness:80, saturation:120, contrast:110, brightness:105, bloom:20, grain:10, vignette:30, chromatic:5, warmth:10, tint:5, levels:15},
-  celshade: {sharpness:150, saturation:140, contrast:140, brightness:100, bloom:5, grain:15, vignette:20, chromatic:8, warmth:5, tint:0, levels:35},
-  vivid: {sharpness:60, saturation:180, contrast:100, brightness:110, bloom:35, grain:5, vignette:15, chromatic:3, warmth:20, tint:10, levels:10},
-  soft: {sharpness:30, saturation:90, contrast:85, brightness:115, bloom:50, grain:20, vignette:40, chromatic:2, warmth:15, tint:8, levels:5},
-  night: {sharpness:100, saturation:80, contrast:130, brightness:90, bloom:40, grain:25, vignette:60, chromatic:12, warmth:-10, tint:5, levels:25},
-  sakura: {sharpness:50, saturation:150, contrast:95, brightness:112, bloom:45, grain:8, vignette:35, chromatic:4, warmth:25, tint:15, levels:8},
-  cyber: {sharpness:120, saturation:160, contrast:125, brightness:100, bloom:30, grain:12, vignette:25, chromatic:15, warmth:-5, tint:-10, levels:30},
-  retro: {sharpness:40, saturation:110, contrast:120, brightness:95, bloom:10, grain:40, vignette:50, chromatic:20, warmth:15, tint:-5, levels:20}
+  anime4k: {denoise:40, contours:30, sharpness:80, saturation:120, contrast:110, brightness:105, bloom:20, vignette:20, chromatic:4, warmth:10, tint:5, levels:15},
+  celshade: {denoise:70, contours:60, sharpness:120, saturation:145, contrast:135, brightness:100, bloom:10, vignette:15, chromatic:6, warmth:5, tint:0, levels:30},
+  vivid: {denoise:30, contours:20, sharpness:60, saturation:170, contrast:100, brightness:112, bloom:35, vignette:10, chromatic:3, warmth:15, tint:8, levels:10},
+  soft: {denoise:50, contours:15, sharpness:20, saturation:95, contrast:85, brightness:115, bloom:50, vignette:35, chromatic:2, warmth:15, tint:5, levels:5},
+  night: {denoise:60, contours:45, sharpness:100, saturation:85, contrast:125, brightness:90, bloom:40, vignette:50, chromatic:10, warmth:-10, tint:5, levels:25},
+  sakura: {denoise:35, contours:25, sharpness:50, saturation:140, contrast:95, brightness:110, bloom:45, vignette:25, chromatic:4, warmth:20, tint:12, levels:8},
+  cyber: {denoise:50, contours:55, sharpness:110, saturation:165, contrast:125, brightness:100, bloom:30, vignette:20, chromatic:12, warmth:-5, tint:-10, levels:25},
+  retro: {denoise:30, contours:40, sharpness:40, saturation:110, contrast:115, brightness:95, bloom:15, vignette:40, chromatic:15, warmth:15, tint:-5, levels:20}
 };
 
 function openEditor(index){
@@ -458,7 +492,6 @@ function openEditor(index){
   document.body.style.overflow = 'hidden';
   
   setupCanvas();
-  // Находим активную кнопку пресета и применяем её
   const activeBtn = document.querySelector('.preset-grid .fx-btn.active') || document.querySelector('.preset-grid .fx-btn');
   applyPreset('anime4k', activeBtn);
 }
@@ -482,12 +515,13 @@ function setupCanvas(){
 
 function getSliderVals(){
   return {
+    denoise: +document.getElementById('denoise').value,
+    contours: +document.getElementById('contours').value,
     sharpness: +document.getElementById('sharpness').value,
     saturation: +document.getElementById('saturation').value,
     contrast: +document.getElementById('contrast').value,
     brightness: +document.getElementById('brightness').value,
     bloom: +document.getElementById('bloom').value,
-    grain: +document.getElementById('grain').value,
     vignette: +document.getElementById('vignette').value,
     chromatic: +document.getElementById('chromatic').value,
     warmth: +document.getElementById('warmth').value,
@@ -501,8 +535,8 @@ function setSliders(v){
     const el = document.getElementById(k);
     if(el){ 
       el.value = v[k]; 
-      const labelId = k.replace(/sharpness|saturation|contrast|brightness|bloom|grain|vignette|chromatic|warmth|tint|levels/, m=>{
-        const map={sharpness:'sharp',saturation:'sat',contrast:'cont',brightness:'bright',bloom:'bloom',grain:'grain',vignette:'vig',chromatic:'chrom',warmth:'warm',tint:'tint',levels:'lev'};
+      const labelId = k.replace(/denoise|contours|sharpness|saturation|contrast|brightness|bloom|vignette|chromatic|warmth|tint|levels/, m=>{
+        const map={denoise:'denoise',contours:'contours',sharpness:'sharp',saturation:'sat',contrast:'cont',brightness:'bright',bloom:'bloom',vignette:'vig',chromatic:'chrom',warmth:'warm',tint:'tint',levels:'lev'};
         return map[m]+'Val';
       });
       const lbl = document.getElementById(labelId);
@@ -520,26 +554,26 @@ function applyPreset(name, element){
   updateEffect();
 }
 
-// === DEBOUNCED & CHUNKED PIPELINE ===
+// === PIPELINE DEBOUNCE ===
 let updateTimeout = null;
 let currentProcessingToken = null;
 
 function updateEffect(){
   const v = getSliderVals();
-  // Мгновенное обновление числовых показателей в UI
+  // Моментально выводим текстовые значения ползунков
+  document.getElementById('denoiseVal').textContent = v.denoise;
+  document.getElementById('contoursVal').textContent = v.contours;
   document.getElementById('sharpVal').textContent = v.sharpness;
   document.getElementById('satVal').textContent = v.saturation;
   document.getElementById('contVal').textContent = v.contrast;
   document.getElementById('brightVal').textContent = v.brightness;
   document.getElementById('bloomVal').textContent = v.bloom;
-  document.getElementById('grainVal').textContent = v.grain;
   document.getElementById('vigVal').textContent = v.vignette;
   document.getElementById('chromVal').textContent = v.chromatic;
   document.getElementById('warmVal').textContent = v.warmth;
   document.getElementById('tintVal').textContent = v.tint;
   document.getElementById('levVal').textContent = v.levels;
 
-  // Откладываем выполнение тяжелой фильтрации, пока пользователь двигает ползунок
   clearTimeout(updateTimeout);
   updateTimeout = setTimeout(() => {
     runProcessingPipeline();
@@ -565,20 +599,111 @@ function showProgress(show) {
   }
 }
 
-// Основной асинхронный конвейер обработки изображения
+// === HIGH-PERFORMANCE ANIME PIPELINE ===
 async function runProcessingPipeline() {
   const token = Symbol('render');
   currentProcessingToken = token;
 
   showProgress(true);
-  updateProgressBar(0, "Подготовка к рендерингу...");
+  updateProgressBar(0, "Инициализация аниме-фильтров...");
 
   const w = canvas.width, h = canvas.height;
   const src = originalImageData.data;
   const dst = new Uint8ClampedArray(src);
   const v = getSliderVals();
 
-  // Предварительные расчеты для ускорения математики в цикле
+  // Шаг 1: Интеграция OpenCV для удаления шума (Bilateral Filter) и векторизации линий
+  let processedImageData = null;
+
+  if (cvReady) {
+    updateProgressBar(15, "ИИ-очистка шумов и точек (Bilateral)...");
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    
+    try {
+      // Инициализация матриц OpenCV
+      let srcMat = cv.imread(canvas);
+      let stepMat = new cv.Mat();
+
+      // Двусторонний фильтр для выравнивания текстуры (удаляет точки, но сохраняет контуры)
+      if (v.denoise > 0) {
+        let d = Math.round(v.denoise / 10) | 1; // нечетный диаметр
+        d = Math.max(3, Math.min(15, d));
+        let sigmaColor = v.denoise * 1.5;
+        let sigmaSpace = v.denoise * 1.5;
+        cv.bilateralFilter(srcMat, stepMat, d, sigmaColor, sigmaSpace, cv.BORDER_DEFAULT);
+      } else {
+        srcMat.copyTo(stepMat);
+      }
+
+      if (currentProcessingToken !== token) { srcMat.delete(); stepMat.delete(); return; }
+      updateProgressBar(45, "Генерация аниме-контуров...");
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      // Извлечение краев для аккуратной аниме обводки
+      if (v.contours > 0) {
+        let gray = new cv.Mat();
+        cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
+        
+        let blur = new cv.Mat();
+        cv.medianBlur(gray, blur, 5);
+
+        let edges = new cv.Mat();
+        // Адаптивный порог определяет резкие контуры рисунка
+        let blockSize = 9;
+        let C = 4;
+        cv.adaptiveThreshold(blur, edges, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, blockSize, C);
+
+        // Накладываем сглаженные контуры поверх цветной отфильтрованной картинки
+        let resultMat = new cv.Mat();
+        cv.cvtColor(stepMat, resultMat, cv.COLOR_RGB2RGBA);
+
+        // Быстрое слияние линий на уровне матриц OpenCV
+        let thicknessOpacity = v.contours / 100;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            let edgeVal = edges.ucharPtr(y, x)[0];
+            if (edgeVal === 0) { // Если обнаружена линия
+              let idx = (y * w + x) * 4;
+              // Закрашиваем пиксель темным цветом контура с учетом прозрачности
+              resultMat.data[idx] = Math.round(resultMat.data[idx] * (1 - thicknessOpacity));     // R
+              resultMat.data[idx+1] = Math.round(resultMat.data[idx+1] * (1 - thicknessOpacity)); // G
+              resultMat.data[idx+2] = Math.round(resultMat.data[idx+2] * (1 - thicknessOpacity)); // B
+            }
+          }
+        }
+        
+        cv.imshow(canvas, resultMat);
+        
+        gray.delete();
+        blur.delete();
+        edges.delete();
+        resultMat.delete();
+      } else {
+        cv.imshow(canvas, stepMat);
+      }
+
+      // Освобождаем память в OpenCV
+      srcMat.delete();
+      stepMat.delete();
+      
+      // Получаем очищенное от точек и обработанное OpenCV изображение обратно в JS
+      processedImageData = ctx.getImageData(0, 0, w, h);
+    } catch (e) {
+      console.error("OpenCV обработка прервана или упала. Резервный запуск.", e);
+      processedImageData = new ImageData(dst, w, h);
+    }
+  } else {
+    // Резервная копия на случай, если OpenCV еще загружается
+    processedImageData = new ImageData(dst, w, h);
+  }
+
+  if (currentProcessingToken !== token) return;
+
+  // Шаг 2: Цветокоррекция, Яркость, Контрастность и S-Кривая (Чанками)
+  updateProgressBar(60, "Цветокоррекция и цветопередача...");
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  const data = processedImageData.data;
   const br = (v.brightness - 100) * 2.55;
   const ct = (v.contrast - 100) / 100;
   const ctFactor = (1 + ct) * (259/255);
@@ -588,10 +713,11 @@ async function runProcessingPipeline() {
   const tr = v.tint * 0.8, tb = -v.tint * 0.8;
   const lev = v.levels / 100;
 
-  // Шаг 1: Цветокоррекция в 10 асинхронных чанков (чтобы UI не вис)
-  const chunkSize = Math.ceil(h / 10);
-  for (let step = 0; step < 10; step++) {
-    if (currentProcessingToken !== token) return; // задача отменена новой прокруткой
+  const steps = 4;
+  const chunkSize = Math.ceil(h / steps);
+
+  for (let step = 0; step < steps; step++) {
+    if (currentProcessingToken !== token) return;
 
     const startRow = step * chunkSize;
     const endRow = Math.min(h, (step + 1) * chunkSize);
@@ -599,7 +725,7 @@ async function runProcessingPipeline() {
     for (let y = startRow; y < endRow; y++) {
       for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4;
-        let r = src[i], g = src[i+1], b = src[i+2];
+        let r = data[i], g = data[i+1], b = data[i+2];
 
         // Яркость
         r += br; g += br; b += br;
@@ -609,13 +735,13 @@ async function runProcessingPipeline() {
         g = g * ctFactor + ctOffset;
         b = b * ctFactor + ctOffset;
 
-        // Насыщенность
+        // Насыщенность (Аниме-стиль любит сочные цвета)
         const gray = 0.299*r + 0.587*g + 0.114*b;
         r = gray + (r - gray) * sat;
         g = gray + (g - gray) * sat;
         b = gray + (b - gray) * sat;
 
-        // Теплота & Оттенок
+        // Теплота & Оттенок (Теплый свет, холодные тени)
         r += wr + tr;
         g += wg;
         b += tb;
@@ -627,75 +753,64 @@ async function runProcessingPipeline() {
           b = b + (b - 128) * lev * 0.5;
         }
 
-        dst[i] = Math.max(0, Math.min(255, r));
-        dst[i+1] = Math.max(0, Math.min(255, g));
-        dst[i+2] = Math.max(0, Math.min(255, b));
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i+1] = Math.max(0, Math.min(255, g));
+        data[i+2] = Math.max(0, Math.min(255, b));
       }
     }
 
-    const pct = Math.round((step + 1) * 3); // 0% -> 30%
-    updateProgressBar(pct, `Коррекция цвета: ${pct}%`);
+    const pct = 60 + Math.round(((step + 1) / steps) * 15); // прогресс: 60% -> 75%
+    updateProgressBar(pct, `Цветокоррекция: ${pct}%`);
     await new Promise(resolve => requestAnimationFrame(resolve));
   }
 
-  let imgData = new ImageData(dst, w, h);
-
-  // Шаг 2: Усиление резкости (Unsharp Mask Blur) - тоже чанками
+  // Шаг 3: Маска резкости (Unsharp Mask)
   if(v.sharpness > 0){
-    updateProgressBar(30, "Повышение резкости...");
+    updateProgressBar(75, "Выравнивание контуров и резкость...");
+    processedImageData = await applyUnsharpAsync(processedImageData, v.sharpness, token);
     if (currentProcessingToken !== token) return;
-    imgData = await applyUnsharpAsync(imgData, v.sharpness, token);
-    if (currentProcessingToken !== token) return;
-  } else {
-    updateProgressBar(60, "Пропуск резкости...");
   }
 
-  // Отрисовка базового получившегося слоя
-  ctx.putImageData(imgData, 0, 0);
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  ctx.putImageData(processedImageData, 0, 0);
 
-  // Шаг 3: Bloom эффект
+  // Шаг 4: Bloom (эффект свечения кинолинзы Makoto Shinkai)
   if(v.bloom > 0){
-    updateProgressBar(70, "Применение свечения (Bloom)...");
+    updateProgressBar(85, "Применение светового сияния (Bloom)...");
     if (currentProcessingToken !== token) return;
     applyBloom(v.bloom);
-    await new Promise(resolve => requestAnimationFrame(resolve));
   }
 
-  // Шаг 4: Хроматическая аберрация
+  // Шаг 5: Хроматическая аберрация (сдвиг линзы на границах кадра)
   if(v.chromatic > 0){
-    updateProgressBar(80, "Хроматическая аберрация...");
+    updateProgressBar(90, "Фильтрация хроматической аберрации...");
     if (currentProcessingToken !== token) return;
     applyChromatic(v.chromatic);
-    await new Promise(resolve => requestAnimationFrame(resolve));
   }
 
-  // Шаг 5: Виньетка & Зернистость аниме
-  if(v.vignette > 0 || v.grain > 0){
-    updateProgressBar(90, "Накладывание шумов и виньетки...");
+  // Шаг 6: Виньетирование
+  if(v.vignette > 0){
+    updateProgressBar(95, "Оформление виньетки...");
     if (currentProcessingToken !== token) return;
-    if (v.vignette > 0) applyVignette(v.vignette);
-    if (v.grain > 0) applyGrain(v.grain);
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    applyVignette(v.vignette);
   }
 
   // Финал
-  updateProgressBar(100, "Готово!");
+  updateProgressBar(100, "Аниме-рендеринг завершен!");
   setTimeout(() => {
     if (currentProcessingToken === token) {
       showProgress(false);
     }
-  }, 150);
+  }, 200);
 }
 
-// Асинхронное размытие (Unsharp Mask) без зависания браузера
+// Асинхронная оптимизация резкости
 async function applyUnsharpAsync(imgData, strength, token){
   const w = imgData.width, h = imgData.height;
   const src = imgData.data;
   const blur = new Float32Array(w * h * 4);
-  const radius = Math.max(1, Math.floor(strength / 40));
+  const radius = Math.max(1, Math.floor(strength / 45));
 
-  const steps = 6;
+  const steps = 4;
   const chunkSize = Math.ceil(h / steps);
 
   for (let step = 0; step < steps; step++) {
@@ -707,7 +822,6 @@ async function applyUnsharpAsync(imgData, strength, token){
     for (let y = startY; y < endY; y++) {
       for (let x = 0; x < w; x++) {
         let r=0, g=0, b=0, c=0;
-        // Ограниченный box blur
         for (let dy = -radius; dy <= radius; dy++) {
           const py = Math.min(h-1, Math.max(0, y+dy));
           for (let dx = -radius; dx <= radius; dx++) {
@@ -725,13 +839,9 @@ async function applyUnsharpAsync(imgData, strength, token){
         blur[idx+2] = b/c;
       }
     }
-
-    const pct = 30 + Math.round(((step + 1) / steps) * 25); // прогресс: 30% -> 55%
-    updateProgressBar(pct, `Расчет контуров резкости: ${pct}%`);
     await new Promise(resolve => requestAnimationFrame(resolve));
   }
 
-  // Применяем резкость обратно к исходному кадру
   const amount = strength / 100;
   for (let i = 0; i < src.length; i += 4) {
     src[i] = Math.min(255, Math.max(0, src[i] + (src[i] - blur[i]) * amount));
@@ -739,7 +849,6 @@ async function applyUnsharpAsync(imgData, strength, token){
     src[i+2] = Math.min(255, Math.max(0, src[i+2] + (src[i+2] - blur[i+2]) * amount));
   }
 
-  updateProgressBar(60, "Резкость применена!");
   return imgData;
 }
 
@@ -749,10 +858,10 @@ function applyBloom(strength){
   temp.width = w/4; temp.height = h/4;
   const tctx = temp.getContext('2d');
   tctx.drawImage(canvas, 0, 0, w/4, h/4);
-  tctx.filter = `blur(${strength/5}px) brightness(${100+strength/2}%)`;
+  tctx.filter = `blur(${strength/6}px) brightness(${100+strength/2.5}%)`;
   tctx.drawImage(temp, 0, 0);
   ctx.globalCompositeOperation = 'screen';
-  ctx.globalAlpha = strength/150;
+  ctx.globalAlpha = strength/140;
   ctx.drawImage(temp, 0, 0, w, h);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
@@ -787,20 +896,6 @@ function applyVignette(strength){
   ctx.fillRect(0,0,w,h);
 }
 
-function applyGrain(strength){
-  const w = canvas.width, h = canvas.height;
-  const imgData = ctx.getImageData(0,0,w,h);
-  const data = imgData.data;
-  const amt = strength/2;
-  for(let i=0;i<data.length;i+=4){
-    const noise = (Math.random()-0.5)*amt;
-    data[i] = Math.min(255, Math.max(0, data[i]+noise));
-    data[i+1] = Math.min(255, Math.max(0, data[i+1]+noise));
-    data[i+2] = Math.min(255, Math.max(0, data[i+2]+noise));
-  }
-  ctx.putImageData(imgData,0,0);
-}
-
 function resetEffects(){
   const defaultBtn = document.querySelector('.preset-grid .fx-btn');
   applyPreset('anime4k', defaultBtn);
@@ -808,12 +903,11 @@ function resetEffects(){
 
 function downloadImage(){
   const link = document.createElement('a');
-  link.download = 'anime-frame-fx.png';
+  link.download = 'anime-frame-fx-pro.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
 }
 
-// Keyboard shortcuts
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') closeEditor();
 });
