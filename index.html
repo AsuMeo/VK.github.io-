@@ -4,209 +4,347 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>3D Кинотеатр — Realtime Sync</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-database-compat.min.js"></script>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background:#000; color:#fff; overflow:hidden; font-family:'Segoe UI',Arial,sans-serif;
-    touch-action:none; user-select:none; -webkit-user-select:none;
-  }
-  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; }
-  #ui { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; }
-  #ui > * { pointer-events:auto; }
-  #loginBox {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(5,5,10,0.97); border:2px solid #ff3333; border-radius:14px;
-    padding:28px; width:340px; text-align:center; z-index:200;
-    box-shadow:0 0 40px rgba(255,51,51,0.3);
-  }
-  #loginBox h2 { color:#ff3333; margin-bottom:18px; font-size:24px; text-shadow:0 0 10px rgba(255,51,51,0.5); }
-  #loginBox input {
-    width:100%; padding:14px; margin:8px 0; border-radius:10px; border:1px solid #333;
-    font-size:16px; background:#111; color:#fff; outline:none;
-  }
-  #loginBox input:focus { border-color:#ff3333; }
-  #loginBox button {
-    width:100%; padding:16px; margin-top:14px; border-radius:10px; border:none;
-    background:linear-gradient(135deg,#ff3333,#cc0000); color:#fff; font-size:18px; font-weight:bold;
-    cursor:pointer; box-shadow:0 4px 15px rgba(255,51,51,0.4);
-  }
-  #loginBox button:active { transform:scale(0.97); }
-  #loginBox .link { color:#888; margin-top:14px; font-size:14px; cursor:pointer; }
-  #loginBox .link span { color:#ff3333; text-decoration:underline; }
-  #hud {
-    position:absolute; top:10px; left:10px; right:10px;
-    display:flex; justify-content:space-between; align-items:center; z-index:150;
-  }
-  #hudLeft { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  #hud button {
-    background:rgba(255,51,51,0.85); border:none; color:#fff;
-    padding:10px 16px; border-radius:8px; font-size:13px; font-weight:bold;
-    cursor:pointer; backdrop-filter:blur(4px);
-  }
-  #hud button:active { background:rgba(255,51,51,1); }
-  #onlineCount { color:#0f0; font-weight:bold; font-size:14px; text-shadow:0 0 5px #0f0; }
-  #videoInputBox {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(5,5,10,0.97); border:2px solid #ff3333; border-radius:14px;
-    padding:24px; width:360px; z-index:200; display:none;
-    box-shadow:0 0 40px rgba(255,51,51,0.3);
-  }
-  #videoInputBox h3 { color:#ff3333; margin-bottom:14px; font-size:18px; }
-  #videoInputBox input[type="file"] {
-    width:100%; padding:10px; margin:6px 0; border-radius:8px;
-    border:1px dashed #555; background:#111; color:#fff; font-size:13px;
-  }
-  #videoInputBox input[type="text"] {
-    width:100%; padding:12px; margin:6px 0; border-radius:8px;
-    border:1px solid #333; background:#111; color:#fff; font-size:14px;
-  }
-  #videoInputBox button {
-    width:100%; padding:14px; margin-top:10px; border-radius:10px;
-    border:none; background:linear-gradient(135deg,#ff3333,#cc0000); color:#fff;
-    font-size:16px; font-weight:bold; cursor:pointer;
-  }
-  #videoInputBox .closeBtn { background:#333; margin-top:6px; }
-  #mobileControls {
-    position:absolute; bottom:20px; left:20px; z-index:150; display:none;
-  }
-  .d-pad { width:150px; height:150px; position:relative; }
-  .d-btn {
-    position:absolute; width:50px; height:50px; background:rgba(255,255,255,0.15);
-    border:2px solid rgba(255,255,255,0.3); border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:22px; color:#fff; touch-action:none; user-select:none;
-  }
-  .d-btn:active { background:rgba(255,51,51,0.6); border-color:#ff3333; }
-  .d-up { top:0; left:50px; }
-  .d-down { bottom:0; left:50px; }
-  .d-left { top:50px; left:0; }
-  .d-right { top:50px; right:0; }
-  #jumpBtn {
-    position:absolute; bottom:30px; right:30px; z-index:150;
-    width:85px; height:85px; border-radius:50%;
-    background:rgba(255,51,51,0.7); border:3px solid #fff;
-    color:#fff; font-size:15px; font-weight:bold; display:none;
-    align-items:center; justify-content:center; touch-action:none;
-    box-shadow:0 0 20px rgba(255,51,51,0.4);
-  }
-  #jumpBtn:active { background:rgba(255,51,51,1); transform:scale(0.95); }
-  #crosshair {
-    position:absolute; top:50%; left:50%; width:14px; height:14px;
-    transform:translate(-50%,-50%); z-index:140;
-    border:2px solid rgba(255,255,255,0.7); border-radius:50%;
-    pointer-events:none; box-shadow:0 0 5px rgba(255,255,255,0.5);
-  }
-  #screenHit {
-    position:absolute; top:55%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.9); border:2px solid #ff3333; border-radius:10px;
-    padding:12px 28px; color:#ff3333; font-weight:bold; font-size:16px;
-    z-index:160; display:none; pointer-events:none;
-    animation:pulse 1.5s infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  #videoOverlay {
-    position:absolute; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.95); z-index:300; display:none;
-    flex-direction:column; align-items:center; justify-content:center;
-  }
-  #videoOverlay video {
-    max-width:100%; max-height:75vh; background:#000;
-    border:2px solid #333; border-radius:8px;
-  }
-  #videoOverlay button {
-    margin-top:16px; padding:12px 28px; border-radius:10px;
-    border:none; background:#ff3333; color:#fff; font-size:16px; font-weight:bold;
-    cursor:pointer;
-  }
-  #syncProgressPanel {
-    position:absolute; bottom:80px; left:50%; transform:translateX(-50%);
-    width:90%; max-width:500px; background:rgba(0,0,0,0.9);
-    border:1px solid #ff3333; border-radius:10px; padding:14px;
-    z-index:250; display:none;
-  }
-  #syncProgressPanel h4 { color:#ff3333; margin-bottom:10px; font-size:14px; }
-  .syncBar { margin:6px 0; }
-  .syncBarLabel { font-size:12px; color:#aaa; margin-bottom:2px; }
-  .syncBarTrack { width:100%; height:10px; background:#222; border-radius:5px; overflow:hidden; }
-  .syncBarFill { height:100%; background:linear-gradient(90deg,#ff3333,#ff6666); border-radius:5px; transition:width 0.3s; }
-  .syncBarFill.done { background:linear-gradient(90deg,#0f0,#0a0); }
-  #chatMessages {
-    position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
-    width:90%; max-width:400px; max-height:160px; overflow-y:auto;
-    z-index:150; display:none;
-  }
-  .chatMsg { background:rgba(0,0,0,0.7); color:#fff; padding:5px 10px;
-    margin:3px 0; border-radius:6px; font-size:13px; border-left:3px solid #ff3333;
-  }
-  #chatBox {
-    position:absolute; bottom:15px; left:50%; transform:translateX(-50%);
-    width:90%; max-width:400px; z-index:150; display:none;
-  }
-  #chatBox input {
-    width:100%; padding:12px; border-radius:10px; border:none;
-    background:rgba(0,0,0,0.8); color:#fff; font-size:14px;
-    border:1px solid #333;
-  }
-  #loadingVideo {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.95); border:2px solid #ff3333; border-radius:14px;
-    padding:30px; text-align:center; z-index:400; display:none;
-    width:320px;
-  }
-  #loadingVideo h3 { color:#ff3333; margin-bottom:16px; }
-  #loadingVideo .loader {
-    width:50px; height:50px; border:4px solid #333; border-top-color:#ff3333;
-    border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;
-  }
-  @keyframes spin { to{transform:rotate(360deg)} }
-  #loadingVideo .percent { font-size:28px; color:#0f0; font-weight:bold; }
-  #loadingVideo .status { color:#aaa; margin-top:8px; font-size:13px; }
-  #waitingPanel {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.95); border:2px solid #ff3333; border-radius:14px;
-    padding:24px; text-align:center; z-index:400; display:none;
-    width:340px;
-  }
-  #waitingPanel h3 { color:#ff3333; margin-bottom:12px; }
-  #waitingPanel .waitList { text-align:left; margin:10px 0; }
-  #waitingPanel .waitItem { padding:4px 0; font-size:13px; color:#ccc; }
-  #waitingPanel .waitItem.ready { color:#0f0; }
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+
+/* ===== AUTH SCREEN ===== */
+.auth-screen {
+  position:fixed; inset:0; z-index:1000;
+  background:radial-gradient(ellipse at 30% 20%, #1a0a10 0%, #0d0508 60%, #000 100%);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  transition:opacity 0.8s ease; padding:16px;
+}
+.auth-screen.hidden { opacity:0; pointer-events:none; }
+.auth-container {
+  width:100%; max-width:380px; padding:28px 20px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,51,51,0.3);
+  border-radius:20px; backdrop-filter:blur(20px);
+  box-shadow: 0 10px 40px rgba(255, 51, 51, 0.15);
+}
+.auth-logo {
+  font-family:'Orbitron',sans-serif; font-size:28px;
+  font-weight:900; text-align:center; margin-bottom:6px;
+  background:linear-gradient(135deg,#ff3333,#ff6b6b,#ff8da1);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; letter-spacing:2px;
+}
+.auth-sub { text-align:center; color:rgba(255,100,100,0.6); font-size:13px; margin-bottom:24px; font-weight:600; }
+.auth-input {
+  width:100%; padding:14px 16px; margin-bottom:12px;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,51,51,0.2);
+  border-radius:12px; color:#fff; font-size:15px; outline:none;
+  transition:all 0.3s; font-family:'Inter',sans-serif;
+  -webkit-appearance:none;
+}
+.auth-input:focus { border-color:rgba(255,51,51,0.6); box-shadow:0 0 20px rgba(255,51,51,0.2); }
+.auth-input::placeholder { color:rgba(255,255,255,0.3); }
+.auth-btn {
+  width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#ff3333,#cc0000);
+  color:#fff; font-size:15px; font-weight:600; cursor:pointer;
+  transition:all 0.3s; margin-top:6px; font-family:'Inter',sans-serif;
+  box-shadow: 0 4px 15px rgba(255, 51, 51, 0.3);
+}
+.auth-btn:hover { transform:translateY(-1px); }
+.auth-btn:active { transform:scale(0.97); }
+.auth-toggle { text-align:center; color:rgba(255,255,255,0.4); font-size:12px; margin-top:16px; cursor:pointer; }
+.auth-toggle span { color:#ff3333; font-weight:600; }
+.auth-error { color:#ff3333; font-size:12px; text-align:center; margin-top:10px; min-height:18px; font-weight:500; }
+.auth-mode { display:none; }
+.auth-mode.active { display:block; }
+
+/* ===== MAIN UI ===== */
+.main-ui { display:none; width:100%; height:100%; position:relative; }
+.main-ui.active { display:block; }
+
+/* Top Bar */
+.top-bar {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  height:52px; padding:env(safe-area-inset-top) 12px 0 12px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.9) 0%,rgba(0,0,0,0.5) 70%,transparent 100%);
+  display:flex; align-items:center; justify-content:space-between;
+  backdrop-filter:blur(12px);
+}
+.top-bar .logo-text {
+  font-family:'Orbitron',sans-serif; font-size:16px;
+  font-weight:900; color:#ff3333; letter-spacing:1px;
+}
+.top-bar .user-info { display:flex; align-items:center; gap:10px; }
+.top-bar .avatar {
+  width:34px; height:34px; border-radius:50%;
+  background:linear-gradient(135deg,#ff3333,#ff6b6b);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:13px; color:#fff;
+  border:2px solid rgba(255,255,255,0.3);
+  overflow:hidden; cursor:pointer; flex-shrink:0;
+}
+.top-bar .avatar img { width:100%; height:100%; object-fit:cover; }
+.top-bar .logout-btn {
+  padding:6px 12px; border:1px solid rgba(255,51,51,0.3);
+  background:rgba(255,255,255,0.1); color:#ff3333;
+  border-radius:8px; font-size:12px; cursor:pointer; font-weight:600;
+}
+
+/* Fullscreen btn */
+.fullscreen-btn {
+  position:fixed; top:60px; right:10px; z-index:70;
+  width:36px; height:36px; border-radius:10px;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,51,51,0.2);
+  color:#ff3333; font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.fullscreen-btn:active { transform:scale(0.9); }
+
+/* Canvas */
+#room-canvas { position:fixed; inset:0; z-index:1; width:100%; height:100%; touch-action:none; }
+
+/* Crosshair */
+#crosshair {
+  position:fixed; top:50%; left:50%; width:14px; height:14px;
+  transform:translate(-50%,-50%); z-index:140;
+  border:2px solid rgba(255,255,255,0.6); border-radius:50%;
+  pointer-events:none; box-shadow:0 0 5px rgba(255,255,255,0.3);
+}
+
+/* Screen hit hint */
+#screenHit {
+  position:fixed; top:55%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.9); border:2px solid #ff3333; border-radius:10px;
+  padding:12px 28px; color:#ff3333; font-weight:bold; font-size:16px;
+  z-index:160; display:none; pointer-events:none;
+  animation:pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* HUD */
+#hud {
+  position:fixed; top:10px; left:10px; right:10px;
+  display:none; justify-content:space-between; align-items:center; z-index:150;
+}
+#hudLeft { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+#hud button {
+  background:rgba(255,51,51,0.85); border:none; color:#fff;
+  padding:10px 16px; border-radius:8px; font-size:13px; font-weight:bold;
+  cursor:pointer; backdrop-filter:blur(4px);
+}
+#hud button:active { background:rgba(255,51,51,1); }
+#onlineCount { color:#0f0; font-weight:bold; font-size:14px; text-shadow:0 0 5px #0f0; }
+
+/* Video Input Box */
+#videoInputBox {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(10,5,5,0.97); border:2px solid #ff3333; border-radius:14px;
+  padding:24px; width:360px; z-index:200; display:none;
+  box-shadow: 0 0 40px rgba(255,51,51,0.3);
+}
+#videoInputBox h3 { color:#ff3333; margin-bottom:14px; font-size:18px; }
+#videoInputBox input[type="file"] {
+  width:100%; padding:10px; margin:6px 0; border-radius:8px;
+  border:1px dashed #555; background:#111; color:#fff; font-size:13px;
+}
+#videoInputBox input[type="text"] {
+  width:100%; padding:12px; margin:6px 0; border-radius:8px;
+  border:1px solid #333; background:#111; color:#fff; font-size:14px;
+}
+#videoInputBox button {
+  width:100%; padding:14px; margin-top:10px; border-radius:10px;
+  border:none; background:linear-gradient(135deg,#ff3333,#cc0000); color:#fff;
+  font-size:16px; font-weight:bold; cursor:pointer;
+}
+#videoInputBox .closeBtn { background:#333; margin-top:6px; }
+
+/* Mobile Controls */
+#mobileControls {
+  position:fixed; bottom:20px; left:20px; z-index:150; display:none;
+}
+.d-pad { width:150px; height:150px; position:relative; }
+.d-btn {
+  position:absolute; width:50px; height:50px; background:rgba(255,255,255,0.1);
+  border:2px solid rgba(255,255,255,0.2); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; color:#fff; touch-action:none; user-select:none;
+}
+.d-btn:active { background:rgba(255,51,51,0.5); border-color:#ff3333; }
+.d-up { top:0; left:50px; }
+.d-down { bottom:0; left:50px; }
+.d-left { top:50px; left:0; }
+.d-right { top:50px; right:0; }
+#jumpBtn {
+  position:fixed; bottom:30px; right:30px; z-index:150;
+  width:85px; height:85px; border-radius:50%;
+  background:rgba(255,51,51,0.6); border:3px solid #fff;
+  color:#fff; font-size:15px; font-weight:bold; display:none;
+  align-items:center; justify-content:center; touch-action:none;
+  box-shadow:0 0 20px rgba(255,51,51,0.3);
+}
+#jumpBtn:active { background:rgba(255,51,51,0.9); transform:scale(0.95); }
+
+/* Loading Video */
+#loadingVideo {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.95); border:2px solid #ff3333; border-radius:14px;
+  padding:30px; text-align:center; z-index:400; display:none;
+  width:320px;
+}
+#loadingVideo h3 { color:#ff3333; margin-bottom:16px; }
+#loadingVideo .loader {
+  width:50px; height:50px; border:4px solid #333; border-top-color:#ff3333;
+  border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+#loadingVideo .percent { font-size:28px; color:#0f0; font-weight:bold; }
+#loadingVideo .status { color:#aaa; margin-top:8px; font-size:13px; }
+
+/* TV Control Panel */
+.tv-control-panel {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  z-index:180; width:min(90vw,360px);
+  background:rgba(10,5,5,0.98); border:1px solid rgba(255,51,51,0.4);
+  border-radius:16px; padding:16px; display:none;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.tv-control-panel.active { display:block; }
+.tv-control-panel h3 { color:#ff3333; font-family:'Orbitron',sans-serif; font-size:14px; margin-bottom:12px; text-align:center; }
+.tv-control-panel input[type="text"] {
+  width:100%; padding:10px; margin-bottom:10px;
+  background:#111; border:1px solid rgba(255,51,51,0.2);
+  border-radius:8px; color:#fff; font-size:13px; outline:none;
+}
+.tv-control-row { display:flex; gap:8px; margin-bottom:10px; }
+.tv-control-row button {
+  flex:1; padding:10px; border:none; border-radius:8px;
+  background:linear-gradient(135deg,#ff3333,#cc0000);
+  color:#fff; font-size:12px; font-weight:600; cursor:pointer;
+}
+.tv-control-row button.secondary {
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,51,51,0.2); color:#ff3333;
+}
+.tv-slider-container { margin-bottom:10px; }
+.tv-slider-container label { font-size:11px; color:#aaa; display:block; margin-bottom:4px; }
+.tv-slider-container input[type="range"] {
+  width:100%; -webkit-appearance:none; height:4px; border-radius:2px;
+  background:rgba(255,51,51,0.15); outline:none; margin:0;
+}
+.tv-slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:#ff3333; cursor:pointer;
+}
+
+/* Video Overlay */
+#videoOverlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.95); z-index:300; display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+}
+#videoOverlay video {
+  max-width:100%; max-height:75vh; background:#000;
+  border:2px solid #333; border-radius:8px;
+}
+#videoOverlay button {
+  margin-top:16px; padding:12px 28px; border-radius:10px;
+  border:none; background:#ff3333; color:#fff; font-size:16px; font-weight:bold;
+  cursor:pointer;
+}
+
+/* Chat */
+#chatMessages {
+  position:fixed; bottom:60px; left:50%; transform:translateX(-50%);
+  width:90%; max-width:400px; max-height:160px; overflow-y:auto;
+  z-index:150; display:none;
+}
+.chatMsg { background:rgba(0,0,0,0.7); color:#fff; padding:5px 10px;
+  margin:3px 0; border-radius:6px; font-size:13px; border-left:3px solid #ff3333;
+}
+#chatBox {
+  position:fixed; bottom:15px; left:50%; transform:translateX(-50%);
+  width:90%; max-width:400px; z-index:150; display:none;
+}
+#chatBox input {
+  width:100%; padding:12px; border-radius:10px; border:none;
+  background:rgba(0,0,0,0.8); color:#fff; font-size:14px;
+  border:1px solid #333;
+}
+
+/* Loading */
+.loading-overlay {
+  position:fixed; inset:0; z-index:9999;
+  background:#000; display:flex;
+  align-items:center; justify-content:center; flex-direction:column;
+  transition:opacity 0.5s;
+}
+.loading-overlay.hidden { opacity:0; pointer-events:none; }
+.loading-overlay .loader {
+  width:50px; height:50px; border:3px solid rgba(255,51,51,0.2);
+  border-top-color:#ff3333; border-radius:50%;
+  animation:spin 1s linear infinite;
+}
 </style>
 </head>
 <body>
 
-<canvas id="canvas"></canvas>
+<div class="loading-overlay" id="loading"><div class="loader"></div><p style="color:#ff3333;margin-top:12px;font-size:14px;font-weight:600;">Загрузка 3D Кинотеатра...</p></div>
 
-<div id="crosshair"></div>
-<div id="screenHit">🎬 Нажмите для выбора видео</div>
+<div class="auth-screen" id="authScreen">
+  <div class="auth-container">
+    <div class="auth-logo">3D CINEMA</div>
+    <div class="auth-sub">Realtime · 3D Theater · Base64 Sync</div>
+    <div class="auth-mode active" id="loginMode">
+      <input type="email" class="auth-input" id="loginEmail" placeholder="Email" autocomplete="email">
+      <input type="password" class="auth-input" id="loginPass" placeholder="Пароль" autocomplete="current-password">
+      <button class="auth-btn" onclick="doLogin()">Войти</button>
+      <div class="auth-error" id="loginError"></div>
+      <div class="auth-toggle">Нет аккаунта? <span onclick="switchAuth('register')">Создать</span></div>
+    </div>
+    <div class="auth-mode" id="registerMode">
+      <input type="text" class="auth-input" id="regUsername" placeholder="Username (для поиска)" maxlength="20">
+      <input type="email" class="auth-input" id="regEmail" placeholder="Email" autocomplete="email">
+      <input type="password" class="auth-input" id="regPass" placeholder="Пароль (мин. 6 символов)" autocomplete="new-password">
+      <button class="auth-btn" onclick="doRegister()">Создать аккаунт</button>
+      <div class="auth-error" id="regError"></div>
+      <div class="auth-toggle">Уже есть аккаунт? <span onclick="switchAuth('login')">Войти</span></div>
+    </div>
+  </div>
+</div>
 
-<div id="ui">
-  <div id="loginBox">
-    <h2>🎬 3D Кинотеатр</h2>
-    <input type="email" id="email" placeholder="Email" autocomplete="email">
-    <input type="password" id="password" placeholder="Пароль" autocomplete="current-password">
-    <button id="authBtn">Войти</button>
-    <div class="link">Нет аккаунта? <span id="toggleMode">Регистрация</span></div>
-    <div id="authError" style="color:#ff3333;margin-top:10px;font-size:13px;"></div>
+<div class="main-ui" id="mainUI">
+  <div class="top-bar">
+    <div class="logo-text">3D CINEMA</div>
+    <div class="user-info">
+      <div class="avatar" id="userAvatar">?</div>
+      <button class="logout-btn" onclick="doLogout()">Выйти</button>
+    </div>
   </div>
 
-  <div id="hud" style="display:none;">
+  <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Полный экран">⛶</button>
+
+  <canvas id="room-canvas"></canvas>
+
+  <div id="crosshair"></div>
+  <div id="screenHit">🎬 Нажмите для выбора видео</div>
+
+  <div id="hud">
     <div id="hudLeft">
-      <button id="videoBtn">🎬 Выбрать видео</button>
-      <button id="chatToggle">💬 Чат</button>
+      <button id="videoBtn" onclick="toggleVideoInput()">🎬 Выбрать видео</button>
+      <button id="chatToggle" onclick="toggleChat()">💬 Чат</button>
     </div>
     <div id="onlineCount">Онлайн: 0</div>
   </div>
 
   <div id="videoInputBox">
     <h3>🎥 Загрузить видео</h3>
-    <input type="file" id="fileInput" accept="video/*">
+    <input type="file" id="fileInput" accept="video/*" onchange="handleFile(this)">
     <input type="text" id="urlInput" placeholder="Или вставьте прямую ссылку на видео (mp4/webm)">
-    <button id="playVideoBtn">▶️ Загрузить и синхронизировать</button>
-    <button class="closeBtn" id="closeVideoBox">❌ Закрыть</button>
+    <button onclick="playVideoBtn()">▶️ Загрузить и синхронизировать</button>
+    <button class="closeBtn" onclick="toggleVideoInput()">❌ Закрыть</button>
   </div>
 
   <div id="mobileControls">
@@ -226,30 +364,40 @@
     <div class="status" id="loadStatus">Подготовка...</div>
   </div>
 
-  <div id="waitingPanel">
-    <h3>⏳ Ожидание всех игроков</h3>
-    <div class="waitList" id="waitList"></div>
-    <div style="color:#ff3333;font-size:13px;margin-top:10px;">Видео начнётся когда все загрузят 100%</div>
-  </div>
-
-  <div id="syncProgressPanel">
-    <h4>📊 Прогресс загрузки у всех</h4>
-    <div id="syncBars"></div>
+  <!-- TV Control Panel -->
+  <div class="tv-control-panel" id="tvControlPanel">
+    <button class="fullscreen-btn" style="position:absolute;top:8px;right:8px;" onclick="toggleTvControlPanel()">✕</button>
+    <h3>📺 Настройки 3D Экрана</h3>
+    <input type="text" id="tvUrlInput" placeholder="Вставьте прямую ссылку на видео (.mp4)...">
+    <div class="tv-control-row">
+      <button onclick="applyTvUrl()">Загрузить по ссылке</button>
+      <button class="secondary" onclick="triggerTvUpload()">Выбрать файл 🎬</button>
+    </div>
+    <div class="tv-control-row">
+      <button onclick="sendTvCommand('play')">Play ▶</button>
+      <button onclick="sendTvCommand('pause')">Pause ⏸</button>
+    </div>
+    <div class="tv-slider-container">
+      <label id="tvTimeLabel">Время: 0:00</label>
+      <input type="range" id="tvTimeSlider" min="0" max="100" value="0" oninput="onTvSliderSeek(this.value)">
+    </div>
   </div>
 
   <div id="chatMessages"></div>
   <div id="chatBox">
-    <input type="text" id="chatInput" placeholder="Напишите сообщение..." maxlength="100">
+    <input type="text" id="chatInput" placeholder="Напишите сообщение..." maxlength="100" onkeydown="if(event.key==='Enter')sendChat()">
   </div>
 
   <div id="videoOverlay">
     <video id="syncVideo" preload="auto" playsinline></video>
-    <button id="closeVideoOverlay">❌ Закрыть видео</button>
+    <button onclick="closeVideoOverlay()">❌ Закрыть видео</button>
   </div>
+
+  <input type="file" id="tvFileInput" accept="video/*" style="display:none" onchange="handleTvFile(this)">
 </div>
 
 <script>
-// ===================== FIREBASE INIT =====================
+// ===== FIREBASE INIT =====
 const firebaseConfig = {
   apiKey: "AIzaSyBm0mIvHVznIeF2PoFk6dtdaiT5r877wyA",
   authDomain: "meow-874ce.firebaseapp.com",
@@ -263,10 +411,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// ===================== GLOBALS =====================
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let W, H;
+// ===== GLOBALS =====
+let currentUser = null, userData = {};
+let scene, camera, renderer, roomGroup;
+let animationId;
 let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 let player = {
@@ -279,144 +427,334 @@ let player = {
 };
 let keys = {};
 let players = {};
-let myRef = null, roomRef = null, videoRef = null, chatRef = null, loadRef = null;
+let myRef = null, roomRef = null, videoRef = null, chatRef = null;
 let isAuth = false;
-let isRegister = false;
 let lookingAtScreen = false;
-let videoUrl = null;
-let isPlaying = false;
-let myLoadPercent = 0;
-let allReady = false;
-let videoBlob = null;
-let base64Video = null;
+let isTvControlPanelOpen = false;
+let localTvSyncing = false;
 
-// ===================== 3D ENGINE =====================
-const FOV = 70 * Math.PI / 180;
-let near = 0.1, far = 100;
+// 3D TV
+let cinemaScreen, cinemaVideoElement, cinemaTexture;
 
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
-
-function project(x, y, z) {
-  let dx = x - player.x, dy = y - player.y, dz = z - player.z;
-  let cosY = Math.cos(-player.yaw), sinY = Math.sin(-player.yaw);
-  let cosP = Math.cos(-player.pitch), sinP = Math.sin(-player.pitch);
-  let x1 = dx * cosY - dz * sinY;
-  let z1 = dx * sinY + dz * cosY;
-  let y1 = dy * cosP - z1 * sinP;
-  let z2 = dy * sinP + z1 * cosP;
-  if (z2 <= near) return null;
-  let scale = (W/2) / Math.tan(FOV/2) / z2;
-  return { x: W/2 + x1 * scale, y: H/2 - y1 * scale, scale: scale, z: z2 };
+// ===== AUTH =====
+function switchAuth(mode) {
+  document.querySelectorAll('.auth-mode').forEach(m=>m.classList.remove('active'));
+  document.getElementById(mode+'Mode').classList.add('active');
+  document.getElementById('loginError').textContent='';
+  document.getElementById('regError').textContent='';
 }
 
-// ===================== SCENE =====================
-const seats = [];
-for(let row=0; row<6; row++) {
-  for(let col=0; col<10; col++) {
-    seats.push({ x:(col-4.5)*1.2, y:0.4, z:-2-row*1.5, w:0.9, h:0.5, d:0.5 });
+function doRegister() {
+  const username = document.getElementById('regUsername').value.trim().toLowerCase();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const err = document.getElementById('regError');
+  if(!username||!email||!pass){err.textContent='Заполните все поля';return;}
+  if(pass.length<6){err.textContent='Пароль минимум 6 символов';return;}
+  if(!/^[a-z0-9_]+$/.test(username)){err.textContent='Username: a-z, 0-9, _';return;}
+
+  db.ref('usernames/'+username).once('value').then(snap=>{
+    if(snap.exists()){err.textContent='Username занят';return;}
+    auth.createUserWithEmailAndPassword(email,pass).then(cred=>{
+      const uid = cred.user.uid;
+      db.ref('users/'+uid).set({
+        username: username, email: email, displayName: username,
+        createdAt: Date.now(), online: true, avatar: '', lastSeen: Date.now(), color: player.color
+      });
+      db.ref('usernames/'+username).set(uid);
+    }).catch(e=>err.textContent=e.message);
+  });
+}
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  auth.signInWithEmailAndPassword(email,pass).catch(e=>err.textContent=e.message);
+}
+
+function doLogout() {
+  if(currentUser) {
+    db.ref('users/'+currentUser.uid+'/online').set(false);
+    db.ref('users/'+currentUser.uid+'/lastSeen').set(Date.now());
   }
-}
-const walls = [
-  {x:0,y:0,z:0, w:20,h:0.1,d:20, color:'#1a1a2e'},
-  {x:0,y:3,z:-10, w:20,h:6,d:0.5, color:'#0f0f1a'},
-  {x:-10,y:3,z:0, w:0.5,h:6,d:20, color:'#0f0f1a'},
-  {x:10,y:3,z:0, w:0.5,h:6,d:20, color:'#0f0f1a'},
-  {x:0,y:6,z:0, w:20,h:0.1,d:20, color:'#0a0a15'},
-  {x:0,y:3,z:-9.7, w:8.2,h:4.7,d:0.3, color:'#222'},
-];
-const screenRect = {x:0, y:3, z:-9.5, w:8, h:4.5};
-
-function drawRect3D(x, y, z, w, h, color) {
-  let p1 = project(x-w/2, y-h/2, z);
-  let p2 = project(x+w/2, y-h/2, z);
-  let p3 = project(x+w/2, y+h/2, z);
-  let p4 = project(x-w/2, y+h/2, z);
-  if(!p1 || !p2 || !p3 || !p4) return;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.stroke();
-}
-function drawCube(x,y,z,w,h,d,color) { drawRect3D(x,y,z,w,h,color); }
-
-function drawScreen() {
-  let p1 = project(screenRect.x-screenRect.w/2, screenRect.y-screenRect.h/2, screenRect.z);
-  let p2 = project(screenRect.x+screenRect.w/2, screenRect.y-screenRect.h/2, screenRect.z);
-  let p3 = project(screenRect.x+screenRect.w/2, screenRect.y+screenRect.h/2, screenRect.z);
-  let p4 = project(screenRect.x-screenRect.w/2, screenRect.y+screenRect.h/2, screenRect.z);
-  if(!p1 || !p2 || !p3 || !p4) return;
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
-  ctx.closePath(); ctx.clip();
-  ctx.fillStyle = isPlaying ? '#fff' : '#111';
-  ctx.fillRect(Math.min(p1.x,p2.x,p3.x,p4.x), Math.min(p1.y,p2.y,p3.y,p4.y),
-    Math.abs(p2.x-p1.x)+Math.abs(p3.x-p4.x), Math.abs(p4.y-p1.y)+Math.abs(p3.y-p2.y));
-  if(!isPlaying) {
-    ctx.fillStyle = '#ff3333'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center';
-    ctx.fillText('🎬 Нажмите для выбора видео', (p1.x+p3.x)/2, (p1.y+p3.y)/2);
-  }
-  ctx.restore();
-  ctx.strokeStyle = isPlaying ? '#fff' : '#ff3333'; ctx.lineWidth = 3; ctx.stroke();
+  if(cinemaVideoElement) { cinemaVideoElement.pause(); }
+  auth.signOut();
 }
 
-function drawPlayer(p, isMe) {
-  let headY = p.y + 0.3;
-  let head = project(p.x, headY, p.z);
-  if(!head) return;
-  let body = project(p.x, p.y-0.3, p.z);
-  let size = isMe ? 8 : Math.max(4, head.scale * 0.15);
-  if(body) {
-    ctx.strokeStyle = p.color; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(head.x, head.y); ctx.lineTo(body.x, body.y); ctx.stroke();
-  }
-  ctx.fillStyle = p.color;
-  ctx.beginPath(); ctx.arc(head.x, head.y, size, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
-  if(!isMe && p.name) {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.font = 'bold 11px Arial';
-    let tw = ctx.measureText(p.name).width;
-    ctx.fillRect(head.x - tw/2 - 4, head.y - size - 18, tw + 8, 16);
-    ctx.fillStyle = '#0f0'; ctx.textAlign = 'center';
-    ctx.fillText(p.name, head.x, head.y - size - 6);
-  }
+// ===== PRESENCE =====
+function setupPresenceSystem() {
+  if(!currentUser) return;
+  const myConnectionsRef = db.ref('users/'+currentUser.uid+'/online');
+  const lastOnlineRef = db.ref('users/'+currentUser.uid+'/lastSeen');
+  const connectedRef = db.ref(".info/connected");
+  connectedRef.on("value", snap => {
+    if (snap.val() === true) {
+      myConnectionsRef.set(true);
+      myConnectionsRef.onDisconnect().set(false);
+      lastOnlineRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+    }
+  });
 }
 
-function drawScene() {
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#fff';
-  for(let i=0; i<60; i++) {
-    let sx = (i*137.5 + player.yaw*50) % W;
-    let sy = (i*73.3 + player.pitch*30) % H;
-    if(sx<0) sx+=W; if(sy<0) sy+=H;
-    ctx.fillRect(sx, sy, 1, 1);
+auth.onAuthStateChanged(user=>{
+  if(user){
+    currentUser = user;
+    db.ref('users/'+user.uid).once('value').then(snap=>{
+      userData = snap.val()||{};
+      player.uid = user.uid;
+      player.name = userData.displayName || userData.username || user.email.split('@')[0];
+      player.color = userData.color || player.color;
+      const name = player.name;
+      document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+      setupPresenceSystem();
+    });
+    document.getElementById('authScreen').classList.add('hidden');
+    setTimeout(()=>{
+      document.getElementById('authScreen').style.display='none';
+      document.getElementById('mainUI').classList.add('active');
+      document.getElementById('hud').style.display = 'flex';
+      init3DCinema();
+      initFirebaseListeners();
+      if(isMobile) {
+        document.getElementById('mobileControls').style.display = 'block';
+        document.getElementById('jumpBtn').style.display = 'flex';
+      }
+      document.getElementById('loading').classList.add('hidden');
+    },800);
+  } else {
+    currentUser = null; userData = {};
+    document.getElementById('authScreen').style.display='flex';
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('mainUI').classList.remove('active');
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('loading').classList.remove('hidden');
+    if(renderer) { renderer.dispose(); cancelAnimationFrame(animationId); }
   }
-  walls.forEach(w => drawCube(w.x, w.y, w.z, w.w, w.h, w.d, w.color));
-  seats.forEach(s => drawCube(s.x, s.y, s.z, s.w, s.h, s.d, '#2a2a3e'));
-  drawScreen();
-  Object.values(players).forEach(p => drawPlayer(p, false));
-  drawPlayer(player, true);
+});
+
+// ===== 3D CINEMA ROOM =====
+function init3DCinema() {
+  const canvas = document.getElementById('room-canvas');
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0, 1.7, 8);
+  camera.lookAt(0, 2, -9.5);
+
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+  roomGroup = new THREE.Group();
+  scene.add(roomGroup);
+
+  // Floor
+  const floorGeo = new THREE.PlaneGeometry(24, 24);
+  const floorMat = new THREE.MeshBasicMaterial({ color:0x1a1a2e });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  roomGroup.add(floor);
+
+  // Carpet
+  const carpet = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 8),
+    new THREE.MeshBasicMaterial({ color:0x2a1a2e, transparent:true, opacity:0.5, side:THREE.DoubleSide })
+  );
+  carpet.rotation.x = -Math.PI/2;
+  carpet.position.set(0, 0.01, -2);
+  roomGroup.add(carpet);
+
+  // Walls
+  const wallMat = new THREE.MeshBasicMaterial({ color:0x0f0f1a, side:THREE.DoubleSide });
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 10), wallMat);
+  backWall.position.set(0, 5, -12);
+  roomGroup.add(backWall);
+
+  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 10), wallMat);
+  leftWall.position.set(-12, 5, 0);
+  leftWall.rotation.y = Math.PI/2;
+  roomGroup.add(leftWall);
+
+  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 10), wallMat);
+  rightWall.position.set(12, 5, 0);
+  rightWall.rotation.y = -Math.PI/2;
+  roomGroup.add(rightWall);
+
+  // Ceiling
+  const ceiling = new THREE.Mesh(
+    new THREE.PlaneGeometry(24, 24),
+    new THREE.MeshBasicMaterial({ color:0x0a0a15, side:THREE.DoubleSide })
+  );
+  ceiling.position.set(0, 10, 0);
+  ceiling.rotation.x = Math.PI/2;
+  roomGroup.add(ceiling);
+
+  // Screen Frame
+  const frameMat = new THREE.MeshBasicMaterial({ color:0x222222 });
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(10, 5.5, 0.3), frameMat);
+  frame.position.set(0, 3.5, -11.7);
+  roomGroup.add(frame);
+
+  // ===== CINEMA SCREEN WITH VIDEO TEXTURE =====
+  cinemaVideoElement = document.createElement('video');
+  cinemaVideoElement.crossOrigin = "anonymous";
+  cinemaVideoElement.loop = true;
+  cinemaVideoElement.muted = false;
+  cinemaVideoElement.playsInline = true;
+  cinemaVideoElement.src = "https://assets.mixkit.co/videos/preview/mixkit-animation-of-a-futuristic-city-31846-large.mp4";
+
+  cinemaTexture = new THREE.VideoTexture(cinemaVideoElement);
+  const screenMat = new THREE.MeshBasicMaterial({ map: cinemaTexture, side: THREE.DoubleSide });
+  cinemaScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(9.5, 5.2),
+    screenMat
+  );
+  cinemaScreen.position.set(0, 3.5, -11.5);
+  cinemaScreen.userData = { isCinemaScreen: true };
+  roomGroup.add(cinemaScreen);
+
+  // Screen glow
+  const glowGeo = new THREE.PlaneGeometry(10, 5.5);
+  const glowMat = new THREE.MeshBasicMaterial({ color:0xff3333, transparent:true, opacity:0.1, blending:THREE.AdditiveBlending });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.set(0, 3.5, -11.4);
+  roomGroup.add(glow);
+
+  // Seats
+  const seatMat = new THREE.MeshBasicMaterial({ color:0x2a2a3e });
+  for(let row=0; row<6; row++) {
+    for(let col=0; col<10; col++) {
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.5), seatMat);
+      seat.position.set((col-4.5)*1.2, 0.25, -2-row*1.5);
+      roomGroup.add(seat);
+      // Seat back
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.1), seatMat);
+      back.position.set((col-4.5)*1.2, 0.55, -2-row*1.5-0.2);
+      roomGroup.add(back);
+    }
+  }
+
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0x111122, 0.8);
+  scene.add(ambientLight);
+
+  // Screen light
+  const screenLight = new THREE.PointLight(0xff3333, 0.5, 20);
+  screenLight.position.set(0, 3.5, -10);
+  scene.add(screenLight);
+
+  animate();
+
+  window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Touch/Mouse controls
+  let isDragging = false, prevX = 0, prevY = 0, rotX = 0, rotY = 0;
+
+  canvas.addEventListener('touchstart',e=>{
+    if(e.touches.length === 1) { isDragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; }
+  },{passive:true});
+
+  canvas.addEventListener('touchmove',e=>{
+    if(!isDragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - prevX;
+    const dy = e.touches[0].clientY - prevY;
+    player.yaw += dx * 0.005;
+    player.pitch -= dy * 0.005;
+    player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch));
+    prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+  },{passive:true});
+
+  canvas.addEventListener('touchend',()=>isDragging=false);
+
+  canvas.addEventListener('mousedown',e=>{isDragging=true;prevX=e.clientX;prevY=e.clientY;});
+  canvas.addEventListener('mousemove',e=>{
+    if(!isDragging) return;
+    const dx=e.clientX-prevX, dy=e.clientY-prevY;
+    player.yaw+=dx*0.005; player.pitch-=dy*0.005;
+    player.pitch=Math.max(-1.4,Math.min(1.4,player.pitch));
+    prevX=e.clientX; prevY=e.clientY;
+  });
+  canvas.addEventListener('mouseup',()=>isDragging=false);
+
+  // Click on screen
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  canvas.addEventListener('click',e=>{
+    mouse.x = (e.clientX/window.innerWidth)*2-1;
+    mouse.y = -(e.clientY/window.innerHeight)*2+1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(roomGroup.children, true);
+    for(let hit of intersects){
+      if(hit.object.userData && hit.object.userData.isCinemaScreen) {
+        toggleTvControlPanel();
+        break;
+      }
+    }
+  });
+}
+
+// ===== ANIMATION LOOP =====
+function animate() {
+  animationId = requestAnimationFrame(animate);
+  const time = Date.now()*0.001;
+
+  // Update camera from player
+  camera.position.set(player.x, player.y, player.z);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = player.yaw;
+  camera.rotation.x = player.pitch;
+
+  // Animate other players
+  Object.values(players).forEach(p => {
+    if(p.mesh) {
+      p.mesh.position.set(p.x, p.y + 0.3, p.z);
+      p.mesh.lookAt(camera.position.x, p.y + 0.3, camera.position.z);
+    }
+  });
+
+  // Screen glow pulse
+  if(cinemaScreen) {
+    cinemaScreen.material.emissive = new THREE.Color(0xff3333);
+    cinemaScreen.material.emissiveIntensity = 0.1 + Math.sin(time*2)*0.05;
+  }
+
+  // Check looking at screen
   checkScreenLook();
+
+  // Sync TV slider
+  if(cinemaVideoElement && isTvControlPanelOpen && !localTvSyncing) {
+    const slider = document.getElementById('tvTimeSlider');
+    const label = document.getElementById('tvTimeLabel');
+    if (cinemaVideoElement.duration) {
+      slider.max = cinemaVideoElement.duration;
+      slider.value = cinemaVideoElement.currentTime;
+      const mins = Math.floor(cinemaVideoElement.currentTime/60);
+      const secs = Math.floor(cinemaVideoElement.currentTime%60).toString().padStart(2,'0');
+      label.textContent = `Время: ${mins}:${secs}`;
+    }
+  }
+
+  renderer.render(scene, camera);
 }
 
 function checkScreenLook() {
-  let dx = screenRect.x - player.x, dy = screenRect.y - player.y, dz = screenRect.z - player.z;
+  let dx = 0 - player.x, dy = 3.5 - player.y, dz = -11.5 - player.z;
   let dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
   let dirX = Math.sin(player.yaw) * Math.cos(player.pitch);
   let dirY = Math.sin(player.pitch);
   let dirZ = -Math.cos(player.yaw) * Math.cos(player.pitch);
   let dot = (dx*dirX + dy*dirY + dz*dirZ) / dist;
-  lookingAtScreen = dist < 15 && dot > 0.85;
+  lookingAtScreen = dist < 18 && dot > 0.8;
   document.getElementById('screenHit').style.display = lookingAtScreen ? 'block' : 'none';
 }
 
-// ===================== PHYSICS =====================
+// ===== PHYSICS =====
 const GRAVITY = -25, SPEED = 5, JUMP = 8;
 function updatePhysics(dt) {
   let moveX = 0, moveZ = 0;
@@ -432,8 +770,8 @@ function updatePhysics(dt) {
   player.x += player.vx * dt; player.z += player.vz * dt; player.y += player.vy * dt;
   if(player.y < 0) { player.y = 0; player.vy = 0; player.onGround = true; }
   else player.onGround = false;
-  player.x = Math.max(-9.5, Math.min(9.5, player.x));
-  player.z = Math.max(-9.5, Math.min(9.5, player.z));
+  player.x = Math.max(-11, Math.min(11, player.x));
+  player.z = Math.max(-11, Math.min(11, player.z));
   if(myRef && isAuth) {
     myRef.update({
       x: player.x, y: player.y, z: player.z,
@@ -445,39 +783,10 @@ function updatePhysics(dt) {
 }
 function jump() { if(player.onGround) { player.vy = JUMP; player.onGround = false; } }
 
-// ===================== INPUT =====================
+// ===== INPUT =====
 window.addEventListener('keydown', e => { keys[e.key] = true; if(e.code === 'Space') jump(); });
 window.addEventListener('keyup', e => keys[e.key] = false);
-let mouseDown = false;
-canvas.addEventListener('mousedown', () => { mouseDown = true; canvas.requestPointerLock(); });
-window.addEventListener('mouseup', () => { mouseDown = false; document.exitPointerLock(); });
-window.addEventListener('mousemove', e => {
-  if(document.pointerLockElement === canvas) {
-    player.yaw += e.movementX * 0.003;
-    player.pitch -= e.movementY * 0.003;
-    player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch));
-  }
-});
-let touchStartX = 0, touchStartY = 0;
-canvas.addEventListener('touchstart', e => {
-  if(e.touches.length === 1) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }
-}, {passive:false});
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if(e.touches.length === 1) {
-    let dx = e.touches[0].clientX - touchStartX;
-    let dy = e.touches[0].clientY - touchStartY;
-    player.yaw += dx * 0.005;
-    player.pitch -= dy * 0.005;
-    player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch));
-    touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
-  }
-}, {passive:false});
 
-if(isMobile) {
-  document.getElementById('mobileControls').style.display = 'block';
-  document.getElementById('jumpBtn').style.display = 'flex';
-}
 document.querySelectorAll('.d-btn').forEach(btn => {
   let dir = btn.dataset.dir;
   btn.addEventListener('touchstart', e => { e.preventDefault(); keys[dir] = true; });
@@ -488,409 +797,245 @@ document.querySelectorAll('.d-btn').forEach(btn => {
 document.getElementById('jumpBtn').addEventListener('touchstart', e => { e.preventDefault(); jump(); });
 document.getElementById('jumpBtn').addEventListener('mousedown', e => { jump(); });
 
-window.addEventListener('click', () => {
-  if(lookingAtScreen && isAuth) {
-    document.getElementById('videoInputBox').style.display = 'block';
-  }
-});
+// ===== FIREBASE LISTENERS =====
+function initFirebaseListeners() {
+  myRef = db.ref('cinema/players/' + currentUser.uid);
+  roomRef = db.ref('cinema/players');
+  videoRef = db.ref('cinema/video');
+  chatRef = db.ref('cinema/chat');
 
-// ===================== BASE64 VIDEO SYNC SYSTEM =====================
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    let reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+  myRef.onDisconnect().remove();
+  myRef.set({
+    x: player.x, y: player.y, z: player.z,
+    yaw: player.yaw, pitch: player.pitch,
+    name: player.name, color: player.color,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
   });
-}
 
-function chunkBase64(base64, chunkSize) {
-  let chunks = [];
-  for(let i=0; i<base64.length; i+=chunkSize) {
-    chunks.push(base64.substring(i, i+chunkSize));
-  }
-  return chunks;
-}
-
-async function uploadVideoToFirebase(file) {
-  document.getElementById('loadingVideo').style.display = 'block';
-  document.getElementById('loadStatus').textContent = 'Конвертация в Base64...';
-
-  let base64 = await fileToBase64(file);
-  base64Video = base64;
-
-  // Очищаем старое видео
-  await videoRef.remove();
-  await loadRef.remove();
-
-  let chunks = chunkBase64(base64, 900000); // ~900KB chunks
-  let totalChunks = chunks.length;
-
-  document.getElementById('loadStatus').textContent = 'Загрузка в Firebase (' + totalChunks + ' частей)...';
-
-  // Загружаем чанками в Realtime Database
-  for(let i=0; i<chunks.length; i++) {
-    await videoRef.child('chunks').child('c' + i).set({
-      data: chunks[i],
-      index: i,
-      total: totalChunks
+  // Listen other players
+  roomRef.on('value', snap => {
+    let data = snap.val() || {};
+    let count = 0;
+    Object.keys(data).forEach(uid => {
+      if(uid !== currentUser.uid) {
+        if(!players[uid]) {
+          // Create 3D avatar for new player
+          const pData = data[uid];
+          const geo = new THREE.SphereGeometry(0.3, 16, 16);
+          const mat = new THREE.MeshBasicMaterial({ color: pData.color || '#ff3333' });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.set(pData.x || 0, (pData.y || 1.7) + 0.3, pData.z || 8);
+          roomGroup.add(mesh);
+          players[uid] = { ...pData, mesh };
+        } else {
+          players[uid].x = data[uid].x;
+          players[uid].y = data[uid].y;
+          players[uid].z = data[uid].z;
+          players[uid].yaw = data[uid].yaw;
+          players[uid].pitch = data[uid].pitch;
+        }
+        count++;
+      }
     });
-    let pct = Math.round(((i+1)/totalChunks)*100);
-    document.getElementById('loadPercent').textContent = pct + '%';
-    document.getElementById('loadStatus').textContent = 'Часть ' + (i+1) + ' из ' + totalChunks;
-  }
-
-  // Метаданные
-  await videoRef.update({
-    totalChunks: totalChunks,
-    mimeType: file.type || 'video/mp4',
-    fileName: file.name,
-    uploadedBy: player.uid,
-    uploadTime: firebase.database.ServerValue.TIMESTAMP,
-    ready: false
+    // Remove disconnected players
+    Object.keys(players).forEach(uid => {
+      if(!data[uid]) {
+        if(players[uid].mesh) roomGroup.remove(players[uid].mesh);
+        delete players[uid];
+      }
+    });
+    document.getElementById('onlineCount').textContent = 'Онлайн: ' + (count + 1);
   });
 
-  document.getElementById('loadStatus').textContent = 'Загрузка завершена! Ожидание всех...';
+  // Listen video sync - ТОЧНО КАК В MESSENGER
+  videoRef.on('value', snap => {
+    const state = snap.val();
+    if(!state) return;
 
-  // Отмечаем что я загрузил
-  await loadRef.child(player.uid).set({
-    percent: 100,
-    ready: true,
-    name: player.name,
-    time: firebase.database.ServerValue.TIMESTAMP
+    if(state.url && cinemaVideoElement.src !== state.url) {
+      cinemaVideoElement.src = state.url;
+      cinemaVideoElement.load();
+    }
+
+    if(state.playing) {
+      const elapsed = (Date.now() - state.lastUpdated) / 1000;
+      const targetTime = state.time + (state.changedBy !== currentUser.uid ? elapsed : 0);
+      if(Math.abs(cinemaVideoElement.currentTime - targetTime) > 1.5) {
+        cinemaVideoElement.currentTime = targetTime;
+      }
+      cinemaVideoElement.play().catch(()=>{});
+    } else {
+      cinemaVideoElement.pause();
+      if(Math.abs(cinemaVideoElement.currentTime - state.time) > 0.5) {
+        cinemaVideoElement.currentTime = state.time;
+      }
+    }
   });
 
-  // Начинаем скачивание у себя (уже есть)
-  videoBlob = base64ToBlob(base64, file.type || 'video/mp4');
-  videoUrl = URL.createObjectURL(videoBlob);
-  myLoadPercent = 100;
+  // Chat
+  chatRef.limitToLast(20).on('child_added', snap => {
+    let msg = snap.val();
+    let div = document.createElement('div');
+    div.className = 'chatMsg';
+    div.textContent = msg.name + ': ' + msg.text;
+    let box = document.getElementById('chatMessages');
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  });
 
-  checkAllReady();
+  // Periodic sync
+  setInterval(() => {
+    if(cinemaVideoElement && !cinemaVideoElement.paused && videoRef) {
+      videoRef.update({
+        currentTime: cinemaVideoElement.currentTime,
+        lastUpdate: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+  }, 1000);
 }
 
-function base64ToBlob(base64, mimeType) {
-  let byteString = atob(base64.split(',')[1]);
-  let ab = new ArrayBuffer(byteString.length);
-  let ia = new Uint8Array(ab);
-  for(let i=0; i<byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-  return new Blob([ab], {type: mimeType});
+// ===== 3D TV CONTROLS & SYNCHRONIZATION (ТОЧНО КАК В MESSENGER) =====
+function toggleTvControlPanel() {
+  isTvControlPanelOpen = !isTvControlPanelOpen;
+  document.getElementById('tvControlPanel').classList.toggle('active', isTvControlPanelOpen);
 }
 
-async function downloadVideoFromFirebase() {
-  if(videoUrl) return; // Уже загружено
+function triggerTvUpload() {
+  document.getElementById('tvFileInput').click();
+}
 
-  document.getElementById('loadingVideo').style.display = 'block';
-  document.getElementById('loadStatus').textContent = 'Получение метаданных...';
-
-  let metaSnap = await videoRef.once('value');
-  let meta = metaSnap.val();
-  if(!meta || !meta.totalChunks) {
-    document.getElementById('loadingVideo').style.display = 'none';
+function handleTvFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 8 * 1024 * 1024) {
+    alert('Файл слишком велик! Максимум 8 МБ.');
     return;
   }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    syncTvState(base64, false, 0);
+  };
+  reader.readAsDataURL(file);
+}
 
-  let totalChunks = meta.totalChunks;
-  let mimeType = meta.mimeType || 'video/mp4';
-  let chunksData = [];
+function applyTvUrl() {
+  const url = document.getElementById('tvUrlInput').value.trim();
+  if(!url) return;
+  syncTvState(url, false, 0);
+  document.getElementById('tvUrlInput').value = '';
+}
 
-  // Подписываемся на прогресс загрузки чанков
-  videoRef.child('chunks').on('child_added', async snap => {
-    let chunk = snap.val();
-    if(!chunk) return;
-    chunksData[chunk.index] = chunk.data;
-
-    let loaded = chunksData.filter(c => c).length;
-    let pct = Math.round((loaded/totalChunks)*100);
-    myLoadPercent = pct;
-
-    document.getElementById('loadPercent').textContent = pct + '%';
-    document.getElementById('loadStatus').textContent = 'Загружено ' + loaded + ' из ' + totalChunks + ' частей';
-
-    // Обновляем свой прогресс в Firebase
-    if(loadRef) {
-      loadRef.child(player.uid).set({
-        percent: pct,
-        ready: pct >= 100,
-        name: player.name,
-        time: firebase.database.ServerValue.TIMESTAMP
-      });
-    }
-
-    // Если все чанки загружены — собираем видео
-    if(loaded >= totalChunks) {
-      document.getElementById('loadStatus').textContent = 'Сборка видео...';
-      let fullBase64 = chunksData.join('');
-      base64Video = fullBase64;
-      videoBlob = base64ToBlob(fullBase64, mimeType);
-      videoUrl = URL.createObjectURL(videoBlob);
-      myLoadPercent = 100;
-
-      if(loadRef) {
-        loadRef.child(player.uid).set({
-          percent: 100,
-          ready: true,
-          name: player.name,
-          time: firebase.database.ServerValue.TIMESTAMP
-        });
-      }
-
-      document.getElementById('loadingVideo').style.display = 'none';
-      checkAllReady();
-    }
+function syncTvState(url, playing, time) {
+  if(!videoRef) return;
+  videoRef.set({
+    url: url || cinemaVideoElement.src,
+    playing: playing,
+    time: time,
+    lastUpdated: firebase.database.ServerValue.TIMESTAMP,
+    changedBy: currentUser.uid
   });
 }
 
-function checkAllReady() {
-  if(!loadRef) return;
-  loadRef.once('value', snap => {
-    let data = snap.val() || {};
-    let allPlayers = Object.values(players);
-    let total = allPlayers.length + 1; // + я
-    let ready = 0;
-    Object.values(data).forEach(p => { if(p.ready) ready++; });
-
-    // Обновляем UI прогресса
-    updateSyncUI(data);
-
-    if(ready >= total && total > 0 && myLoadPercent >= 100) {
-      allReady = true;
-      document.getElementById('waitingPanel').style.display = 'none';
-      startSyncedPlayback();
-    } else if(myLoadPercent >= 100 && !allReady) {
-      // Показываем панель ожидания
-      showWaitingPanel(data, total);
-    }
-  });
-}
-
-function updateSyncUI(data) {
-  let html = '';
-  Object.entries(data).forEach(([uid, p]) => {
-    let done = p.ready ? 'done' : '';
-    html += '<div class="syncBar">';
-    html += '<div class="syncBarLabel">' + (p.name || 'Игрок') + ' — ' + p.percent + '%</div>';
-    html += '<div class="syncBarTrack"><div class="syncBarFill ' + done + '" style="width:' + p.percent + '%"></div></div>';
-    html += '</div>';
-  });
-  document.getElementById('syncBars').innerHTML = html;
-}
-
-function showWaitingPanel(data, total) {
-  let html = '';
-  Object.entries(data).forEach(([uid, p]) => {
-    let cls = p.ready ? 'ready' : '';
-    html += '<div class="waitItem ' + cls + '">' + (p.name || 'Игрок') + ': ' + p.percent + '% ' + (p.ready ? '✅' : '⏳') + '</div>';
-  });
-  document.getElementById('waitList').innerHTML = html;
-  document.getElementById('waitingPanel').style.display = 'block';
-}
-
-function startSyncedPlayback() {
-  if(!videoUrl) return;
-  let vid = document.getElementById('syncVideo');
-  vid.src = videoUrl;
-  vid.play().then(() => {
-    isPlaying = true;
-    document.getElementById('videoOverlay').style.display = 'flex';
-    document.getElementById('syncProgressPanel').style.display = 'none';
-
-    // Синхронизируем время
-    videoRef.update({
-      playing: true,
-      startTime: firebase.database.ServerValue.TIMESTAMP,
-      currentTime: 0
-    });
-  }).catch(err => {
-    console.error('Play error:', err);
-  });
-}
-
-// ===================== AUTH =====================
-document.getElementById('toggleMode').addEventListener('click', () => {
-  isRegister = !isRegister;
-  document.getElementById('authBtn').textContent = isRegister ? 'Зарегистрироваться' : 'Войти';
-});
-
-document.getElementById('authBtn').addEventListener('click', () => {
-  let email = document.getElementById('email').value;
-  let pass = document.getElementById('password').value;
-  if(!email || !pass) { document.getElementById('authError').textContent = 'Заполните все поля'; return; }
-  let promise = isRegister
-    ? auth.createUserWithEmailAndPassword(email, pass)
-    : auth.signInWithEmailAndPassword(email, pass);
-  promise.catch(err => { document.getElementById('authError').textContent = err.message; });
-});
-
-auth.onAuthStateChanged(user => {
-  if(user) {
-    isAuth = true;
-    player.uid = user.uid;
-    player.name = user.email.split('@')[0];
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('hud').style.display = 'flex';
-
-    myRef = db.ref('cinema/players/' + user.uid);
-    roomRef = db.ref('cinema/players');
-    videoRef = db.ref('cinema/video');
-    chatRef = db.ref('cinema/chat');
-    loadRef = db.ref('cinema/loadProgress');
-
-    myRef.onDisconnect().remove();
-    loadRef.child(user.uid).onDisconnect().remove();
-    myRef.set({
-      x: player.x, y: player.y, z: player.z,
-      yaw: player.yaw, pitch: player.pitch,
-      name: player.name, color: player.color,
-      lastSeen: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    roomRef.on('value', snap => {
-      let data = snap.val() || {};
-      players = {};
-      let count = 0;
-      Object.keys(data).forEach(uid => {
-        if(uid !== user.uid) { players[uid] = data[uid]; count++; }
-      });
-      document.getElementById('onlineCount').textContent = 'Онлайн: ' + (count+1);
-    });
-
-    // Слушаем видео
-    videoRef.on('value', snap => {
-      let data = snap.val();
-      if(!data) return;
-
-      // Если есть чанки и я ещё не загрузил
-      if(data.totalChunks && !videoUrl && !document.getElementById('loadingVideo').style.display === 'block') {
-        downloadVideoFromFirebase();
-      }
-
-      // Синхронизация воспроизведения
-      if(data.playing && videoUrl) {
-        let vid = document.getElementById('syncVideo');
-        if(vid.paused) {
-          vid.play().catch(()=>{});
-          isPlaying = true;
-        }
-        // Синхронизируем время
-        if(data.currentTime !== undefined && Math.abs(vid.currentTime - data.currentTime) > 1) {
-          vid.currentTime = data.currentTime;
-        }
-      }
-    });
-
-    // Слушаем прогресс загрузки
-    loadRef.on('value', snap => {
-      let data = snap.val() || {};
-      updateSyncUI(data);
-      checkAllReady();
-    });
-
-    // Чат
-    chatRef.limitToLast(20).on('child_added', snap => {
-      let msg = snap.val();
-      let div = document.createElement('div');
-      div.className = 'chatMsg';
-      div.textContent = msg.name + ': ' + msg.text;
-      let box = document.getElementById('chatMessages');
-      box.appendChild(div);
-      box.scrollTop = box.scrollHeight;
-    });
-
-    // Периодическая синхронизация времени видео
-    setInterval(() => {
-      let vid = document.getElementById('syncVideo');
-      if(videoUrl && !vid.paused && videoRef) {
-        videoRef.update({
-          currentTime: vid.currentTime,
-          lastUpdate: firebase.database.ServerValue.TIMESTAMP
-        });
-      }
-    }, 1000);
-
-  } else {
-    isAuth = false;
-    document.getElementById('loginBox').style.display = 'block';
-    document.getElementById('hud').style.display = 'none';
+function sendTvCommand(command) {
+  if(command === 'play') {
+    syncTvState(null, true, cinemaVideoElement.currentTime);
+  } else if(command === 'pause') {
+    syncTvState(null, false, cinemaVideoElement.currentTime);
   }
-});
+}
 
-// ===================== VIDEO UI =====================
-document.getElementById('videoBtn').addEventListener('click', () => {
-  document.getElementById('videoInputBox').style.display = 'block';
-});
-document.getElementById('closeVideoBox').addEventListener('click', () => {
-  document.getElementById('videoInputBox').style.display = 'none';
-});
+function onTvSliderSeek(val) {
+  localTvSyncing = true;
+  cinemaVideoElement.currentTime = parseFloat(val);
+  syncTvState(null, cinemaVideoElement.paused === false, parseFloat(val));
+  setTimeout(()=> { localTvSyncing = false; }, 300);
+}
 
-document.getElementById('playVideoBtn').addEventListener('click', async () => {
-  let file = document.getElementById('fileInput').files[0];
-  let url = document.getElementById('urlInput').value.trim();
+// ===== VIDEO INPUT =====
+function toggleVideoInput() {
+  const box = document.getElementById('videoInputBox');
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+}
 
-  if(file) {
-    // Файл → Base64 → Firebase
-    document.getElementById('videoInputBox').style.display = 'none';
-    document.getElementById('syncProgressPanel').style.display = 'block';
-    await uploadVideoToFirebase(file);
-  } else if(url) {
-    // Прямая ссылка — просто синхронизируем
-    videoUrl = url;
-    let vid = document.getElementById('syncVideo');
-    vid.src = url;
-    vid.play().then(() => {
-      isPlaying = true;
-      document.getElementById('videoInputBox').style.display = 'none';
-      document.getElementById('videoOverlay').style.display = 'flex';
-      videoRef.set({
-        url: url,
-        playing: true,
-        startTime: firebase.database.ServerValue.TIMESTAMP,
-        currentTime: 0,
-        isUrl: true
-      });
-    }).catch(err => {
-      alert('Ошибка воспроизведения: ' + err.message);
-    });
-  } else {
-    alert('Выберите файл или введите ссылку');
+function playVideoBtn() {
+  const url = document.getElementById('urlInput').value.trim();
+  if(url) {
+    syncTvState(url, false, 0);
+    document.getElementById('urlInput').value = '';
+    toggleVideoInput();
   }
-});
+}
 
-document.getElementById('closeVideoOverlay').addEventListener('click', () => {
-  document.getElementById('videoOverlay').style.display = 'none';
-  let vid = document.getElementById('syncVideo');
-  vid.pause();
-  if(videoRef) videoRef.update({ playing: false });
-  isPlaying = false;
-});
+function handleFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 8 * 1024 * 1024) {
+    alert('Файл слишком велик! Максимум 8 МБ.');
+    return;
+  }
+  document.getElementById('loadingVideo').style.display = 'block';
+  document.getElementById('loadStatus').textContent = 'Чтение файла...';
+  const reader = new FileReader();
+  reader.onprogress = (e) => {
+    if(e.lengthComputable) {
+      let pct = Math.round((e.loaded/e.total)*100);
+      document.getElementById('loadPercent').textContent = pct + '%';
+    }
+  };
+  reader.onload = function(e) {
+    document.getElementById('loadStatus').textContent = 'Синхронизация...';
+    const base64 = e.target.result;
+    syncTvState(base64, false, 0);
+    document.getElementById('loadingVideo').style.display = 'none';
+    toggleVideoInput();
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
 
-// ===================== CHAT =====================
+// ===== CHAT =====
 let chatVisible = false;
-document.getElementById('chatToggle').addEventListener('click', () => {
+function toggleChat() {
   chatVisible = !chatVisible;
   document.getElementById('chatBox').style.display = chatVisible ? 'block' : 'none';
   document.getElementById('chatMessages').style.display = chatVisible ? 'block' : 'none';
-});
-document.getElementById('chatInput').addEventListener('keydown', e => {
-  if(e.key === 'Enter') {
-    let text = e.target.value.trim();
-    if(text && chatRef) {
-      chatRef.push({ name: player.name, text: text, time: firebase.database.ServerValue.TIMESTAMP });
-      e.target.value = '';
-    }
-  }
-});
+}
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || !chatRef) return;
+  chatRef.push({ name: player.name, text: text, time: firebase.database.ServerValue.TIMESTAMP });
+  input.value = '';
+}
 
-// ===================== GAME LOOP =====================
+// ===== FULLSCREEN =====
+function toggleFullscreen() {
+  const doc = document;
+  if(!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+    const el = doc.documentElement;
+    if(el.requestFullscreen) el.requestFullscreen();
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } else {
+    if(doc.exitFullscreen) doc.exitFullscreen();
+    else if(doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+  }
+}
+
+// ===== GAME LOOP =====
 let lastTime = performance.now();
-function loop() {
+function gameLoop() {
   let now = performance.now();
   let dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
   updatePhysics(dt);
-  drawScene();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(gameLoop);
 }
-loop();
+gameLoop();
+
+window.addEventListener('load',()=>{
+  setTimeout(()=>document.getElementById('loading').classList.add('hidden'), 500);
+});
 </script>
 </body>
 </html>
