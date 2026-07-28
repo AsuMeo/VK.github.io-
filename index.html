@@ -2,151 +2,186 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>3D Кинотеатр — Realtime</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3D Кинотеатр — Realtime Sync</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    background:#000; color:#fff; overflow:hidden; font-family:Arial,sans-serif;
-    touch-action:none; user-select:none;
+    background:#000; color:#fff; overflow:hidden; font-family:'Segoe UI',Arial,sans-serif;
+    touch-action:none; user-select:none; -webkit-user-select:none;
   }
-  #ui {
-    position:absolute; top:0; left:0; width:100%; height:100%;
-    pointer-events:none; z-index:100;
-  }
+  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; }
+  #ui { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; }
   #ui > * { pointer-events:auto; }
   #loginBox {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.9); border:2px solid #ff3333; border-radius:12px;
-    padding:24px; width:320px; text-align:center; z-index:200;
+    background:rgba(5,5,10,0.97); border:2px solid #ff3333; border-radius:14px;
+    padding:28px; width:340px; text-align:center; z-index:200;
+    box-shadow:0 0 40px rgba(255,51,51,0.3);
   }
-  #loginBox h2 { color:#ff3333; margin-bottom:16px; font-size:22px; }
+  #loginBox h2 { color:#ff3333; margin-bottom:18px; font-size:24px; text-shadow:0 0 10px rgba(255,51,51,0.5); }
   #loginBox input {
-    width:100%; padding:12px; margin:8px 0; border-radius:8px; border:none;
-    font-size:16px; background:#1a1a1a; color:#fff;
+    width:100%; padding:14px; margin:8px 0; border-radius:10px; border:1px solid #333;
+    font-size:16px; background:#111; color:#fff; outline:none;
   }
+  #loginBox input:focus { border-color:#ff3333; }
   #loginBox button {
-    width:100%; padding:14px; margin-top:12px; border-radius:8px; border:none;
-    background:#ff3333; color:#fff; font-size:18px; font-weight:bold;
-    cursor:pointer;
+    width:100%; padding:16px; margin-top:14px; border-radius:10px; border:none;
+    background:linear-gradient(135deg,#ff3333,#cc0000); color:#fff; font-size:18px; font-weight:bold;
+    cursor:pointer; box-shadow:0 4px 15px rgba(255,51,51,0.4);
   }
-  #loginBox button:active { background:#cc0000; }
-  #loginBox .link { color:#aaa; margin-top:12px; font-size:14px; cursor:pointer; }
+  #loginBox button:active { transform:scale(0.97); }
+  #loginBox .link { color:#888; margin-top:14px; font-size:14px; cursor:pointer; }
   #loginBox .link span { color:#ff3333; text-decoration:underline; }
   #hud {
     position:absolute; top:10px; left:10px; right:10px;
-    display:flex; justify-content:space-between; align-items:center;
-    z-index:150;
+    display:flex; justify-content:space-between; align-items:center; z-index:150;
   }
-  #hudLeft { display:flex; gap:10px; align-items:center; }
+  #hudLeft { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   #hud button {
-    background:rgba(255,51,51,0.8); border:none; color:#fff;
-    padding:10px 16px; border-radius:8px; font-size:14px; font-weight:bold;
-    cursor:pointer;
+    background:rgba(255,51,51,0.85); border:none; color:#fff;
+    padding:10px 16px; border-radius:8px; font-size:13px; font-weight:bold;
+    cursor:pointer; backdrop-filter:blur(4px);
   }
   #hud button:active { background:rgba(255,51,51,1); }
-  #onlineCount { color:#0f0; font-weight:bold; font-size:14px; }
+  #onlineCount { color:#0f0; font-weight:bold; font-size:14px; text-shadow:0 0 5px #0f0; }
   #videoInputBox {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.95); border:2px solid #ff3333; border-radius:12px;
-    padding:20px; width:340px; z-index:200; display:none;
+    background:rgba(5,5,10,0.97); border:2px solid #ff3333; border-radius:14px;
+    padding:24px; width:360px; z-index:200; display:none;
+    box-shadow:0 0 40px rgba(255,51,51,0.3);
   }
-  #videoInputBox h3 { color:#ff3333; margin-bottom:12px; }
-  #videoInputBox input {
-    width:100%; padding:10px; margin:6px 0; border-radius:6px;
-    border:none; background:#1a1a1a; color:#fff; font-size:14px;
+  #videoInputBox h3 { color:#ff3333; margin-bottom:14px; font-size:18px; }
+  #videoInputBox input[type="file"] {
+    width:100%; padding:10px; margin:6px 0; border-radius:8px;
+    border:1px dashed #555; background:#111; color:#fff; font-size:13px;
+  }
+  #videoInputBox input[type="text"] {
+    width:100%; padding:12px; margin:6px 0; border-radius:8px;
+    border:1px solid #333; background:#111; color:#fff; font-size:14px;
   }
   #videoInputBox button {
-    width:100%; padding:12px; margin-top:10px; border-radius:8px;
-    border:none; background:#ff3333; color:#fff; font-size:16px; font-weight:bold;
-    cursor:pointer;
+    width:100%; padding:14px; margin-top:10px; border-radius:10px;
+    border:none; background:linear-gradient(135deg,#ff3333,#cc0000); color:#fff;
+    font-size:16px; font-weight:bold; cursor:pointer;
   }
-  #videoInputBox .closeBtn {
-    background:#333; margin-top:6px;
-  }
+  #videoInputBox .closeBtn { background:#333; margin-top:6px; }
   #mobileControls {
-    position:absolute; bottom:20px; left:20px; z-index:150;
-    display:none;
+    position:absolute; bottom:20px; left:20px; z-index:150; display:none;
   }
-  .d-pad {
-    width:140px; height:140px; position:relative;
-  }
+  .d-pad { width:150px; height:150px; position:relative; }
   .d-btn {
-    position:absolute; width:46px; height:46px; background:rgba(255,255,255,0.2);
-    border:2px solid rgba(255,255,255,0.4); border-radius:50%;
+    position:absolute; width:50px; height:50px; background:rgba(255,255,255,0.15);
+    border:2px solid rgba(255,255,255,0.3); border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    font-size:20px; color:#fff; touch-action:none;
+    font-size:22px; color:#fff; touch-action:none; user-select:none;
   }
-  .d-btn:active { background:rgba(255,51,51,0.5); }
-  .d-up { top:0; left:47px; }
-  .d-down { bottom:0; left:47px; }
-  .d-left { top:47px; left:0; }
-  .d-right { top:47px; right:0; }
+  .d-btn:active { background:rgba(255,51,51,0.6); border-color:#ff3333; }
+  .d-up { top:0; left:50px; }
+  .d-down { bottom:0; left:50px; }
+  .d-left { top:50px; left:0; }
+  .d-right { top:50px; right:0; }
   #jumpBtn {
     position:absolute; bottom:30px; right:30px; z-index:150;
-    width:80px; height:80px; border-radius:50%;
+    width:85px; height:85px; border-radius:50%;
     background:rgba(255,51,51,0.7); border:3px solid #fff;
-    color:#fff; font-size:16px; font-weight:bold; display:none;
+    color:#fff; font-size:15px; font-weight:bold; display:none;
     align-items:center; justify-content:center; touch-action:none;
+    box-shadow:0 0 20px rgba(255,51,51,0.4);
   }
-  #jumpBtn:active { background:rgba(255,51,51,1); }
+  #jumpBtn:active { background:rgba(255,51,51,1); transform:scale(0.95); }
   #crosshair {
-    position:absolute; top:50%; left:50%; width:12px; height:12px;
+    position:absolute; top:50%; left:50%; width:14px; height:14px;
     transform:translate(-50%,-50%); z-index:140;
-    border:2px solid rgba(255,255,255,0.6); border-radius:50%;
-    pointer-events:none;
+    border:2px solid rgba(255,255,255,0.7); border-radius:50%;
+    pointer-events:none; box-shadow:0 0 5px rgba(255,255,255,0.5);
   }
   #screenHit {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.85); border:2px solid #ff3333; border-radius:10px;
-    padding:14px 24px; color:#ff3333; font-weight:bold; font-size:16px;
+    position:absolute; top:55%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.9); border:2px solid #ff3333; border-radius:10px;
+    padding:12px 28px; color:#ff3333; font-weight:bold; font-size:16px;
     z-index:160; display:none; pointer-events:none;
+    animation:pulse 1.5s infinite;
   }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
   #videoOverlay {
     position:absolute; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.95); z-index:300; display:none;
     flex-direction:column; align-items:center; justify-content:center;
   }
   #videoOverlay video {
-    max-width:100%; max-height:80vh; background:#000;
+    max-width:100%; max-height:75vh; background:#000;
+    border:2px solid #333; border-radius:8px;
   }
   #videoOverlay button {
-    margin-top:16px; padding:12px 24px; border-radius:8px;
+    margin-top:16px; padding:12px 28px; border-radius:10px;
     border:none; background:#ff3333; color:#fff; font-size:16px; font-weight:bold;
     cursor:pointer;
   }
+  #syncProgressPanel {
+    position:absolute; bottom:80px; left:50%; transform:translateX(-50%);
+    width:90%; max-width:500px; background:rgba(0,0,0,0.9);
+    border:1px solid #ff3333; border-radius:10px; padding:14px;
+    z-index:250; display:none;
+  }
+  #syncProgressPanel h4 { color:#ff3333; margin-bottom:10px; font-size:14px; }
+  .syncBar { margin:6px 0; }
+  .syncBarLabel { font-size:12px; color:#aaa; margin-bottom:2px; }
+  .syncBarTrack { width:100%; height:10px; background:#222; border-radius:5px; overflow:hidden; }
+  .syncBarFill { height:100%; background:linear-gradient(90deg,#ff3333,#ff6666); border-radius:5px; transition:width 0.3s; }
+  .syncBarFill.done { background:linear-gradient(90deg,#0f0,#0a0); }
+  #chatMessages {
+    position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
+    width:90%; max-width:400px; max-height:160px; overflow-y:auto;
+    z-index:150; display:none;
+  }
+  .chatMsg { background:rgba(0,0,0,0.7); color:#fff; padding:5px 10px;
+    margin:3px 0; border-radius:6px; font-size:13px; border-left:3px solid #ff3333;
+  }
   #chatBox {
-    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    position:absolute; bottom:15px; left:50%; transform:translateX(-50%);
     width:90%; max-width:400px; z-index:150; display:none;
   }
   #chatBox input {
-    width:100%; padding:10px; border-radius:8px; border:none;
-    background:rgba(0,0,0,0.7); color:#fff; font-size:14px;
+    width:100%; padding:12px; border-radius:10px; border:none;
+    background:rgba(0,0,0,0.8); color:#fff; font-size:14px;
+    border:1px solid #333;
   }
-  #chatMessages {
-    position:absolute; bottom:55px; left:50%; transform:translateX(-50%);
-    width:90%; max-width:400px; max-height:150px; overflow-y:auto;
-    z-index:150; display:none;
+  #loadingVideo {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.95); border:2px solid #ff3333; border-radius:14px;
+    padding:30px; text-align:center; z-index:400; display:none;
+    width:320px;
   }
-  .chatMsg { background:rgba(0,0,0,0.6); color:#fff; padding:4px 8px;
-    margin:2px 0; border-radius:4px; font-size:13px;
+  #loadingVideo h3 { color:#ff3333; margin-bottom:16px; }
+  #loadingVideo .loader {
+    width:50px; height:50px; border:4px solid #333; border-top-color:#ff3333;
+    border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px;
   }
-  #nameTag {
-    position:absolute; background:rgba(0,0,0,0.6); color:#0f0;
-    padding:2px 6px; border-radius:4px; font-size:11px;
-    pointer-events:none; white-space:nowrap;
+  @keyframes spin { to{transform:rotate(360deg)} }
+  #loadingVideo .percent { font-size:28px; color:#0f0; font-weight:bold; }
+  #loadingVideo .status { color:#aaa; margin-top:8px; font-size:13px; }
+  #waitingPanel {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.95); border:2px solid #ff3333; border-radius:14px;
+    padding:24px; text-align:center; z-index:400; display:none;
+    width:340px;
   }
+  #waitingPanel h3 { color:#ff3333; margin-bottom:12px; }
+  #waitingPanel .waitList { text-align:left; margin:10px 0; }
+  #waitingPanel .waitItem { padding:4px 0; font-size:13px; color:#ccc; }
+  #waitingPanel .waitItem.ready { color:#0f0; }
 </style>
 </head>
 <body>
 
-<canvas id="canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;"></canvas>
+<canvas id="canvas"></canvas>
 
 <div id="crosshair"></div>
-<div id="screenHit">Нажмите для выбора видео</div>
+<div id="screenHit">🎬 Нажмите для выбора видео</div>
 
 <div id="ui">
   <div id="loginBox">
@@ -155,7 +190,7 @@
     <input type="password" id="password" placeholder="Пароль" autocomplete="current-password">
     <button id="authBtn">Войти</button>
     <div class="link">Нет аккаунта? <span id="toggleMode">Регистрация</span></div>
-    <div id="authError" style="color:#ff3333;margin-top:8px;font-size:13px;"></div>
+    <div id="authError" style="color:#ff3333;margin-top:10px;font-size:13px;"></div>
   </div>
 
   <div id="hud" style="display:none;">
@@ -169,8 +204,8 @@
   <div id="videoInputBox">
     <h3>🎥 Загрузить видео</h3>
     <input type="file" id="fileInput" accept="video/*">
-    <input type="text" id="urlInput" placeholder="Или вставьте прямую ссылку на видео">
-    <button id="playVideoBtn">▶️ Воспроизвести для всех</button>
+    <input type="text" id="urlInput" placeholder="Или вставьте прямую ссылку на видео (mp4/webm)">
+    <button id="playVideoBtn">▶️ Загрузить и синхронизировать</button>
     <button class="closeBtn" id="closeVideoBox">❌ Закрыть</button>
   </div>
 
@@ -184,13 +219,31 @@
   </div>
   <div id="jumpBtn">ПРЫЖОК</div>
 
+  <div id="loadingVideo">
+    <div class="loader"></div>
+    <h3>Загрузка видео...</h3>
+    <div class="percent" id="loadPercent">0%</div>
+    <div class="status" id="loadStatus">Подготовка...</div>
+  </div>
+
+  <div id="waitingPanel">
+    <h3>⏳ Ожидание всех игроков</h3>
+    <div class="waitList" id="waitList"></div>
+    <div style="color:#ff3333;font-size:13px;margin-top:10px;">Видео начнётся когда все загрузят 100%</div>
+  </div>
+
+  <div id="syncProgressPanel">
+    <h4>📊 Прогресс загрузки у всех</h4>
+    <div id="syncBars"></div>
+  </div>
+
   <div id="chatMessages"></div>
   <div id="chatBox">
     <input type="text" id="chatInput" placeholder="Напишите сообщение..." maxlength="100">
   </div>
 
   <div id="videoOverlay">
-    <video id="syncVideo" controls></video>
+    <video id="syncVideo" preload="auto" playsinline></video>
     <button id="closeVideoOverlay">❌ Закрыть видео</button>
   </div>
 </div>
@@ -226,15 +279,16 @@ let player = {
 };
 let keys = {};
 let players = {};
-let myRef = null;
-let roomRef = null;
-let videoRef = null;
-let chatRef = null;
+let myRef = null, roomRef = null, videoRef = null, chatRef = null, loadRef = null;
 let isAuth = false;
 let isRegister = false;
 let lookingAtScreen = false;
 let videoUrl = null;
 let isPlaying = false;
+let myLoadPercent = 0;
+let allReady = false;
+let videoBlob = null;
+let base64Video = null;
 
 // ===================== 3D ENGINE =====================
 const FOV = 70 * Math.PI / 180;
@@ -248,13 +302,9 @@ window.addEventListener('resize', resize);
 resize();
 
 function project(x, y, z) {
-  let dx = x - player.x;
-  let dy = y - player.y;
-  let dz = z - player.z;
-  let cosY = Math.cos(-player.yaw);
-  let sinY = Math.sin(-player.yaw);
-  let cosP = Math.cos(-player.pitch);
-  let sinP = Math.sin(-player.pitch);
+  let dx = x - player.x, dy = y - player.y, dz = z - player.z;
+  let cosY = Math.cos(-player.yaw), sinY = Math.sin(-player.yaw);
+  let cosP = Math.cos(-player.pitch), sinP = Math.sin(-player.pitch);
   let x1 = dx * cosY - dz * sinY;
   let z1 = dx * sinY + dz * cosY;
   let y1 = dy * cosP - z1 * sinP;
@@ -268,30 +318,17 @@ function project(x, y, z) {
 const seats = [];
 for(let row=0; row<6; row++) {
   for(let col=0; col<10; col++) {
-    seats.push({
-      x: (col-4.5)*1.2,
-      y: 0.4,
-      z: -2 - row*1.5,
-      w: 0.9, h: 0.5, d: 0.5
-    });
+    seats.push({ x:(col-4.5)*1.2, y:0.4, z:-2-row*1.5, w:0.9, h:0.5, d:0.5 });
   }
 }
-
 const walls = [
-  // Floor
   {x:0,y:0,z:0, w:20,h:0.1,d:20, color:'#1a1a2e'},
-  // Back wall
   {x:0,y:3,z:-10, w:20,h:6,d:0.5, color:'#0f0f1a'},
-  // Left wall
   {x:-10,y:3,z:0, w:0.5,h:6,d:20, color:'#0f0f1a'},
-  // Right wall
   {x:10,y:3,z:0, w:0.5,h:6,d:20, color:'#0f0f1a'},
-  // Ceiling
   {x:0,y:6,z:0, w:20,h:0.1,d:20, color:'#0a0a15'},
-  // Screen frame
   {x:0,y:3,z:-9.7, w:8.2,h:4.7,d:0.3, color:'#222'},
 ];
-
 const screenRect = {x:0, y:3, z:-9.5, w:8, h:4.5};
 
 function drawRect3D(x, y, z, w, h, color) {
@@ -302,20 +339,11 @@ function drawRect3D(x, y, z, w, h, color) {
   if(!p1 || !p2 || !p3 || !p4) return;
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(p1.x, p1.y);
-  ctx.lineTo(p2.x, p2.y);
-  ctx.lineTo(p3.x, p3.y);
-  ctx.lineTo(p4.x, p4.y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.stroke();
 }
-
-function drawCube(x, y, z, w, h, d, color) {
-  drawRect3D(x, y, z, w, h, color);
-}
+function drawCube(x,y,z,w,h,d,color) { drawRect3D(x,y,z,w,h,color); }
 
 function drawScreen() {
   let p1 = project(screenRect.x-screenRect.w/2, screenRect.y-screenRect.h/2, screenRect.z);
@@ -323,33 +351,19 @@ function drawScreen() {
   let p3 = project(screenRect.x+screenRect.w/2, screenRect.y+screenRect.h/2, screenRect.z);
   let p4 = project(screenRect.x-screenRect.w/2, screenRect.y+screenRect.h/2, screenRect.z);
   if(!p1 || !p2 || !p3 || !p4) return;
-
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(p1.x, p1.y);
-  ctx.lineTo(p2.x, p2.y);
-  ctx.lineTo(p3.x, p3.y);
-  ctx.lineTo(p4.x, p4.y);
-  ctx.closePath();
-  ctx.clip();
-
-  // Screen glow
+  ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+  ctx.closePath(); ctx.clip();
   ctx.fillStyle = isPlaying ? '#fff' : '#111';
   ctx.fillRect(Math.min(p1.x,p2.x,p3.x,p4.x), Math.min(p1.y,p2.y,p3.y,p4.y),
     Math.abs(p2.x-p1.x)+Math.abs(p3.x-p4.x), Math.abs(p4.y-p1.y)+Math.abs(p3.y-p2.y));
-
   if(!isPlaying) {
-    ctx.fillStyle = '#ff3333';
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff3333'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center';
     ctx.fillText('🎬 Нажмите для выбора видео', (p1.x+p3.x)/2, (p1.y+p3.y)/2);
   }
   ctx.restore();
-
-  // Screen border glow
-  ctx.strokeStyle = isPlaying ? '#fff' : '#ff3333';
-  ctx.lineWidth = 3;
-  ctx.stroke();
+  ctx.strokeStyle = isPlaying ? '#fff' : '#ff3333'; ctx.lineWidth = 3; ctx.stroke();
 }
 
 function drawPlayer(p, isMe) {
@@ -358,74 +372,41 @@ function drawPlayer(p, isMe) {
   if(!head) return;
   let body = project(p.x, p.y-0.3, p.z);
   let size = isMe ? 8 : Math.max(4, head.scale * 0.15);
-
-  // Body
   if(body) {
-    ctx.strokeStyle = p.color;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(head.x, head.y);
-    ctx.lineTo(body.x, body.y);
-    ctx.stroke();
+    ctx.strokeStyle = p.color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(head.x, head.y); ctx.lineTo(body.x, body.y); ctx.stroke();
   }
-
-  // Head
   ctx.fillStyle = p.color;
-  ctx.beginPath();
-  ctx.arc(head.x, head.y, size, 0, Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Name tag
+  ctx.beginPath(); ctx.arc(head.x, head.y, size, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
   if(!isMe && p.name) {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.font = 'bold 11px Arial';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.font = 'bold 11px Arial';
     let tw = ctx.measureText(p.name).width;
     ctx.fillRect(head.x - tw/2 - 4, head.y - size - 18, tw + 8, 16);
-    ctx.fillStyle = '#0f0';
-    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f0'; ctx.textAlign = 'center';
     ctx.fillText(p.name, head.x, head.y - size - 6);
   }
 }
 
 function drawScene() {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, H);
-
-  // Stars
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#fff';
-  for(let i=0; i<50; i++) {
+  for(let i=0; i<60; i++) {
     let sx = (i*137.5 + player.yaw*50) % W;
     let sy = (i*73.3 + player.pitch*30) % H;
     if(sx<0) sx+=W; if(sy<0) sy+=H;
     ctx.fillRect(sx, sy, 1, 1);
   }
-
-  // Walls & floor
   walls.forEach(w => drawCube(w.x, w.y, w.z, w.w, w.h, w.d, w.color));
-
-  // Seats
   seats.forEach(s => drawCube(s.x, s.y, s.z, s.w, s.h, s.d, '#2a2a3e'));
-
-  // Screen
   drawScreen();
-
-  // Other players
   Object.values(players).forEach(p => drawPlayer(p, false));
-
-  // Self
   drawPlayer(player, true);
-
-  // Screen raycast check
   checkScreenLook();
 }
 
 function checkScreenLook() {
-  let dx = screenRect.x - player.x;
-  let dy = screenRect.y - player.y;
-  let dz = screenRect.z - player.z;
+  let dx = screenRect.x - player.x, dy = screenRect.y - player.y, dz = screenRect.z - player.z;
   let dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
   let dirX = Math.sin(player.yaw) * Math.cos(player.pitch);
   let dirY = Math.sin(player.pitch);
@@ -436,43 +417,23 @@ function checkScreenLook() {
 }
 
 // ===================== PHYSICS =====================
-const GRAVITY = -25;
-const SPEED = 5;
-const JUMP = 8;
-
+const GRAVITY = -25, SPEED = 5, JUMP = 8;
 function updatePhysics(dt) {
   let moveX = 0, moveZ = 0;
   if(keys['w'] || keys['ArrowUp'] || keys['forward']) moveZ -= 1;
   if(keys['s'] || keys['ArrowDown'] || keys['back']) moveZ += 1;
   if(keys['a'] || keys['ArrowLeft'] || keys['left']) moveX -= 1;
   if(keys['d'] || keys['ArrowRight'] || keys['right']) moveX += 1;
-
   let len = Math.sqrt(moveX*moveX + moveZ*moveZ);
   if(len > 0) { moveX /= len; moveZ /= len; }
-
   player.vx = (Math.sin(player.yaw) * moveZ + Math.cos(player.yaw) * moveX) * SPEED;
   player.vz = (-Math.cos(player.yaw) * moveZ + Math.sin(player.yaw) * moveX) * SPEED;
-
   player.vy += GRAVITY * dt;
-
-  player.x += player.vx * dt;
-  player.z += player.vz * dt;
-  player.y += player.vy * dt;
-
-  // Floor collision
-  if(player.y < 0) {
-    player.y = 0;
-    player.vy = 0;
-    player.onGround = true;
-  } else {
-    player.onGround = false;
-  }
-
-  // Bounds
+  player.x += player.vx * dt; player.z += player.vz * dt; player.y += player.vy * dt;
+  if(player.y < 0) { player.y = 0; player.vy = 0; player.onGround = true; }
+  else player.onGround = false;
   player.x = Math.max(-9.5, Math.min(9.5, player.x));
   player.z = Math.max(-9.5, Math.min(9.5, player.z));
-
-  // Sync to Firebase
   if(myRef && isAuth) {
     myRef.update({
       x: player.x, y: player.y, z: player.z,
@@ -482,23 +443,11 @@ function updatePhysics(dt) {
     });
   }
 }
-
-function jump() {
-  if(player.onGround) {
-    player.vy = JUMP;
-    player.onGround = false;
-  }
-}
+function jump() { if(player.onGround) { player.vy = JUMP; player.onGround = false; } }
 
 // ===================== INPUT =====================
-// Keyboard
-window.addEventListener('keydown', e => {
-  keys[e.key] = true;
-  if(e.code === 'Space') jump();
-});
+window.addEventListener('keydown', e => { keys[e.key] = true; if(e.code === 'Space') jump(); });
 window.addEventListener('keyup', e => keys[e.key] = false);
-
-// Mouse look (desktop)
 let mouseDown = false;
 canvas.addEventListener('mousedown', () => { mouseDown = true; canvas.requestPointerLock(); });
 window.addEventListener('mouseup', () => { mouseDown = false; document.exitPointerLock(); });
@@ -509,16 +458,10 @@ window.addEventListener('mousemove', e => {
     player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch));
   }
 });
-
-// Touch / Mobile controls
 let touchStartX = 0, touchStartY = 0;
 canvas.addEventListener('touchstart', e => {
-  if(e.touches.length === 1) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }
+  if(e.touches.length === 1) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }
 }, {passive:false});
-
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
   if(e.touches.length === 1) {
@@ -527,17 +470,14 @@ canvas.addEventListener('touchmove', e => {
     player.yaw += dx * 0.005;
     player.pitch -= dy * 0.005;
     player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch));
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
   }
 }, {passive:false});
 
-// D-pad
 if(isMobile) {
   document.getElementById('mobileControls').style.display = 'block';
   document.getElementById('jumpBtn').style.display = 'flex';
 }
-
 document.querySelectorAll('.d-btn').forEach(btn => {
   let dir = btn.dataset.dir;
   btn.addEventListener('touchstart', e => { e.preventDefault(); keys[dir] = true; });
@@ -545,39 +485,240 @@ document.querySelectorAll('.d-btn').forEach(btn => {
   btn.addEventListener('mousedown', e => { keys[dir] = true; });
   btn.addEventListener('mouseup', e => { keys[dir] = false; });
 });
-
 document.getElementById('jumpBtn').addEventListener('touchstart', e => { e.preventDefault(); jump(); });
 document.getElementById('jumpBtn').addEventListener('mousedown', e => { jump(); });
 
-// Click on screen
 window.addEventListener('click', () => {
   if(lookingAtScreen && isAuth) {
     document.getElementById('videoInputBox').style.display = 'block';
   }
 });
 
+// ===================== BASE64 VIDEO SYNC SYSTEM =====================
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    let reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function chunkBase64(base64, chunkSize) {
+  let chunks = [];
+  for(let i=0; i<base64.length; i+=chunkSize) {
+    chunks.push(base64.substring(i, i+chunkSize));
+  }
+  return chunks;
+}
+
+async function uploadVideoToFirebase(file) {
+  document.getElementById('loadingVideo').style.display = 'block';
+  document.getElementById('loadStatus').textContent = 'Конвертация в Base64...';
+
+  let base64 = await fileToBase64(file);
+  base64Video = base64;
+
+  // Очищаем старое видео
+  await videoRef.remove();
+  await loadRef.remove();
+
+  let chunks = chunkBase64(base64, 900000); // ~900KB chunks
+  let totalChunks = chunks.length;
+
+  document.getElementById('loadStatus').textContent = 'Загрузка в Firebase (' + totalChunks + ' частей)...';
+
+  // Загружаем чанками в Realtime Database
+  for(let i=0; i<chunks.length; i++) {
+    await videoRef.child('chunks').child('c' + i).set({
+      data: chunks[i],
+      index: i,
+      total: totalChunks
+    });
+    let pct = Math.round(((i+1)/totalChunks)*100);
+    document.getElementById('loadPercent').textContent = pct + '%';
+    document.getElementById('loadStatus').textContent = 'Часть ' + (i+1) + ' из ' + totalChunks;
+  }
+
+  // Метаданные
+  await videoRef.update({
+    totalChunks: totalChunks,
+    mimeType: file.type || 'video/mp4',
+    fileName: file.name,
+    uploadedBy: player.uid,
+    uploadTime: firebase.database.ServerValue.TIMESTAMP,
+    ready: false
+  });
+
+  document.getElementById('loadStatus').textContent = 'Загрузка завершена! Ожидание всех...';
+
+  // Отмечаем что я загрузил
+  await loadRef.child(player.uid).set({
+    percent: 100,
+    ready: true,
+    name: player.name,
+    time: firebase.database.ServerValue.TIMESTAMP
+  });
+
+  // Начинаем скачивание у себя (уже есть)
+  videoBlob = base64ToBlob(base64, file.type || 'video/mp4');
+  videoUrl = URL.createObjectURL(videoBlob);
+  myLoadPercent = 100;
+
+  checkAllReady();
+}
+
+function base64ToBlob(base64, mimeType) {
+  let byteString = atob(base64.split(',')[1]);
+  let ab = new ArrayBuffer(byteString.length);
+  let ia = new Uint8Array(ab);
+  for(let i=0; i<byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+  return new Blob([ab], {type: mimeType});
+}
+
+async function downloadVideoFromFirebase() {
+  if(videoUrl) return; // Уже загружено
+
+  document.getElementById('loadingVideo').style.display = 'block';
+  document.getElementById('loadStatus').textContent = 'Получение метаданных...';
+
+  let metaSnap = await videoRef.once('value');
+  let meta = metaSnap.val();
+  if(!meta || !meta.totalChunks) {
+    document.getElementById('loadingVideo').style.display = 'none';
+    return;
+  }
+
+  let totalChunks = meta.totalChunks;
+  let mimeType = meta.mimeType || 'video/mp4';
+  let chunksData = [];
+
+  // Подписываемся на прогресс загрузки чанков
+  videoRef.child('chunks').on('child_added', async snap => {
+    let chunk = snap.val();
+    if(!chunk) return;
+    chunksData[chunk.index] = chunk.data;
+
+    let loaded = chunksData.filter(c => c).length;
+    let pct = Math.round((loaded/totalChunks)*100);
+    myLoadPercent = pct;
+
+    document.getElementById('loadPercent').textContent = pct + '%';
+    document.getElementById('loadStatus').textContent = 'Загружено ' + loaded + ' из ' + totalChunks + ' частей';
+
+    // Обновляем свой прогресс в Firebase
+    if(loadRef) {
+      loadRef.child(player.uid).set({
+        percent: pct,
+        ready: pct >= 100,
+        name: player.name,
+        time: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+
+    // Если все чанки загружены — собираем видео
+    if(loaded >= totalChunks) {
+      document.getElementById('loadStatus').textContent = 'Сборка видео...';
+      let fullBase64 = chunksData.join('');
+      base64Video = fullBase64;
+      videoBlob = base64ToBlob(fullBase64, mimeType);
+      videoUrl = URL.createObjectURL(videoBlob);
+      myLoadPercent = 100;
+
+      if(loadRef) {
+        loadRef.child(player.uid).set({
+          percent: 100,
+          ready: true,
+          name: player.name,
+          time: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+
+      document.getElementById('loadingVideo').style.display = 'none';
+      checkAllReady();
+    }
+  });
+}
+
+function checkAllReady() {
+  if(!loadRef) return;
+  loadRef.once('value', snap => {
+    let data = snap.val() || {};
+    let allPlayers = Object.values(players);
+    let total = allPlayers.length + 1; // + я
+    let ready = 0;
+    Object.values(data).forEach(p => { if(p.ready) ready++; });
+
+    // Обновляем UI прогресса
+    updateSyncUI(data);
+
+    if(ready >= total && total > 0 && myLoadPercent >= 100) {
+      allReady = true;
+      document.getElementById('waitingPanel').style.display = 'none';
+      startSyncedPlayback();
+    } else if(myLoadPercent >= 100 && !allReady) {
+      // Показываем панель ожидания
+      showWaitingPanel(data, total);
+    }
+  });
+}
+
+function updateSyncUI(data) {
+  let html = '';
+  Object.entries(data).forEach(([uid, p]) => {
+    let done = p.ready ? 'done' : '';
+    html += '<div class="syncBar">';
+    html += '<div class="syncBarLabel">' + (p.name || 'Игрок') + ' — ' + p.percent + '%</div>';
+    html += '<div class="syncBarTrack"><div class="syncBarFill ' + done + '" style="width:' + p.percent + '%"></div></div>';
+    html += '</div>';
+  });
+  document.getElementById('syncBars').innerHTML = html;
+}
+
+function showWaitingPanel(data, total) {
+  let html = '';
+  Object.entries(data).forEach(([uid, p]) => {
+    let cls = p.ready ? 'ready' : '';
+    html += '<div class="waitItem ' + cls + '">' + (p.name || 'Игрок') + ': ' + p.percent + '% ' + (p.ready ? '✅' : '⏳') + '</div>';
+  });
+  document.getElementById('waitList').innerHTML = html;
+  document.getElementById('waitingPanel').style.display = 'block';
+}
+
+function startSyncedPlayback() {
+  if(!videoUrl) return;
+  let vid = document.getElementById('syncVideo');
+  vid.src = videoUrl;
+  vid.play().then(() => {
+    isPlaying = true;
+    document.getElementById('videoOverlay').style.display = 'flex';
+    document.getElementById('syncProgressPanel').style.display = 'none';
+
+    // Синхронизируем время
+    videoRef.update({
+      playing: true,
+      startTime: firebase.database.ServerValue.TIMESTAMP,
+      currentTime: 0
+    });
+  }).catch(err => {
+    console.error('Play error:', err);
+  });
+}
+
 // ===================== AUTH =====================
 document.getElementById('toggleMode').addEventListener('click', () => {
   isRegister = !isRegister;
   document.getElementById('authBtn').textContent = isRegister ? 'Зарегистрироваться' : 'Войти';
-  document.querySelector('#loginBox .link').innerHTML = isRegister
-    ? 'Уже есть аккаунт? <span id="toggleMode">Войти</span>'
-    : 'Нет аккаунта? <span id="toggleMode">Регистрация</span>';
-  document.getElementById('toggleMode').addEventListener('click', arguments.callee);
 });
 
 document.getElementById('authBtn').addEventListener('click', () => {
   let email = document.getElementById('email').value;
   let pass = document.getElementById('password').value;
   if(!email || !pass) { document.getElementById('authError').textContent = 'Заполните все поля'; return; }
-
   let promise = isRegister
     ? auth.createUserWithEmailAndPassword(email, pass)
     : auth.signInWithEmailAndPassword(email, pass);
-
-  promise.catch(err => {
-    document.getElementById('authError').textContent = err.message;
-  });
+  promise.catch(err => { document.getElementById('authError').textContent = err.message; });
 });
 
 auth.onAuthStateChanged(user => {
@@ -592,9 +733,10 @@ auth.onAuthStateChanged(user => {
     roomRef = db.ref('cinema/players');
     videoRef = db.ref('cinema/video');
     chatRef = db.ref('cinema/chat');
+    loadRef = db.ref('cinema/loadProgress');
 
-    // Join room
     myRef.onDisconnect().remove();
+    loadRef.child(user.uid).onDisconnect().remove();
     myRef.set({
       x: player.x, y: player.y, z: player.z,
       yaw: player.yaw, pitch: player.pitch,
@@ -602,44 +744,48 @@ auth.onAuthStateChanged(user => {
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
 
-    // Listen other players
     roomRef.on('value', snap => {
       let data = snap.val() || {};
       players = {};
       let count = 0;
       Object.keys(data).forEach(uid => {
-        if(uid !== user.uid) {
-          players[uid] = data[uid];
-          count++;
-        }
+        if(uid !== user.uid) { players[uid] = data[uid]; count++; }
       });
       document.getElementById('onlineCount').textContent = 'Онлайн: ' + (count+1);
     });
 
-    // Listen video sync
+    // Слушаем видео
     videoRef.on('value', snap => {
       let data = snap.val();
-      if(data && data.url) {
-        videoUrl = data.url;
+      if(!data) return;
+
+      // Если есть чанки и я ещё не загрузил
+      if(data.totalChunks && !videoUrl && !document.getElementById('loadingVideo').style.display === 'block') {
+        downloadVideoFromFirebase();
+      }
+
+      // Синхронизация воспроизведения
+      if(data.playing && videoUrl) {
         let vid = document.getElementById('syncVideo');
-        if(vid.src !== data.url) {
-          vid.src = data.url;
-        }
-        if(data.playing && vid.paused) {
-          vid.currentTime = data.currentTime || 0;
+        if(vid.paused) {
           vid.play().catch(()=>{});
           isPlaying = true;
-        } else if(!data.playing && !vid.paused) {
-          vid.pause();
-          isPlaying = false;
         }
-        if(Math.abs(vid.currentTime - (data.currentTime || 0)) > 2) {
-          vid.currentTime = data.currentTime || 0;
+        // Синхронизируем время
+        if(data.currentTime !== undefined && Math.abs(vid.currentTime - data.currentTime) > 1) {
+          vid.currentTime = data.currentTime;
         }
       }
     });
 
-    // Listen chat
+    // Слушаем прогресс загрузки
+    loadRef.on('value', snap => {
+      let data = snap.val() || {};
+      updateSyncUI(data);
+      checkAllReady();
+    });
+
+    // Чат
     chatRef.limitToLast(20).on('child_added', snap => {
       let msg = snap.val();
       let div = document.createElement('div');
@@ -650,16 +796,16 @@ auth.onAuthStateChanged(user => {
       box.scrollTop = box.scrollHeight;
     });
 
-    // Periodic video sync
+    // Периодическая синхронизация времени видео
     setInterval(() => {
       let vid = document.getElementById('syncVideo');
-      if(videoUrl && !vid.paused) {
+      if(videoUrl && !vid.paused && videoRef) {
         videoRef.update({
           currentTime: vid.currentTime,
           lastUpdate: firebase.database.ServerValue.TIMESTAMP
         });
       }
-    }, 2000);
+    }, 1000);
 
   } else {
     isAuth = false;
@@ -672,49 +818,48 @@ auth.onAuthStateChanged(user => {
 document.getElementById('videoBtn').addEventListener('click', () => {
   document.getElementById('videoInputBox').style.display = 'block';
 });
-
 document.getElementById('closeVideoBox').addEventListener('click', () => {
   document.getElementById('videoInputBox').style.display = 'none';
 });
 
-document.getElementById('playVideoBtn').addEventListener('click', () => {
+document.getElementById('playVideoBtn').addEventListener('click', async () => {
   let file = document.getElementById('fileInput').files[0];
   let url = document.getElementById('urlInput').value.trim();
-  let finalUrl = '';
 
   if(file) {
-    finalUrl = URL.createObjectURL(file);
+    // Файл → Base64 → Firebase
+    document.getElementById('videoInputBox').style.display = 'none';
+    document.getElementById('syncProgressPanel').style.display = 'block';
+    await uploadVideoToFirebase(file);
   } else if(url) {
-    finalUrl = url;
+    // Прямая ссылка — просто синхронизируем
+    videoUrl = url;
+    let vid = document.getElementById('syncVideo');
+    vid.src = url;
+    vid.play().then(() => {
+      isPlaying = true;
+      document.getElementById('videoInputBox').style.display = 'none';
+      document.getElementById('videoOverlay').style.display = 'flex';
+      videoRef.set({
+        url: url,
+        playing: true,
+        startTime: firebase.database.ServerValue.TIMESTAMP,
+        currentTime: 0,
+        isUrl: true
+      });
+    }).catch(err => {
+      alert('Ошибка воспроизведения: ' + err.message);
+    });
   } else {
     alert('Выберите файл или введите ссылку');
-    return;
   }
-
-  videoUrl = finalUrl;
-  let vid = document.getElementById('syncVideo');
-  vid.src = finalUrl;
-  vid.play().then(() => {
-    videoRef.set({
-      url: finalUrl,
-      playing: true,
-      currentTime: 0,
-      startedBy: player.uid,
-      startTime: firebase.database.ServerValue.TIMESTAMP
-    });
-    isPlaying = true;
-    document.getElementById('videoInputBox').style.display = 'none';
-    document.getElementById('videoOverlay').style.display = 'flex';
-  }).catch(err => {
-    alert('Ошибка воспроизведения: ' + err.message);
-  });
 });
 
 document.getElementById('closeVideoOverlay').addEventListener('click', () => {
   document.getElementById('videoOverlay').style.display = 'none';
   let vid = document.getElementById('syncVideo');
   vid.pause();
-  videoRef.update({ playing: false });
+  if(videoRef) videoRef.update({ playing: false });
   isPlaying = false;
 });
 
@@ -725,7 +870,6 @@ document.getElementById('chatToggle').addEventListener('click', () => {
   document.getElementById('chatBox').style.display = chatVisible ? 'block' : 'none';
   document.getElementById('chatMessages').style.display = chatVisible ? 'block' : 'none';
 });
-
 document.getElementById('chatInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') {
     let text = e.target.value.trim();
@@ -742,10 +886,8 @@ function loop() {
   let now = performance.now();
   let dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
-
   updatePhysics(dt);
   drawScene();
-
   requestAnimationFrame(loop);
 }
 loop();
