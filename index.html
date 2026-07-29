@@ -14,14 +14,13 @@
             --bg-panel: #12121e;
             --bg-input: #1a1a2c;
             --border: #22223a;
-            --border-focus: #00f0ff;
             --accent-cyan: #00f0ff;
             --accent-purple: #a855f7;
             --accent-pink: #ec4899;
             --accent-green: #10b981;
             --accent-gold: #f59e0b;
             --accent-red: #ef4444;
-            --text-main: #f8fafc;
+            --text-main: #ffffff;
             --text-sub: #94a3b8;
             --radius-lg: 16px;
             --radius-md: 12px;
@@ -49,7 +48,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
         }
 
-        /* App Shell */
         .app-shell {
             display: flex;
             flex-direction: column;
@@ -82,12 +80,12 @@
             width: 32px;
             height: 32px;
             border-radius: var(--radius-md);
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            background: linear-gradient(135deg, #ffffff, var(--accent-purple));
             display: flex;
             align-items: center;
             justify-content: center;
             color: #000;
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
         }
 
         .brand-text {
@@ -98,9 +96,7 @@
         .brand-title {
             font-weight: 800;
             font-size: 0.9rem;
-            background: linear-gradient(90deg, #fff, var(--text-sub));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #ffffff;
         }
 
         .progress-sub {
@@ -131,9 +127,9 @@
         }
 
         .btn-glow {
-            background: linear-gradient(135deg, var(--accent-cyan), #0066ff);
+            background: linear-gradient(135deg, #ffffff, var(--accent-cyan));
             color: #000;
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
         }
 
         .btn-glow:active { transform: scale(0.95); }
@@ -145,8 +141,8 @@
         }
 
         .btn-icon {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             padding: 0;
             border-radius: var(--radius-md);
             background: var(--bg-panel);
@@ -160,10 +156,10 @@
         }
 
         .btn-icon.active {
-            background: var(--accent-cyan);
+            background: #ffffff;
             color: #000;
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+            border-color: #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
         /* Nav Tabs */
@@ -180,7 +176,7 @@
         .tab-btn {
             flex: 1;
             min-width: 75px;
-            padding: 7px 4px;
+            padding: 8px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -195,9 +191,9 @@
         }
 
         .tab-btn.active {
-            color: var(--accent-cyan);
-            border-bottom-color: var(--accent-cyan);
-            background: rgba(0, 240, 255, 0.04);
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
         }
 
         /* Viewport Container */
@@ -282,9 +278,9 @@
         }
 
         .char-card.active {
-            border-color: var(--accent-cyan);
-            background: rgba(0, 240, 255, 0.12);
-            color: var(--accent-cyan);
+            border-color: #ffffff;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
         }
 
         .char-card.has-data::after {
@@ -401,7 +397,7 @@
             border-radius: 12px;
             font-size: 0.65rem;
             font-weight: 800;
-            color: var(--accent-cyan);
+            color: #ffffff;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -430,12 +426,12 @@
         .scroll-row::-webkit-scrollbar { display: none; }
 
         .tool-btn {
-            padding: 5px 9px;
+            padding: 6px 10px;
             border-radius: var(--radius-sm);
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-sub);
-            font-size: 0.68rem;
+            font-size: 0.7rem;
             font-weight: 700;
             white-space: nowrap;
             display: flex;
@@ -445,9 +441,33 @@
         }
 
         .tool-btn.active {
-            background: var(--accent-cyan);
+            background: #ffffff;
             color: #000;
-            border-color: var(--accent-cyan);
+            border-color: #ffffff;
+        }
+
+        /* Quick Palette Swatches Bar */
+        .swatch-bar {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 2px 0;
+        }
+
+        .color-swatch {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.15s ease;
+        }
+
+        .color-swatch.active {
+            transform: scale(1.25);
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
         }
 
         .slider-box {
@@ -459,7 +479,7 @@
             padding: 4px 8px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
-            min-width: 110px;
+            min-width: 100px;
         }
 
         .slider-box label {
@@ -471,7 +491,7 @@
 
         .slider-box input[type="range"] {
             flex: 1;
-            accent-color: var(--accent-cyan);
+            accent-color: #ffffff;
         }
 
         .color-box {
@@ -510,7 +530,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
             padding: 8px 10px;
-            color: #fff;
+            color: #ffffff;
             font-size: 0.9rem;
             outline: none;
         }
@@ -524,6 +544,7 @@
             word-break: break-all;
             line-height: 1.4;
             overflow-y: auto;
+            color: #ffffff;
             transition: all 0.2s ease;
         }
 
@@ -662,6 +683,24 @@
                 <!-- IBIS Toolbars Control Panel -->
                 <div class="control-panel">
                     
+                    <!-- Quick Swatches Row for Finger Selection -->
+                    <div class="scroll-row">
+                        <span style="font-size:0.65rem; color:var(--text-sub); font-weight:800; margin-right:4px;">Цвет:</span>
+                        <div class="swatch-bar">
+                            <div class="color-swatch active" style="background:#ffffff;" onclick="selectPresetColor('#ffffff', this)"></div>
+                            <div class="color-swatch" style="background:#00f0ff;" onclick="selectPresetColor('#00f0ff', this)"></div>
+                            <div class="color-swatch" style="background:#ff3366;" onclick="selectPresetColor('#ff3366', this)"></div>
+                            <div class="color-swatch" style="background:#00ff88;" onclick="selectPresetColor('#00ff88', this)"></div>
+                            <div class="color-swatch" style="background:#ffbe0b;" onclick="selectPresetColor('#ffbe0b', this)"></div>
+                            <div class="color-swatch" style="background:#a855f7;" onclick="selectPresetColor('#a855f7', this)"></div>
+                            <div class="color-swatch" style="background:#ff6b6b;" onclick="selectPresetColor('#ff6b6b', this)"></div>
+                            <div class="color-swatch" style="background:#000000;" onclick="selectPresetColor('#000000', this)"></div>
+                        </div>
+                        <div class="color-box" title="Выбрать любой цвет">
+                            <input type="color" id="brushColor" value="#ffffff" onchange="syncBrushParamsFromPicker(this.value)">
+                        </div>
+                    </div>
+
                     <!-- Tools Selection Row -->
                     <div class="scroll-row">
                         <button class="tool-btn active" id="tool-draw" onclick="setTool('draw')"><i data-lucide="edit-3" style="width:12px;"></i> Кисть</button>
@@ -670,6 +709,12 @@
                         <button class="tool-btn" id="tool-line" onclick="setTool('line')"><i data-lucide="minus" style="width:12px;"></i> Линия</button>
                         <button class="tool-btn" id="tool-rect" onclick="setTool('rect')"><i data-lucide="square" style="width:12px;"></i> Прямоугольник</button>
                         <button class="tool-btn" id="tool-circle" onclick="setTool('circle')"><i data-lucide="circle" style="width:12px;"></i> Окружность</button>
+                        
+                        <!-- NEW PNG IMPORT FROM IBISPAINT -->
+                        <label class="tool-btn" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); color:#fff; border:none;" title="Импорт PNG из IbisPaint">
+                            <i data-lucide="image" style="width:12px;"></i> PNG из IbisPaint
+                            <input type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="importPNGToGlyph(event)">
+                        </label>
                     </div>
 
                     <!-- Brush Types Presets -->
@@ -682,7 +727,7 @@
                         <button class="tool-btn" id="b-taper" onclick="setBrushPreset('taper')">Динамическая</button>
                     </div>
 
-                    <!-- Sliders & Color Picker Row -->
+                    <!-- Sliders Row -->
                     <div class="scroll-row">
                         <div class="slider-box">
                             <label>Размер</label>
@@ -697,10 +742,6 @@
                         <div class="slider-box">
                             <label>Сглаживание</label>
                             <input type="range" id="brushSmooth" min="0" max="95" value="50" oninput="syncBrushParams()">
-                        </div>
-
-                        <div class="color-box" title="Цвет кисти">
-                            <input type="color" id="brushColor" value="#00f0ff" onchange="syncBrushParams()">
                         </div>
                     </div>
 
@@ -734,7 +775,7 @@
             <div id="page-preview" class="tab-page">
                 <div class="card">
                     <span style="font-size:0.75rem; font-weight:800; color:var(--text-sub);">Тестовая строка:</span>
-                    <input type="text" class="input-control" id="previewText" value="Привет World 123! Красивый шрифт!" oninput="renderLivePreview()">
+                    <input type="text" class="input-control" id="previewText" value="Привет World 123! Белый текст!" oninput="renderLivePreview()">
 
                     <div class="scroll-row">
                         <div class="slider-box">
@@ -742,7 +783,7 @@
                             <input type="range" id="previewSize" min="16" max="140" value="48" oninput="renderLivePreview()">
                         </div>
                         <div class="slider-box">
-                            <label>Межбуквенный интервал</label>
+                            <label>Интервал</label>
                             <input type="range" id="previewSpacing" min="-5" max="35" value="0" oninput="renderLivePreview()">
                         </div>
                     </div>
@@ -750,17 +791,24 @@
                     <div class="scroll-row">
                         <div class="color-box">
                             <label style="font-size:0.65rem; color:var(--text-sub);">Текст:</label>
-                            <input type="color" id="previewTextColor" value="#00f0ff" onchange="renderLivePreview()">
+                            <input type="color" id="previewTextColor" value="#ffffff" onchange="renderLivePreview()">
                         </div>
                         <div class="color-box">
                             <label style="font-size:0.65rem; color:var(--text-sub);">Фон:</label>
                             <input type="color" id="previewBgColor" value="#000000" onchange="renderLivePreview()">
                         </div>
+                        <div class="swatch-bar">
+                            <div class="color-swatch" style="background:#ffffff;" onclick="setPreviewColor('#ffffff')"></div>
+                            <div class="color-swatch" style="background:#00f0ff;" onclick="setPreviewColor('#00f0ff')"></div>
+                            <div class="color-swatch" style="background:#ff3366;" onclick="setPreviewColor('#ff3366')"></div>
+                            <div class="color-swatch" style="background:#00ff88;" onclick="setPreviewColor('#00ff88')"></div>
+                            <div class="color-swatch" style="background:#ffbe0b;" onclick="setPreviewColor('#ffbe0b')"></div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card" style="flex:1;">
-                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-sub);">Живая демонстрация шрифта:</span>
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-sub);">Демонстрация вашего шрифта:</span>
                     <div class="preview-render" id="previewRenderBox"></div>
                 </div>
             </div>
@@ -860,8 +908,10 @@
                 </div>
 
                 <div class="card">
-                    <span style="font-size:0.8rem; font-weight:800; color:var(--accent-gold);">Локальное Хранилище (localStorage)</span>
-                    <p style="font-size:0.72rem; color:var(--text-sub);">Все ваши штрихи **автоматически сохраняются во внутреннюю память телефона**. Закрывайте и открывайте браузер в любое время без потери работы!</p>
+                    <span style="font-size:0.8rem; font-weight:800; color:var(--accent-gold);">Справка по формату TTF</span>
+                    <p style="font-size:0.72rem; color:var(--text-sub); line-height:1.4;">
+                        <b>Важно:</b> Настоящие векторные файлы .TTF сохраняют точные векторизованные формы ваших букв. В любых сторонних программах (CapCut, PicsArt, Photoshop, Android) после установки шрифта вы сможете выбирать **совершенно любой цвет** текста! Белый цвет в редакторе задан по умолчанию для вашего удобства.
+                    </p>
 
                     <div class="scroll-row" style="margin-top:6px;">
                         <button class="btn btn-dark" style="color:var(--accent-red); border-color:var(--accent-red);" onclick="clearProjectStorage()">
@@ -887,7 +937,7 @@
             num: "0123456789!?,.-+#@%&*()".split("")
         };
 
-        const STORAGE_KEY = "FontCraft_Supreme_Master_v3";
+        const STORAGE_KEY = "FontCraft_Supreme_Master_v4";
 
         // APP STATE
         let currentCategory = 'ru_cap';
@@ -895,15 +945,6 @@
         let activeLayer = 'main'; // 'main' or 'sketch'
         let showTemplate = false;
 
-        /* Standard Schema for Stroke Data Storage:
-           strokeStorage = {
-              'А': {
-                 advanceWidth: 750,
-                 mainStrokes: [ { id, mode, size, opacity, color, points: [{x,y},...] } ],
-                 sketchStrokes: [ { id, mode, size, opacity, color, points: [{x,y},...] } ]
-              }
-           }
-        */
         let strokeStorage = {};
         let undoStack = [];
         let redoStack = [];
@@ -911,12 +952,12 @@
         // Canvas / Drawing Engine State
         let canvas, ctx;
         let isDrawing = false;
-        let activeTool = 'draw';      // 'draw', 'erase', 'stroke-erase', 'line', 'rect', 'circle'
-        let brushMode = 'pen';        // 'pen', 'calligraphy', 'pencil', 'neon', 'outline', 'taper'
+        let activeTool = 'draw';
+        let brushMode = 'pen';
         let brushSize = 22;
         let brushOpacity = 1.0;
         let brushSmoothness = 50;
-        let brushColor = '#00f0ff';
+        let brushColor = '#ffffff'; // DEFAULT WHITE!
         let isSymmetry = false;
         let activeStroke = null;
         let shapeStartPt = null;
@@ -1089,7 +1130,6 @@
                 c.classList.toggle('active', c.innerText === ch);
             });
 
-            // Ensure schema exists
             if (!strokeStorage[currentChar]) {
                 strokeStorage[currentChar] = { advanceWidth: 750, mainStrokes: [], sketchStrokes: [] };
             }
@@ -1116,18 +1156,110 @@
             saveProjectToStorage();
         }
 
+        // --- COLOR SELECTION FUNCTIONS ---
+        function selectPresetColor(colorHex, el) {
+            brushColor = colorHex;
+            document.getElementById('brushColor').value = colorHex;
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            if (el) el.classList.add('active');
+        }
+
+        function syncBrushParamsFromPicker(colorHex) {
+            brushColor = colorHex;
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        }
+
+        function setPreviewColor(colorHex) {
+            document.getElementById('previewTextColor').value = colorHex;
+            renderLivePreview();
+        }
+
+        // --- IMPORT PNG FROM IBISPAINT TO CURRENT CHAR ---
+        function importPNGToGlyph(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const img = new Image();
+                img.onload = () => {
+                    convertImageToGlyphStrokes(img);
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function convertImageToGlyphStrokes(img) {
+            pushUndoState();
+            if (!strokeStorage[currentChar]) {
+                strokeStorage[currentChar] = { advanceWidth: 750, mainStrokes: [], sketchStrokes: [] };
+            }
+
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            const cDim = canvas.width || 350;
+            tempCanvas.width = cDim;
+            tempCanvas.height = cDim;
+
+            tempCtx.drawImage(img, 0, 0, cDim, cDim);
+            const imgData = tempCtx.getImageData(0, 0, cDim, cDim);
+            const data = imgData.data;
+
+            // Extract stroke points from opaque or dark pixels
+            const step = Math.max(3, Math.floor(cDim / 100));
+            const newStrokePoints = [];
+
+            for (let y = 0; y < cDim; y += step) {
+                for (let x = 0; x < cDim; x += step) {
+                    const idx = (y * cDim + x) * 4;
+                    const r = data[idx];
+                    const g = data[idx + 1];
+                    const b = data[idx + 2];
+                    const a = data[idx + 3];
+
+                    // Check for non-transparent pixels or dark lines
+                    const isOpaque = a > 50;
+                    const isDark = (r + g + b) / 3 < 200;
+
+                    if (isOpaque && isDark) {
+                        newStrokePoints.push({ x: x, y: y });
+                    }
+                }
+            }
+
+            if (newStrokePoints.length < 2) {
+                alert("Не удалось обнаружить рисунок на PNG! Убедитесь что PNG имеет прозрачный или белый фон с контрастными линиями.");
+                return;
+            }
+
+            // Convert points into imported strokes
+            const importedStroke = {
+                id: Date.now(),
+                mode: 'pen',
+                size: Math.max(6, Math.floor(cDim / 35)),
+                opacity: 1.0,
+                color: brushColor,
+                points: newStrokePoints
+            };
+
+            strokeStorage[currentChar].mainStrokes.push(importedStroke);
+            redrawCurrentGlyph();
+            updateCategoryCarousel();
+            saveProjectToStorage();
+            showToast(`PNG из IbisPaint импортирован в символ '${currentChar}'!`);
+        }
+
         // --- DRAWING CANVAS ENGINE ---
         function initDrawingCanvas() {
             canvas = document.getElementById('drawCanvas');
             ctx = canvas.getContext('2d');
             adaptCanvasSize();
 
-            // Touch events
             canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
             canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
             canvas.addEventListener('touchend', handlePointerUp, { passive: false });
 
-            // Mouse events
             canvas.addEventListener('mousedown', handlePointerDown);
             canvas.addEventListener('mousemove', handlePointerMove);
             canvas.addEventListener('mouseup', handlePointerUp);
@@ -1159,10 +1291,8 @@
             const pt = getCoords(e);
             shapeStartPt = pt;
 
-            // Save state for undo
             pushUndoState();
 
-            // Vibration Feedback on Android
             if (navigator.vibrate) navigator.vibrate(8);
 
             if (!strokeStorage[currentChar]) {
@@ -1184,8 +1314,6 @@
                 return;
             }
 
-            // Create new stroke AND PUSH IMMEDIATELY to array!
-            // This guarantees previous strokes are NEVER erased or overwritten!
             activeStroke = {
                 id: Date.now() + Math.random(),
                 mode: brushMode,
@@ -1219,7 +1347,6 @@
                 performPointEraser(pt);
                 redrawCurrentGlyph();
             } else if (activeTool === 'draw' && activeStroke) {
-                // Smoothing factor calculation
                 const pts = activeStroke.points;
                 const lastPt = pts[pts.length - 1];
                 const factor = 1 - (brushSmoothness / 100) * 0.8;
@@ -1354,7 +1481,6 @@
             brushSize = parseInt(document.getElementById('brushSize').value);
             brushOpacity = parseInt(document.getElementById('brushOpacity').value) / 100;
             brushSmoothness = parseInt(document.getElementById('brushSmooth').value);
-            brushColor = document.getElementById('brushColor').value;
         }
 
         function toggleSymmetry() {
@@ -1457,11 +1583,10 @@
         function redrawCurrentGlyph() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw System Reference Character Template if enabled
             if (showTemplate) {
                 ctx.save();
                 ctx.font = `${canvas.width * 0.7}px sans-serif`;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(currentChar, canvas.width / 2, canvas.height / 2);
@@ -1471,10 +1596,7 @@
             const sketchStrokes = strokeStorage[currentChar]?.sketchStrokes || [];
             const mainStrokes = strokeStorage[currentChar]?.mainStrokes || [];
 
-            // Draw Draft Layer First
             sketchStrokes.forEach(st => drawSingleStroke(st));
-
-            // Draw Main Ink Layer
             mainStrokes.forEach(st => drawSingleStroke(st));
         }
 
