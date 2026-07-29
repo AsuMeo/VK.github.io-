@@ -2,21 +2,30 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FontCraft Studio Pro - Создай свой TTF шрифт</title>
-    <!-- CDN библиотеки -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FontCraft Studio Ultra Pro - Мобильный Редактор Шрифтов TTF</title>
+    <!-- CDN Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg-black: #050505;
-            --panel-bg: #121216;
-            --panel-border: #22222a;
-            --accent: #00f0ff;
+            --bg-dark: #030305;
+            --bg-card: #0b0b12;
+            --bg-panel: #13131f;
+            --bg-hover: #1c1c2e;
+            --border: #232338;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #9d4edf;
+            --accent-pink: #ff2a85;
             --accent-green: #00ff88;
-            --accent-danger: #ff3366;
-            --text-main: #f0f0f5;
-            --text-muted: #888899;
+            --accent-gold: #ffbe0b;
+            --text-main: #f4f4f9;
+            --text-sub: #8e8ea7;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         * {
@@ -25,175 +34,239 @@
             padding: 0;
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
             touch-action: manipulation;
         }
 
-        body {
-            background-color: var(--bg-black);
+        html, body {
+            width: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: var(--bg-dark);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow-x: hidden;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* App Layout */
+        .app-shell {
             display: flex;
             flex-direction: column;
+            height: 100dvh;
+            padding-top: var(--safe-top);
+            padding-bottom: var(--safe-bottom);
         }
 
-        /* Header */
+        /* Top Header Navigation */
         header {
-            background: rgba(18, 18, 22, 0.9);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--panel-border);
-            padding: 12px 16px;
+            height: 54px;
+            background: rgba(11, 11, 18, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
+            padding: 0 12px;
             z-index: 100;
+            flex-shrink: 0;
         }
 
-        .logo {
+        .brand {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: 800;
-            font-size: 1.1rem;
-            letter-spacing: 0.5px;
-            color: #fff;
+            gap: 10px;
         }
 
-        .logo i { color: var(--accent); }
-
-        .btn-export {
-            background: linear-gradient(135deg, var(--accent), #0088ff);
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: #000;
-            font-weight: 700;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .brand-title {
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #fff, var(--text-sub));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
             border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            outline: none;
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.8rem;
             display: flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
             cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .btn-export:active { transform: scale(0.96); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), #0072ff);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.25);
+        }
+
+        .btn-primary:active { transform: scale(0.95); }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: var(--radius-md);
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            justify-content: center;
+        }
+
+        .btn-icon.active {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: var(--accent-cyan);
+        }
 
         /* Navigation Tabs */
-        .tabs {
+        .tabs-nav {
             display: flex;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--panel-border);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
+        .tabs-nav::-webkit-scrollbar { display: none; }
 
-        .tab-btn {
+        .tab-item {
             flex: 1;
-            padding: 12px 0;
-            text-align: center;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            font-weight: 600;
+            min-width: 90px;
+            padding: 10px 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
-            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            border: none;
+            background: transparent;
             border-bottom: 2px solid transparent;
-            transition: all 0.2s;
+            cursor: pointer;
         }
 
-        .tab-btn.active {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-            background: rgba(0, 240, 255, 0.03);
+        .tab-item.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.05);
         }
 
-        /* Main Area */
-        main {
+        /* Viewport Main Container */
+        .viewport {
             flex: 1;
-            display: flex;
-            flex-direction: column;
             position: relative;
+            overflow: hidden;
         }
 
-        .tab-content {
+        .tab-page {
+            position: absolute;
+            inset: 0;
             display: none;
-            flex: 1;
             flex-direction: column;
-            padding: 12px;
-            gap: 12px;
+            padding: 8px;
+            gap: 8px;
+            overflow-y: auto;
         }
 
-        .tab-content.active { display: flex; }
+        .tab-page.active {
+            display: flex;
+        }
 
-        /* Character Carousel Selector */
-        .char-selector-wrapper {
+        /* --- DRAWING TAB STYLE --- */
+        .selector-bar {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
-        .category-tabs {
+        .category-scroll {
             display: flex;
             gap: 6px;
             overflow-x: auto;
             scrollbar-width: none;
+            padding: 2px 0;
         }
-        .category-tabs::-webkit-scrollbar { display: none; }
+        .category-scroll::-webkit-scrollbar { display: none; }
 
-        .cat-btn {
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            color: var(--text-muted);
+        .cat-chip {
             padding: 6px 12px;
-            border-radius: 12px;
+            border-radius: 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-sub);
             font-size: 0.75rem;
-            white-space: nowrap;
-        }
-
-        .cat-btn.active {
-            background: var(--accent);
-            color: #000;
-            border-color: var(--accent);
             font-weight: 700;
+            white-space: nowrap;
+            cursor: pointer;
         }
 
-        .char-grid {
+        .cat-chip.active {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 2px 10px rgba(157, 78, 223, 0.3);
+        }
+
+        .char-carousel {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             overflow-x: auto;
-            padding: 4px 0;
             scrollbar-width: none;
+            padding: 4px 0;
         }
-        .char-grid::-webkit-scrollbar { display: none; }
+        .char-carousel::-webkit-scrollbar { display: none; }
 
-        .char-card {
-            min-width: 44px;
-            height: 48px;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 10px;
+        .char-tile {
+            min-width: 42px;
+            height: 46px;
+            border-radius: var(--radius-md);
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
-            font-weight: bold;
+            font-weight: 800;
             color: var(--text-main);
             position: relative;
+            flex-shrink: 0;
             cursor: pointer;
         }
 
-        .char-card.active {
-            border-color: var(--accent);
-            background: rgba(0, 240, 255, 0.1);
-            color: var(--accent);
+        .char-tile.active {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--accent-cyan);
+            box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.2);
         }
 
-        .char-card.has-data::after {
+        .char-tile.has-stroke::after {
             content: '';
             position: absolute;
             top: 4px;
@@ -205,159 +278,187 @@
             box-shadow: 0 0 6px var(--accent-green);
         }
 
-        /* Canvas Drawing Area */
-        .canvas-container {
+        /* Canvas Stage */
+        .canvas-stage {
             flex: 1;
-            min-height: 320px;
-            background: #000000;
-            border: 1px solid var(--panel-border);
-            border-radius: 16px;
+            min-height: 260px;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             position: relative;
             overflow: hidden;
             display: flex;
-            justify-content: center;
             align-items: center;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            justify-content: center;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
         }
 
-        canvas {
+        #drawCanvas {
             touch-action: none;
             background: transparent;
-            cursor: crosshair;
+            display: block;
         }
 
-        .canvas-guides {
+        /* Guidelines Overlay */
+        .guidelines {
             position: absolute;
             inset: 0;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 40px 0;
-            opacity: 0.25;
+            padding: 15% 0;
+            opacity: 0.35;
         }
 
-        .guide-line {
+        .line {
             width: 100%;
-            border-bottom: 1px dashed var(--accent);
+            border-bottom: 1px dashed var(--accent-cyan);
             position: relative;
         }
-        .guide-line.baseline { border-bottom-style: solid; border-color: var(--accent-green); }
-        .guide-line::after {
-            position: absolute;
-            right: 8px;
-            top: -12px;
-            font-size: 0.65rem;
-            color: #fff;
-            text-transform: uppercase;
-        }
-        .guide-line.cap::after { content: 'Cap Height'; }
-        .guide-line.baseline::after { content: 'Baseline'; color: var(--accent-green); }
 
-        /* Canvas Controls Toolbar */
-        .toolbar {
+        .line.baseline {
+            border-bottom-style: solid;
+            border-color: var(--accent-green);
+        }
+
+        .line::after {
+            position: absolute;
+            right: 10px;
+            top: -12px;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+        }
+
+        .line.cap::after { content: 'Cap Height'; }
+        .line.baseline::after { content: 'Baseline'; color: var(--accent-green); }
+
+        /* Floating / Bottom Studio Controls */
+        .studio-controls {
             display: flex;
+            flex-direction: column;
             gap: 8px;
-            background: var(--panel-bg);
-            padding: 8px 12px;
-            border-radius: 14px;
-            border: 1px solid var(--panel-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 8px 10px;
+            flex-shrink: 0;
+        }
+
+        .tool-row {
+            display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
+        .tool-row::-webkit-scrollbar { display: none; }
 
-        .tool-group { display: flex; gap: 6px; align-items: center; }
+        .brush-presets {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .brush-presets::-webkit-scrollbar { display: none; }
 
-        .tool-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: #1a1a22;
-            border: 1px solid var(--panel-border);
-            color: var(--text-main);
+        .preset-btn {
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            font-size: 0.7rem;
+            font-weight: 700;
+            white-space: nowrap;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 4px;
             cursor: pointer;
         }
 
-        .tool-btn.active {
-            background: var(--accent);
+        .preset-btn.active {
+            background: var(--accent-cyan);
             color: #000;
+            border-color: var(--accent-cyan);
         }
 
-        .brush-size-slider {
-            width: 80px;
-            accent-color: var(--accent);
-        }
-
-        /* Preview Tab */
-        .preview-box {
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 14px;
-            padding: 16px;
+        .slider-group {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            background: var(--bg-panel);
+            padding: 4px 10px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            min-width: 140px;
         }
 
-        .preview-input {
-            width: 100%;
-            background: #000;
-            border: 1px solid var(--panel-border);
+        .slider-group label {
+            font-size: 0.68rem;
+            color: var(--text-sub);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .slider-group input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-cyan);
+        }
+
+        /* --- PREVIEW TAB STYLE --- */
+        .panel-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             padding: 12px;
-            border-radius: 10px;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        .preview-text-render {
-            min-height: 120px;
-            word-break: break-all;
-            font-size: 2rem;
-            color: #fff;
-            padding: 12px;
-            background: #08080c;
-            border-radius: 10px;
-            border: 1px dashed var(--panel-border);
-            line-height: 1.3;
-        }
-
-        /* Photo Editor Tab */
-        .photo-editor-controls {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            background: var(--panel-bg);
-            padding: 12px;
-            border-radius: 14px;
-            border: 1px solid var(--panel-border);
         }
 
-        .file-input-btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px dashed var(--accent);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            color: var(--accent);
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-
-        .photo-canvas-wrapper {
-            flex: 1;
-            min-height: 280px;
+        .input-field {
+            width: 100%;
             background: #000;
-            border-radius: 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .input-field:focus { border-color: var(--accent-cyan); }
+
+        .render-stage {
+            min-height: 160px;
+            background: #000;
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--border);
+            padding: 16px;
+            word-break: break-all;
+            line-height: 1.3;
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        /* --- PHOTO GALLERY TAB STYLE --- */
+        .photo-stage {
+            flex: 1;
+            min-height: 220px;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             overflow: hidden;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             position: relative;
-            border: 1px solid var(--panel-border);
         }
 
         #photoCanvas {
@@ -366,186 +467,244 @@
             object-fit: contain;
         }
 
-        .row-inputs {
+        .color-picker-wrapper {
             display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .row-inputs label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            min-width: 60px;
-        }
-
-        .row-inputs input[type="range"] {
-            flex: 1;
-            accent-color: var(--accent);
-        }
-
-        .btn-full {
-            width: 100%;
-            background: var(--accent-green);
-            color: #000;
-            font-weight: bold;
-            padding: 12px;
-            border-radius: 10px;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             gap: 6px;
+            align-items: center;
         }
 
-        /* Helpers */
-        .hint {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-align: center;
+        .color-picker-wrapper input[type="color"] {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* Utility Helpers */
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Responsiveness Fixes */
+        @media (max-height: 650px) {
+            .canvas-stage { min-height: 180px; }
+            .tabs-nav { padding: 0; }
+            .tab-item { padding: 6px 2px; font-size: 0.65rem; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <header>
-        <div class="logo">
-            <i data-lucide="type"></i>
-            <span>FontCraft Mobile</span>
-        </div>
-        <button class="btn-export" onclick="downloadTTF()">
-            <i data-lucide="download"></i>
-            <span>.TTF</span>
-        </button>
-    </header>
+    <div class="app-shell">
+        <!-- TOP HEADER -->
+        <header>
+            <div class="brand">
+                <div class="brand-icon"><i data-lucide="feather"></i></div>
+                <div class="brand-title">FontCraft Ultra</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="exportTTFFont()">
+                    <i data-lucide="download"></i>
+                    <span>Экспорт .TTF</span>
+                </button>
+            </div>
+        </header>
 
-    <!-- Navigation Tabs -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('draw')">
-            <i data-lucide="pen-tool"></i> Рисование
-        </button>
-        <button class="tab-btn" onclick="switchTab('preview')">
-            <i data-lucide="eye"></i> Просмотр
-        </button>
-        <button class="tab-btn" onclick="switchTab('photo')">
-            <i data-lucide="image"></i> Фото и Галерея
-        </button>
+        <!-- TABS BAR -->
+        <nav class="tabs-nav">
+            <button class="tab-item active" onclick="switchTab('draw')">
+                <i data-lucide="pen-tool"></i>
+                <span>Студия Кистей</span>
+            </button>
+            <button class="tab-item" onclick="switchTab('preview')">
+                <i data-lucide="type"></i>
+                <span>Предпросмотр</span>
+            </button>
+            <button class="tab-item" onclick="switchTab('photo')">
+                <i data-lucide="image"></i>
+                <span>Фото & Галерея</span>
+            </button>
+        </nav>
+
+        <!-- VIEWPORT AREA -->
+        <main class="viewport">
+
+            <!-- TAB 1: DRAW STUDIO -->
+            <div id="page-draw" class="tab-page active">
+                
+                <!-- Character & Category Selector -->
+                <div class="selector-bar">
+                    <div class="category-scroll">
+                        <button class="cat-chip active" onclick="setCategory('ru_cap')">РУС (А-Я)</button>
+                        <button class="cat-chip" onclick="setCategory('ru_low')">рус (а-я)</button>
+                        <button class="cat-chip" onclick="setCategory('en_cap')">ENG (A-Z)</button>
+                        <button class="cat-chip" onclick="setCategory('en_low')">eng (a-z)</button>
+                        <button class="cat-chip" onclick="setCategory('num')">0-9 & Знаки</button>
+                    </div>
+
+                    <div class="char-carousel" id="charCarousel">
+                        <!-- Dynamic Tiles -->
+                    </div>
+                </div>
+
+                <!-- Drawing Canvas Area -->
+                <div class="canvas-stage" id="canvasStage">
+                    <div class="guidelines">
+                        <div class="line cap"></div>
+                        <div class="line baseline"></div>
+                    </div>
+                    <canvas id="drawCanvas"></canvas>
+                </div>
+
+                <!-- Advanced Brush Studio Toolbar -->
+                <div class="studio-controls">
+                    <!-- Brush Presets Bar -->
+                    <div class="tool-row">
+                        <div class="brush-presets">
+                            <button class="preset-btn active" id="b-pen" onclick="setBrushMode('pen')">
+                                <i data-lucide="edit-3"></i> Ручка (G-Pen)
+                            </button>
+                            <button class="preset-btn" id="b-calligraphy" onclick="setBrushMode('calligraphy')">
+                                <i data-lucide="pen"></i> Каллиграфия
+                            </button>
+                            <button class="preset-btn" id="b-pencil" onclick="setBrushMode('pencil')">
+                                <i data-lucide="pencil"></i> Карандаш
+                            </button>
+                            <button class="preset-btn" id="b-neon" onclick="setBrushMode('neon')">
+                                <i data-lucide="sparkles"></i> Неон
+                            </button>
+                            <button class="preset-btn" id="b-marker" onclick="setBrushMode('marker')">
+                                <i data-lucide="square"></i> Маркер
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sliders & Color Row -->
+                    <div class="tool-row">
+                        <div class="slider-group">
+                            <label>Размер</label>
+                            <input type="range" id="brushSize" min="4" max="60" value="22" oninput="updateBrushParams()">
+                        </div>
+
+                        <div class="slider-group">
+                            <label>Сглаживание</label>
+                            <input type="range" id="brushSmooth" min="0" max="90" value="40" oninput="updateBrushParams()">
+                        </div>
+
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="brushColor" value="#ffffff" onchange="updateBrushParams()">
+                        </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="tool-row">
+                        <div class="row">
+                            <button class="btn-icon active" id="btnToolDraw" onclick="setToolMode('draw')" title="Кисть">
+                                <i data-lucide="edit-2"></i>
+                            </button>
+                            <button class="btn-icon" id="btnToolErase" onclick="setToolMode('erase')" title="Ластик">
+                                <i data-lucide="eraser"></i>
+                            </button>
+                            <button class="btn-icon" onclick="undoLastStroke()" title="Отмена">
+                                <i data-lucide="undo-2"></i>
+                            </button>
+                            <button class="btn-icon" onclick="clearGlyphCanvas()" title="Очистить">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+
+                        <div class="row">
+                            <button class="btn-icon" onclick="navChar(-1)"><i data-lucide="chevron-left"></i></button>
+                            <button class="btn-icon" onclick="navChar(1)"><i data-lucide="chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: LIVE PREVIEW -->
+            <div id="page-preview" class="tab-page">
+                <div class="panel-card">
+                    <span class="section-title">Введите текст для проверки:</span>
+                    <input type="text" class="input-field" id="previewInputText" value="Привет World 123!" oninput="updatePreviewText()">
+                    
+                    <div class="row">
+                        <div class="slider-group">
+                            <label>Размер текста</label>
+                            <input type="range" id="previewFontSize" min="18" max="100" value="48" oninput="updatePreviewText()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card" style="flex:1;">
+                    <span class="section-title">Отрисовка вашего шрифта в реальном времени:</span>
+                    <div class="render-stage" id="previewBox">Привет World 123!</div>
+                </div>
+            </div>
+
+            <!-- TAB 3: PHOTO GALLERY EDITOR -->
+            <div id="page-photo" class="tab-page">
+                <div class="panel-card">
+                    <label class="btn btn-primary" style="justify-content: center;">
+                        <i data-lucide="upload"></i> Выбрать Фото из Галереи
+                        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="loadGalleryImage(event)">
+                    </label>
+
+                    <div class="row">
+                        <input type="text" class="input-field" id="photoTextStr" value="Создано в FontCraft" oninput="renderPhotoStage()">
+                    </div>
+
+                    <div class="row">
+                        <div class="slider-group">
+                            <label>Размер</label>
+                            <input type="range" id="photoFontSize" min="20" max="160" value="60" oninput="renderPhotoStage()">
+                        </div>
+                        <div class="slider-group">
+                            <label>Позиция Y</label>
+                            <input type="range" id="photoTextY" min="0" max="100" value="50" oninput="renderPhotoStage()">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="slider-group">
+                            <label>Обводка (px)</label>
+                            <input type="range" id="photoStrokeWidth" min="0" max="20" value="4" oninput="renderPhotoStage()">
+                        </div>
+                        <div class="color-picker-wrapper">
+                            <label style="font-size: 0.7rem; color: var(--text-sub);">Текст:</label>
+                            <input type="color" id="photoTextColor" value="#ffffff" onchange="renderPhotoStage()">
+                            <label style="font-size: 0.7rem; color: var(--text-sub);">Обводка:</label>
+                            <input type="color" id="photoStrokeColor" value="#000000" onchange="renderPhotoStage()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="photo-stage">
+                    <canvas id="photoCanvas"></canvas>
+                </div>
+
+                <button class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-green), #00b894); color:#000;" onclick="savePhotoCard()">
+                    <i data-lucide="download"></i> Сохранить Картинку
+                </button>
+            </div>
+
+        </main>
     </div>
 
-    <!-- Main Content -->
-    <main>
-        <!-- TAB 1: DRAWING -->
-        <div id="tab-draw" class="tab-content active">
-            
-            <div class="char-selector-wrapper">
-                <div class="category-tabs">
-                    <button class="cat-btn active" onclick="selectCategory('ru_cap')">РУС (А-Я)</button>
-                    <button class="cat-btn" onclick="selectCategory('ru_low')">рус (а-я)</button>
-                    <button class="cat-btn" onclick="selectCategory('en_cap')">ENG (A-Z)</button>
-                    <button class="cat-btn" onclick="selectCategory('en_low')">eng (a-z)</button>
-                    <button class="cat-btn" onclick="selectCategory('num')">123 и Знаки</button>
-                </div>
-
-                <div class="char-grid" id="charGrid">
-                    <!-- Dynamic Char Cards -->
-                </div>
-            </div>
-
-            <!-- Canvas Touch Area -->
-            <div class="canvas-container" id="canvasContainer">
-                <div class="canvas-guides">
-                    <div class="guide-line cap"></div>
-                    <div class="guide-line baseline"></div>
-                </div>
-                <canvas id="paintCanvas"></canvas>
-            </div>
-
-            <!-- Controls Toolbar -->
-            <div class="toolbar">
-                <div class="tool-group">
-                    <button class="tool-btn active" id="btnBrush" onclick="setTool('brush')">
-                        <i data-lucide="edit-2"></i>
-                    </button>
-                    <button class="tool-btn" id="btnEraser" onclick="setTool('eraser')">
-                        <i data-lucide="eraser"></i>
-                    </button>
-                    <button class="tool-btn" onclick="undoStroke()">
-                        <i data-lucide="undo-2"></i>
-                    </button>
-                    <button class="tool-btn" onclick="clearCurrentCanvas()">
-                        <i data-lucide="trash-2"></i>
-                    </button>
-                </div>
-
-                <div class="tool-group">
-                    <i data-lucide="circle" style="width: 14px; color: var(--text-muted)"></i>
-                    <input type="range" class="brush-size-slider" id="brushSize" min="8" max="45" value="22" oninput="updateBrushSize(this.value)">
-                </div>
-
-                <div class="tool-group">
-                    <button class="tool-btn" onclick="navigateChar(-1)"><i data-lucide="chevron-left"></i></button>
-                    <button class="tool-btn" onclick="navigateChar(1)"><i data-lucide="chevron-right"></i></button>
-                </div>
-            </div>
-            <div class="hint">Рисуйте пальцем по центру кадра. Данные сохраняются автоматически.</div>
-        </div>
-
-        <!-- TAB 2: LIVE PREVIEW -->
-        <div id="tab-preview" class="tab-content">
-            <div class="preview-box">
-                <label style="font-size: 0.8rem; color: var(--text-muted);">Введите текст для проверки шрифта:</label>
-                <input type="text" class="preview-input" id="previewInput" value="Привет World 123!" oninput="renderLivePreview()">
-            </div>
-            <div class="preview-box" style="flex: 1;">
-                <label style="font-size: 0.8rem; color: var(--text-muted);">Результат вашей гарнитуры:</label>
-                <div class="preview-text-render" id="previewRender">Привет World 123!</div>
-            </div>
-        </div>
-
-        <!-- TAB 3: PHOTO EDITOR -->
-        <div id="tab-photo" class="tab-content">
-            <div class="photo-editor-controls">
-                <label class="file-input-btn">
-                    <i data-lucide="upload"></i> Выбрать картинку из галереи
-                    <input type="file" id="imageUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                </label>
-
-                <div class="row-inputs">
-                    <label>Текст:</label>
-                    <input type="text" class="preview-input" id="photoText" value="Мой Настоящий Шрифт" oninput="drawPhotoCard()">
-                </div>
-
-                <div class="row-inputs">
-                    <label>Размер:</label>
-                    <input type="range" id="photoFontSize" min="20" max="150" value="60" oninput="drawPhotoCard()">
-                </div>
-
-                <div class="row-inputs">
-                    <label>Позиция Y:</label>
-                    <input type="range" id="photoTextY" min="0" max="100" value="50" oninput="drawPhotoCard()">
-                </div>
-
-                <div class="row-inputs">
-                    <label>Цвет:</label>
-                    <input type="color" id="photoTextColor" value="#ffffff" onchange="drawPhotoCard()">
-                </div>
-            </div>
-
-            <div class="photo-canvas-wrapper">
-                <canvas id="photoCanvas"></canvas>
-            </div>
-
-            <button class="btn-full" onclick="downloadPhotoResult()">
-                <i data-lucide="download"></i> Скачать Готовое Фото
-            </button>
-        </div>
-    </main>
-
     <script>
-        // --- DATA MAPS ---
-        const CHAR_SETS = {
+        // --- DATA DICTIONARIES ---
+        const ALPHABETS = {
             ru_cap: "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split(""),
             ru_low: "абвгдеёжзийклмнопрстуфхцчшщъыьэюя".split(""),
             en_cap: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
@@ -553,286 +712,342 @@
             num: "0123456789!?,.-+#@%&*()".split("")
         };
 
-        let currentCategory = 'ru_cap';
+        let currentCat = 'ru_cap';
         let currentChar = 'А';
-        let strokeData = {}; // Storage for glyph paths: { 'A': [ {width: 20, points: [{x,y}]}, ... ] }
 
-        // Canvas State
+        // Stores drawn paths per character
+        // Format: { 'A': [ { mode: 'pen', size: 20, color: '#fff', points: [{x,y}, ...] } ] }
+        let strokeStorage = {};
+
+        // Canvas & Brush State
         let canvas, ctx;
         let isDrawing = false;
+        let activeTool = 'draw'; // 'draw' or 'erase'
+        let brushMode = 'pen';   // 'pen', 'calligraphy', 'pencil', 'neon', 'marker'
+        let brushSize = 22;
+        let brushSmoothness = 40;
+        let brushColor = '#ffffff';
         let currentStroke = null;
-        let activeTool = 'brush'; // 'brush' or 'eraser'
-        let brushRadius = 22;
 
-        // Photo Editor State
-        let loadedImage = null;
+        // Photo State
+        let photoImg = null;
 
-        // --- INITIALIZATION ---
+        // --- INIT ---
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            initCanvas();
-            selectCategory('ru_cap');
-            window.addEventListener('resize', resizeCanvas);
+            initDrawingCanvas();
+            setCategory('ru_cap');
+            window.addEventListener('resize', adaptCanvasDimensions);
         });
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        // Tab Switcher
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
 
             event.currentTarget.classList.add('active');
-            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`page-${tabName}`).classList.add('active');
 
-            if (tabId === 'preview') {
-                updateCustomFontInDOM(renderLivePreview);
-            } else if (tabId === 'photo') {
-                updateCustomFontInDOM(drawPhotoCard);
+            if (tabName === 'preview') {
+                compileFontAndInject(() => updatePreviewText());
+            } else if (tabName === 'photo') {
+                compileFontAndInject(() => renderPhotoStage());
             }
         }
 
-        // --- CHARACTER SELECTION ---
-        function selectCategory(catKey) {
-            currentCategory = catKey;
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        // --- CATEGORY & CHAR SELECTOR ---
+        function setCategory(catKey) {
+            currentCat = catKey;
+            document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
             event?.target?.classList.add('active');
 
-            const grid = document.getElementById('charGrid');
-            grid.innerHTML = '';
+            const carousel = document.getElementById('charCarousel');
+            carousel.innerHTML = '';
 
-            CHAR_SETS[catKey].forEach(char => {
-                const card = document.createElement('div');
-                card.className = `char-card ${char === currentChar ? 'active' : ''} ${strokeData[char] && strokeData[char].length > 0 ? 'has-data' : ''}`;
-                card.innerText = char;
-                card.onclick = () => selectChar(char);
-                grid.appendChild(card);
+            ALPHABETS[catKey].forEach(ch => {
+                const tile = document.createElement('div');
+                tile.className = `char-tile ${ch === currentChar ? 'active' : ''} ${hasStrokeData(ch) ? 'has-stroke' : ''}`;
+                tile.innerText = ch;
+                tile.onclick = () => selectChar(ch);
+                carousel.appendChild(tile);
             });
 
-            if (!CHAR_SETS[catKey].includes(currentChar)) {
-                selectChar(CHAR_SETS[catKey][0]);
+            if (!ALPHABETS[catKey].includes(currentChar)) {
+                selectChar(ALPHABETS[catKey][0]);
             }
         }
 
-        function selectChar(char) {
-            currentChar = char;
-            document.querySelectorAll('.char-card').forEach(c => {
-                c.classList.toggle('active', c.innerText === char);
+        function selectChar(ch) {
+            currentChar = ch;
+            document.querySelectorAll('.char-tile').forEach(t => {
+                t.classList.toggle('active', t.innerText === ch);
             });
-            redrawCurrentGlyph();
+            redrawGlyphCanvas();
         }
 
-        function navigateChar(dir) {
-            const list = CHAR_SETS[currentCategory];
+        function navChar(dir) {
+            const list = ALPHABETS[currentCat];
             let idx = list.indexOf(currentChar) + dir;
             if (idx >= 0 && idx < list.length) {
                 selectChar(list[idx]);
             }
         }
 
-        // --- DRAWING CANVAS LOGIC ---
-        function initCanvas() {
-            canvas = document.getElementById('paintCanvas');
+        function hasStrokeData(ch) {
+            return strokeStorage[ch] && strokeStorage[ch].length > 0;
+        }
+
+        // --- CANVAS ENGINE ---
+        function initDrawingCanvas() {
+            canvas = document.getElementById('drawCanvas');
             ctx = canvas.getContext('2d');
-            resizeCanvas();
+            adaptCanvasDimensions();
 
-            // Touch Listeners for Finger Drawing
-            canvas.addEventListener('touchstart', handleStart, { passive: false });
-            canvas.addEventListener('touchmove', handleMove, { passive: false });
-            canvas.addEventListener('touchend', handleEnd, { passive: false });
+            // Touch events
+            canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+            canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
+            canvas.addEventListener('touchend', handlePointerUp, { passive: false });
 
-            // Mouse Listeners for Desktop testing
-            canvas.addEventListener('mousedown', handleStart);
-            canvas.addEventListener('mousemove', handleMove);
-            canvas.addEventListener('mouseup', handleEnd);
+            // Mouse events
+            canvas.addEventListener('mousedown', handlePointerDown);
+            canvas.addEventListener('mousemove', handlePointerMove);
+            canvas.addEventListener('mouseup', handlePointerUp);
         }
 
-        function resizeCanvas() {
-            const container = document.getElementById('canvasContainer');
-            const rect = container.getBoundingClientRect();
-            const size = Math.min(rect.width - 20, rect.height - 20, 400);
+        function adaptCanvasDimensions() {
+            const stage = document.getElementById('canvasStage');
+            const rect = stage.getBoundingClientRect();
+            const dim = Math.min(rect.width - 16, rect.height - 16, 450);
 
-            canvas.width = size;
-            canvas.height = size;
-            redrawCurrentGlyph();
+            canvas.width = dim;
+            canvas.height = dim;
+            redrawGlyphCanvas();
         }
 
-        function getPos(e) {
+        function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
             return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
+                x: cx - rect.left,
+                y: cy - rect.top
             };
         }
 
-        function handleStart(e) {
+        function handlePointerDown(e) {
             e.preventDefault();
             isDrawing = true;
-            const pos = getPos(e);
+            const pt = getCanvasCoords(e);
 
-            if (!strokeData[currentChar]) {
-                strokeData[currentChar] = [];
+            if (!strokeStorage[currentChar]) {
+                strokeStorage[currentChar] = [];
             }
 
-            if (activeTool === 'eraser') {
-                erasePoint(pos);
+            if (activeTool === 'erase') {
+                performEraser(pt);
             } else {
                 currentStroke = {
-                    width: brushRadius,
-                    points: [pos]
+                    mode: brushMode,
+                    size: brushSize,
+                    color: brushColor,
+                    points: [pt]
                 };
-                strokeData[currentChar].push(currentStroke);
+                strokeStorage[currentChar].push(currentStroke);
             }
-            redrawCurrentGlyph();
+            redrawGlyphCanvas();
         }
 
-        function handleMove(e) {
+        function handlePointerMove(e) {
             if (!isDrawing) return;
             e.preventDefault();
-            const pos = getPos(e);
+            const pt = getCanvasCoords(e);
 
-            if (activeTool === 'eraser') {
-                erasePoint(pos);
+            if (activeTool === 'erase') {
+                performEraser(pt);
             } else if (currentStroke) {
-                currentStroke.points.push(pos);
+                // Apply smoothing algorithm
+                const pts = currentStroke.points;
+                const lastPt = pts[pts.length - 1];
+                const factor = 1 - (brushSmoothness / 100) * 0.75;
+                
+                const smoothedX = lastPt.x + (pt.x - lastPt.x) * factor;
+                const smoothedY = lastPt.y + (pt.y - lastPt.y) * factor;
+
+                pts.push({ x: smoothedX, y: smoothedY });
             }
-            redrawCurrentGlyph();
+            redrawGlyphCanvas();
         }
 
-        function handleEnd(e) {
+        function handlePointerUp(e) {
             e.preventDefault();
             isDrawing = false;
             currentStroke = null;
-            markCharHasData();
+            updateTileBadge();
         }
 
-        function erasePoint(pos) {
-            if (!strokeData[currentChar]) return;
-            strokeData[currentChar] = strokeData[currentChar].filter(stroke => {
-                return !stroke.points.some(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < brushRadius);
+        function performEraser(pt) {
+            if (!strokeStorage[currentChar]) return;
+            const rad = brushSize * 1.2;
+            strokeStorage[currentChar] = strokeStorage[currentChar].filter(stroke => {
+                return !stroke.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) < rad);
             });
         }
 
-        function setTool(tool) {
-            activeTool = tool;
-            document.getElementById('btnBrush').classList.toggle('active', tool === 'brush');
-            document.getElementById('btnEraser').classList.toggle('active', tool === 'eraser');
-        }
-
-        function updateBrushSize(val) {
-            brushRadius = parseInt(val);
-        }
-
-        function clearCurrentCanvas() {
-            strokeData[currentChar] = [];
-            redrawCurrentGlyph();
-            markCharHasData();
-        }
-
-        function undoStroke() {
-            if (strokeData[currentChar] && strokeData[currentChar].length > 0) {
-                strokeData[currentChar].pop();
-                redrawCurrentGlyph();
-                markCharHasData();
-            }
-        }
-
-        function markCharHasData() {
-            const hasData = strokeData[currentChar] && strokeData[currentChar].length > 0;
-            document.querySelectorAll('.char-card').forEach(c => {
-                if (c.innerText === currentChar) {
-                    c.classList.toggle('has-data', hasData);
+        function updateTileBadge() {
+            document.querySelectorAll('.char-tile').forEach(t => {
+                if (t.innerText === currentChar) {
+                    t.classList.toggle('has-stroke', hasStrokeData(currentChar));
                 }
             });
         }
 
-        function redrawCurrentGlyph() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const strokes = strokeData[currentChar] || [];
+        // --- BRUSH PARAMETERS & DRAWING ENGINE ---
+        function setToolMode(mode) {
+            activeTool = mode;
+            document.getElementById('btnToolDraw').classList.toggle('active', mode === 'draw');
+            document.getElementById('btnToolErase').classList.toggle('active', mode === 'erase');
+        }
 
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+        function setBrushMode(mode) {
+            brushMode = mode;
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`b-${mode}`).classList.add('active');
+        }
+
+        function updateBrushParams() {
+            brushSize = parseInt(document.getElementById('brushSize').value);
+            brushSmoothness = parseInt(document.getElementById('brushSmooth').value);
+            brushColor = document.getElementById('brushColor').value;
+        }
+
+        function clearGlyphCanvas() {
+            strokeStorage[currentChar] = [];
+            redrawGlyphCanvas();
+            updateTileBadge();
+        }
+
+        function undoLastStroke() {
+            if (strokeStorage[currentChar] && strokeStorage[currentChar].length > 0) {
+                strokeStorage[currentChar].pop();
+                redrawGlyphCanvas();
+                updateTileBadge();
+            }
+        }
+
+        function redrawGlyphCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const strokes = strokeStorage[currentChar] || [];
 
             strokes.forEach(stroke => {
                 if (stroke.points.length < 1) return;
-                ctx.beginPath();
-                ctx.lineWidth = stroke.width;
-                ctx.strokeStyle = '#ffffff';
 
+                ctx.save();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                if (stroke.mode === 'neon') {
+                    ctx.shadowColor = stroke.color;
+                    ctx.shadowBlur = stroke.size;
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.size * 0.6;
+                } else if (stroke.mode === 'pencil') {
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.size * 0.7;
+                    ctx.globalAlpha = 0.85;
+                } else if (stroke.mode === 'calligraphy') {
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.size;
+                    // Chisel effect
+                    ctx.lineCap = 'square';
+                } else if (stroke.mode === 'marker') {
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.size * 1.2;
+                    ctx.lineCap = 'square';
+                } else { // 'pen'
+                    ctx.strokeStyle = stroke.color;
+                    ctx.lineWidth = stroke.size;
+                }
+
+                ctx.beginPath();
                 ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
                 for (let i = 1; i < stroke.points.length; i++) {
                     ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
                 }
                 ctx.stroke();
+                ctx.restore();
             });
         }
 
-        // --- VECTOR CONVERSION & TTF GENERATION ENGINE ---
+        // --- OPENTYPE.JS TTF VECTOR GENERATION ---
+        function convertStrokesToPath(strokes, scaleX, scaleY, ascender) {
+            const fontPath = new opentype.Path();
 
-        // Converts finger stroke centerlines into vector outline contours
-        function strokeToContour(points, strokeWidth, scaleX, scaleY, offsetY) {
-            if (points.length < 2) return null;
+            strokes.forEach(stroke => {
+                const pts = stroke.points;
+                if (pts.length < 2) return;
 
-            const lefts = [];
-            const rights = [];
-            const halfW = strokeWidth / 2;
+                const halfW = (stroke.size * (stroke.mode === 'marker' ? 1.2 : 0.8)) / 2;
+                const lefts = [];
+                const rights = [];
 
-            for (let i = 0; i < points.length; i++) {
-                const p = points[i];
-                const prev = points[Math.max(0, i - 1)];
-                const next = points[Math.min(points.length - 1, i + 1)];
+                for (let i = 0; i < pts.length; i++) {
+                    const p = pts[i];
+                    const prev = pts[Math.max(0, i - 1)];
+                    const next = pts[Math.min(pts.length - 1, i + 1)];
 
-                let dx = next.x - prev.x;
-                let dy = next.y - prev.y;
-                let len = Math.hypot(dx, dy) || 1;
+                    let dx = next.x - prev.x;
+                    let dy = next.y - prev.y;
+                    let len = Math.hypot(dx, dy) || 1;
 
-                let nx = -dy / len;
-                let ny = dx / len;
+                    let nx = -dy / len;
+                    let ny = dx / len;
 
-                lefts.push({ x: p.x + nx * halfW, y: p.y + ny * halfW });
-                rights.push({ x: p.x - nx * halfW, y: p.y - ny * halfW });
-            }
+                    lefts.push({ x: p.x + nx * halfW, y: p.y + ny * halfW });
+                    rights.push({ x: p.x - nx * halfW, y: p.y - ny * halfW });
+                }
 
-            function toFontCoord(pt) {
-                return {
-                    x: pt.x * scaleX,
-                    y: offsetY - (pt.y * scaleY)
-                };
-            }
+                function toFontCoords(pt) {
+                    return {
+                        x: pt.x * scaleX,
+                        y: ascender - (pt.y * scaleY)
+                    };
+                }
 
-            const path = new opentype.Path();
-            let start = toFontCoord(lefts[0]);
-            path.moveTo(start.x, start.y);
+                let start = toFontCoords(lefts[0]);
+                fontPath.moveTo(start.x, start.y);
 
-            for (let i = 1; i < lefts.length; i++) {
-                let pt = toFontCoord(lefts[i]);
-                path.lineTo(pt.x, pt.y);
-            }
-            for (let i = rights.length - 1; i >= 0; i--) {
-                let pt = toFontCoord(rights[i]);
-                path.lineTo(pt.x, pt.y);
-            }
-            path.close();
-            return path;
+                for (let i = 1; i < lefts.length; i++) {
+                    let pt = toFontCoords(lefts[i]);
+                    fontPath.lineTo(pt.x, pt.y);
+                }
+                for (let i = rights.length - 1; i >= 0; i--) {
+                    let pt = toFontCoords(rights[i]);
+                    fontPath.lineTo(pt.x, pt.y);
+                }
+                fontPath.close();
+            });
+
+            return fontPath;
         }
 
-        function buildOpenTypeFont() {
+        function createFontObject() {
             const unitsPerEm = 1000;
             const ascender = 800;
             const descender = -200;
             const glyphs = [];
 
-            // Standard Notdef Glyph
-            const notdefPath = new opentype.Path();
-            notdefPath.moveTo(100, 0);
-            notdefPath.lineTo(100, 700);
-            notdefPath.lineTo(500, 700);
-            notdefPath.lineTo(500, 0);
-            notdefPath.close();
+            // Default .notdef
+            const notdef = new opentype.Path();
+            notdef.moveTo(100, 0);
+            notdef.lineTo(100, 700);
+            notdef.lineTo(500, 700);
+            notdef.lineTo(500, 0);
+            notdef.close();
             glyphs.push(new opentype.Glyph({
                 name: '.notdef',
                 unicode: 0,
                 advanceWidth: 600,
-                path: notdefPath
+                path: notdef
             }));
 
             // Space
@@ -843,36 +1058,25 @@
                 path: new opentype.Path()
             }));
 
-            const canvasSize = canvas.width || 300;
-            const scaleX = 800 / canvasSize;
-            const scaleY = 1000 / canvasSize;
+            const canvasDim = canvas.width || 300;
+            const scaleX = 800 / canvasDim;
+            const scaleY = 1000 / canvasDim;
 
-            for (const [char, strokes] of Object.entries(strokeData)) {
+            for (const [ch, strokes] of Object.entries(strokeStorage)) {
                 if (!strokes || strokes.length === 0) continue;
 
-                const fontPath = new opentype.Path();
-
-                strokes.forEach(stroke => {
-                    const contour = strokeToContour(stroke.points, stroke.width, scaleX, scaleY, ascender);
-                    if (contour) {
-                        contour.commands.forEach(cmd => {
-                            if (cmd.type === 'M') fontPath.moveTo(cmd.x, cmd.y);
-                            else if (cmd.type === 'L') fontPath.lineTo(cmd.x, cmd.y);
-                            else if (cmd.type === 'Z') fontPath.close();
-                        });
-                    }
-                });
+                const fontPath = convertStrokesToPath(strokes, scaleX, scaleY, ascender);
 
                 glyphs.push(new opentype.Glyph({
-                    name: 'glyph_' + char.charCodeAt(0),
-                    unicode: char.charCodeAt(0),
-                    advanceWidth: 750,
+                    name: 'g_' + ch.charCodeAt(0),
+                    unicode: ch.charCodeAt(0),
+                    advanceWidth: 780,
                     path: fontPath
                 }));
             }
 
             return new opentype.Font({
-                familyName: 'MyCustomHandFont',
+                familyName: 'FontCraftCustom',
                 styleName: 'Regular',
                 unitsPerEm: unitsPerEm,
                 ascender: ascender,
@@ -881,27 +1085,27 @@
             });
         }
 
-        function downloadTTF() {
+        function exportTTFFont() {
             try {
-                const font = buildOpenTypeFont();
-                font.download();
+                const font = createFontObject();
+                font.download('MyFontCraft.ttf');
             } catch (err) {
-                alert("Ошибка генерации TTF: Нарисуйте хотя бы один символ!");
+                alert('Нарисуйте хотя бы один символ перед экспортом!');
                 console.error(err);
             }
         }
 
-        function updateCustomFontInDOM(callback) {
+        function compileFontAndInject(callback) {
             try {
-                const font = buildOpenTypeFont();
-                const arrayBuffer = font.toArrayBuffer();
-                const fontFace = new FontFace('CustomHandFont', arrayBuffer);
+                const font = createFontObject();
+                const buffer = font.toArrayBuffer();
+                const fontFace = new FontFace('FontCraftCustom', buffer);
 
-                fontFace.load().then(loadedFont => {
-                    document.fonts.add(loadedFont);
+                fontFace.load().then(loaded => {
+                    document.fonts.add(loaded);
                     if (callback) callback();
-                }).catch(err => {
-                    console.log("Font load issue:", err);
+                }).catch(e => {
+                    console.log('Font face inject error:', e);
                     if (callback) callback();
                 });
             } catch (e) {
@@ -909,16 +1113,19 @@
             }
         }
 
-        // --- LIVE PREVIEW ---
-        function renderLivePreview() {
-            const val = document.getElementById('previewInput').value;
-            const renderBox = document.getElementById('previewRender');
-            renderBox.style.fontFamily = "'CustomHandFont', sans-serif";
-            renderBox.innerText = val || "Начни рисовать...";
+        // --- PREVIEW TAB ---
+        function updatePreviewText() {
+            const str = document.getElementById('previewInputText').value;
+            const size = document.getElementById('previewFontSize').value;
+            const box = document.getElementById('previewBox');
+
+            box.style.fontFamily = "'FontCraftCustom', sans-serif";
+            box.style.fontSize = `${size}px`;
+            box.innerText = str || "Начни рисовать...";
         }
 
-        // --- PHOTO EDITOR & GALLERY ---
-        function handleImageUpload(e) {
+        // --- GALLERY PHOTO EDITOR ---
+        function loadGalleryImage(e) {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -926,54 +1133,63 @@
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    loadedImage = img;
-                    drawPhotoCard();
+                    photoImg = img;
+                    renderPhotoStage();
                 };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function drawPhotoCard() {
+        function renderPhotoStage() {
             const pCanvas = document.getElementById('photoCanvas');
             const pCtx = pCanvas.getContext('2d');
 
-            if (!loadedImage) {
+            if (!photoImg) {
                 pCanvas.width = 600;
                 pCanvas.height = 400;
-                pCtx.fillStyle = '#111';
+                pCtx.fillStyle = '#0b0b12';
                 pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-                pCtx.fillStyle = '#666';
+                pCtx.fillStyle = '#8e8ea7';
                 pCtx.font = '20px sans-serif';
                 pCtx.textAlign = 'center';
-                pCtx.fillText('Загрузите фото из галереи', pCanvas.width / 2, pCanvas.height / 2);
+                pCtx.fillText('Выберите фото из галереи выше', pCanvas.width / 2, pCanvas.height / 2);
                 return;
             }
 
-            pCanvas.width = loadedImage.width;
-            pCanvas.height = loadedImage.height;
+            pCanvas.width = photoImg.width;
+            pCanvas.height = photoImg.height;
 
-            pCtx.drawImage(loadedImage, 0, 0);
+            pCtx.drawImage(photoImg, 0, 0);
 
-            const text = document.getElementById('photoText').value;
-            const fontSize = parseInt(document.getElementById('photoFontSize').value) * (pCanvas.width / 500);
-            const posYRatio = parseInt(document.getElementById('photoTextY').value) / 100;
-            const color = document.getElementById('photoTextColor').value;
+            const str = document.getElementById('photoTextStr').value;
+            const scaleFactor = pCanvas.width / 500;
+            const fontSize = parseInt(document.getElementById('photoFontSize').value) * scaleFactor;
+            const posY = (parseInt(document.getElementById('photoTextY').value) / 100) * pCanvas.height;
+            const strokeW = parseInt(document.getElementById('photoStrokeWidth').value) * scaleFactor;
+            const txtColor = document.getElementById('photoTextColor').value;
+            const strokeColor = document.getElementById('photoStrokeColor').value;
 
-            pCtx.font = `${fontSize}px 'CustomHandFont', sans-serif`;
-            pCtx.fillStyle = color;
+            pCtx.font = `${fontSize}px 'FontCraftCustom', sans-serif`;
             pCtx.textAlign = 'center';
             pCtx.textBaseline = 'middle';
 
-            pCtx.fillText(text, pCanvas.width / 2, pCanvas.height * posYRatio);
+            if (strokeW > 0) {
+                pCtx.strokeStyle = strokeColor;
+                pCtx.lineWidth = strokeW;
+                pCtx.strokeText(str, pCanvas.width / 2, posY);
+            }
+
+            pCtx.fillStyle = txtColor;
+            pCtx.fillText(str, pCanvas.width / 2, posY);
         }
 
-        function downloadPhotoResult() {
+        function savePhotoCard() {
             const pCanvas = document.getElementById('photoCanvas');
-            const link = document.createElement('a');
-            link.download = 'custom-font-photo.jpg';
-            link.href = pCanvas.toDataURL('image/jpeg', 0.9);
-            link.click();
+            const a = document.createElement('a');
+            a.download = 'fontcraft-photo.jpg';
+            a.href = pCanvas.toDataURL('image/jpeg', 0.92);
+            a.click();
         }
     </script>
 </body>
