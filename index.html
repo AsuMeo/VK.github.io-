@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FontCraft Studio Ultra Pro - Мобильный Редактор Шрифтов TTF</title>
+    <title>FontCraft Studio Supreme - Ibis Ultra Font Creator</title>
     <!-- CDN Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg-dark: #030305;
-            --bg-card: #0b0b12;
-            --bg-panel: #13131f;
-            --bg-hover: #1c1c2e;
-            --border: #232338;
+            --bg-dark: #020204;
+            --bg-card: #0a0a10;
+            --bg-panel: #12121c;
+            --bg-input: #1a1a28;
+            --border: #24243a;
             --accent-cyan: #00f0ff;
-            --accent-purple: #9d4edf;
-            --accent-pink: #ff2a85;
-            --accent-green: #00ff88;
-            --accent-gold: #ffbe0b;
-            --text-main: #f4f4f9;
-            --text-sub: #8e8ea7;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-gold: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
             --radius-lg: 16px;
             --radius-md: 12px;
             --radius-sm: 8px;
@@ -47,8 +48,8 @@
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
         }
 
-        /* App Layout */
-        .app-shell {
+        /* Main Shell Structure */
+        .app-container {
             display: flex;
             flex-direction: column;
             height: 100dvh;
@@ -56,94 +57,116 @@
             padding-bottom: var(--safe-bottom);
         }
 
-        /* Top Header Navigation */
+        /* Top Bar Navigation */
         header {
-            height: 54px;
-            background: rgba(11, 11, 18, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            height: 52px;
+            background: rgba(10, 10, 16, 0.95);
+            backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 12px;
+            padding: 0 10px;
             z-index: 100;
             flex-shrink: 0;
         }
 
-        .brand {
+        .brand-box {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .brand-icon {
-            width: 34px;
-            height: 34px;
+        .brand-logo {
+            width: 32px;
+            height: 32px;
             border-radius: var(--radius-md);
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
             display: flex;
             align-items: center;
             justify-content: center;
             color: #000;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
         }
 
         .brand-title {
             font-weight: 800;
-            font-size: 1rem;
-            letter-spacing: 0.5px;
+            font-size: 0.95rem;
             background: linear-gradient(90deg, #fff, var(--text-sub));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .header-actions {
+        .save-indicator {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 4px;
         }
 
+        .header-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Button Base */
         .btn {
             border: none;
             outline: none;
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: var(--radius-md);
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.15s ease;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-cyan), #0072ff);
+        .btn-glow {
+            background: linear-gradient(135deg, var(--accent-cyan), #0066ff);
             color: #000;
-            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
         }
 
-        .btn-primary:active { transform: scale(0.95); }
+        .btn-glow:active { transform: scale(0.95); }
+
+        .btn-sub {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
 
         .btn-icon {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             padding: 0;
             border-radius: var(--radius-md);
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-main);
+            display: flex;
+            align-items: center;
             justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
         }
 
         .btn-icon.active {
             background: var(--accent-cyan);
             color: #000;
             border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
         }
 
-        /* Navigation Tabs */
-        .tabs-nav {
+        /* App Tabs Navigation */
+        .tabs-header {
             display: flex;
             background: var(--bg-card);
             border-bottom: 1px solid var(--border);
@@ -151,18 +174,18 @@
             overflow-x: auto;
             scrollbar-width: none;
         }
-        .tabs-nav::-webkit-scrollbar { display: none; }
+        .tabs-header::-webkit-scrollbar { display: none; }
 
-        .tab-item {
+        .tab-btn {
             flex: 1;
-            min-width: 90px;
-            padding: 10px 6px;
+            min-width: 80px;
+            padding: 8px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            font-size: 0.72rem;
-            font-weight: 600;
+            gap: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
             color: var(--text-sub);
             border: none;
             background: transparent;
@@ -170,88 +193,86 @@
             cursor: pointer;
         }
 
-        .tab-item.active {
+        .tab-btn.active {
             color: var(--accent-cyan);
             border-bottom-color: var(--accent-cyan);
-            background: rgba(0, 240, 255, 0.05);
+            background: rgba(0, 240, 255, 0.04);
         }
 
-        /* Viewport Main Container */
-        .viewport {
+        /* Main Viewport */
+        .main-viewport {
             flex: 1;
             position: relative;
             overflow: hidden;
         }
 
-        .tab-page {
+        .page-content {
             position: absolute;
             inset: 0;
             display: none;
             flex-direction: column;
-            padding: 8px;
-            gap: 8px;
+            padding: 6px;
+            gap: 6px;
             overflow-y: auto;
         }
 
-        .tab-page.active {
+        .page-content.active {
             display: flex;
         }
 
-        /* --- DRAWING TAB STYLE --- */
-        .selector-bar {
+        /* --- DRAW STUDIO PAGE --- */
+        .selector-row {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             flex-shrink: 0;
         }
 
-        .category-scroll {
+        .category-bar {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             overflow-x: auto;
             scrollbar-width: none;
-            padding: 2px 0;
         }
-        .category-scroll::-webkit-scrollbar { display: none; }
+        .category-bar::-webkit-scrollbar { display: none; }
 
-        .cat-chip {
-            padding: 6px 12px;
-            border-radius: 20px;
+        .cat-badge {
+            padding: 5px 10px;
+            border-radius: 16px;
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-sub);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             white-space: nowrap;
             cursor: pointer;
         }
 
-        .cat-chip.active {
+        .cat-badge.active {
             background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
             color: #fff;
             border-color: transparent;
-            box-shadow: 0 2px 10px rgba(157, 78, 223, 0.3);
         }
 
-        .char-carousel {
+        .char-strip {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             overflow-x: auto;
             scrollbar-width: none;
-            padding: 4px 0;
+            padding: 2px 0;
         }
-        .char-carousel::-webkit-scrollbar { display: none; }
+        .char-strip::-webkit-scrollbar { display: none; }
 
-        .char-tile {
-            min-width: 42px;
-            height: 46px;
+        .char-box {
+            min-width: 40px;
+            height: 44px;
             border-radius: var(--radius-md);
             background: var(--bg-panel);
             border: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: 800;
             color: var(--text-main);
             position: relative;
@@ -259,29 +280,28 @@
             cursor: pointer;
         }
 
-        .char-tile.active {
+        .char-box.active {
             border-color: var(--accent-cyan);
             background: rgba(0, 240, 255, 0.12);
             color: var(--accent-cyan);
-            box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.2);
         }
 
-        .char-tile.has-stroke::after {
+        .char-box.has-data::after {
             content: '';
             position: absolute;
-            top: 4px;
-            right: 4px;
+            top: 3px;
+            right: 3px;
             width: 6px;
             height: 6px;
             border-radius: 50%;
             background: var(--accent-green);
-            box-shadow: 0 0 6px var(--accent-green);
+            box-shadow: 0 0 5px var(--accent-green);
         }
 
         /* Canvas Stage */
-        .canvas-stage {
+        .stage-wrapper {
             flex: 1;
-            min-height: 260px;
+            min-height: 220px;
             background: #000;
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
@@ -290,89 +310,118 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
         }
 
-        #drawCanvas {
+        .stage-wrapper.grid-bg {
+            background-size: 20px 20px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        }
+
+        .stage-wrapper.checker-bg {
+            background-color: #111;
+            background-image: linear-gradient(45deg, #181824 25%, transparent 25%), linear-gradient(-45deg, #181824 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181824 75%), linear-gradient(-45deg, transparent 75%, #181824 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        #mainCanvas {
             touch-action: none;
-            background: transparent;
             display: block;
         }
 
         /* Guidelines Overlay */
-        .guidelines {
+        .guides-layer {
             position: absolute;
             inset: 0;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 15% 0;
-            opacity: 0.35;
+            padding: 12% 0;
+            opacity: 0.4;
         }
 
-        .line {
+        .guide-item {
             width: 100%;
             border-bottom: 1px dashed var(--accent-cyan);
             position: relative;
         }
 
-        .line.baseline {
-            border-bottom-style: solid;
-            border-color: var(--accent-green);
+        .guide-item.baseline {
+            border-bottom: 2px solid var(--accent-green);
         }
 
-        .line::after {
+        .guide-item::after {
             position: absolute;
-            right: 10px;
-            top: -12px;
-            font-size: 0.6rem;
+            right: 8px;
+            top: -11px;
+            font-size: 0.58rem;
             font-weight: 800;
-            text-transform: uppercase;
             color: var(--accent-cyan);
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
-        .line.cap::after { content: 'Cap Height'; }
-        .line.baseline::after { content: 'Baseline'; color: var(--accent-green); }
+        .guide-item.cap::after { content: 'Cap Height'; }
+        .guide-item.baseline::after { content: 'Baseline'; color: var(--accent-green); }
 
-        /* Floating / Bottom Studio Controls */
-        .studio-controls {
+        /* Slant Guide Overlay */
+        .slant-line {
+            position: absolute;
+            width: 200%;
+            height: 1px;
+            border-bottom: 1px dashed var(--accent-purple);
+            top: 50%;
+            left: -50%;
+            pointer-events: none;
+            transform-origin: center;
+        }
+
+        /* Symmetry Guide */
+        .symm-line-v {
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            border-left: 1px dashed var(--accent-pink);
+            pointer-events: none;
+            display: none;
+        }
+        .symm-line-h {
+            position: absolute;
+            left: 0; right: 0; top: 50%;
+            border-top: 1px dashed var(--accent-pink);
+            pointer-events: none;
+            display: none;
+        }
+
+        /* IBIS Studio Toolbar Controls */
+        .studio-panel {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            padding: 8px 10px;
+            padding: 6px 8px;
             flex-shrink: 0;
         }
 
-        .tool-row {
+        .scroll-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 6px;
+            gap: 5px;
             overflow-x: auto;
             scrollbar-width: none;
         }
-        .tool-row::-webkit-scrollbar { display: none; }
+        .scroll-row::-webkit-scrollbar { display: none; }
 
-        .brush-presets {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
-        .brush-presets::-webkit-scrollbar { display: none; }
-
-        .preset-btn {
-            padding: 6px 10px;
+        .chip-btn {
+            padding: 5px 9px;
             border-radius: var(--radius-sm);
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-sub);
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 700;
             white-space: nowrap;
             display: flex;
@@ -381,76 +430,93 @@
             cursor: pointer;
         }
 
-        .preset-btn.active {
+        .chip-btn.active {
             background: var(--accent-cyan);
             color: #000;
             border-color: var(--accent-cyan);
         }
 
-        .slider-group {
+        .ctrl-slider {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex: 1;
             background: var(--bg-panel);
-            padding: 4px 10px;
+            padding: 4px 8px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
-            min-width: 140px;
+            min-width: 120px;
         }
 
-        .slider-group label {
-            font-size: 0.68rem;
+        .ctrl-slider label {
+            font-size: 0.62rem;
             color: var(--text-sub);
-            font-weight: 700;
+            font-weight: 800;
             white-space: nowrap;
         }
 
-        .slider-group input[type="range"] {
+        .ctrl-slider input[type="range"] {
             flex: 1;
             accent-color: var(--accent-cyan);
         }
 
-        /* --- PREVIEW TAB STYLE --- */
-        .panel-card {
+        .color-box {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-panel);
+            padding: 2px 6px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        .color-box input[type="color"] {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* --- PREVIEW TAB --- */
+        .card-box {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            padding: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .input-field {
+        .input-box {
             width: 100%;
-            background: #000;
+            background: var(--bg-input);
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
-            padding: 10px 12px;
+            padding: 8px 10px;
             color: #fff;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
         }
 
-        .input-field:focus { border-color: var(--accent-cyan); }
-
-        .render-stage {
-            min-height: 160px;
+        .preview-display {
+            min-height: 140px;
             background: #000;
             border-radius: var(--radius-md);
             border: 1px dashed var(--border);
-            padding: 16px;
+            padding: 12px;
             word-break: break-all;
-            line-height: 1.3;
-            color: #fff;
+            line-height: 1.4;
             overflow-y: auto;
+            transition: all 0.2s ease;
         }
 
-        /* --- PHOTO GALLERY TAB STYLE --- */
-        .photo-stage {
+        /* --- PHOTO TAB --- */
+        .photo-canvas-box {
             flex: 1;
-            min-height: 220px;
+            min-height: 200px;
             background: #000;
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
@@ -458,7 +524,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
 
         #photoCanvas {
@@ -467,243 +532,307 @@
             object-fit: contain;
         }
 
-        .color-picker-wrapper {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
-        .color-picker-wrapper input[type="color"] {
-            width: 32px;
-            height: 32px;
-            border: none;
-            border-radius: 50%;
-            background: transparent;
-            cursor: pointer;
-        }
-
-        /* Utility Helpers */
-        .section-title {
-            font-size: 0.75rem;
+        /* Utility Modal / Toast */
+        .toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.95);
+            color: #000;
             font-weight: 800;
-            color: var(--text-sub);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.75rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
-        .row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .toast.show { opacity: 1; }
 
-        /* Responsiveness Fixes */
-        @media (max-height: 650px) {
-            .canvas-stage { min-height: 180px; }
-            .tabs-nav { padding: 0; }
-            .tab-item { padding: 6px 2px; font-size: 0.65rem; }
+        @media (max-height: 600px) {
+            .stage-wrapper { min-height: 160px; }
+            .tab-btn { padding: 4px 2px; font-size: 0.62rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="app-shell">
+    <div class="app-container">
         <!-- TOP HEADER -->
         <header>
-            <div class="brand">
-                <div class="brand-icon"><i data-lucide="feather"></i></div>
-                <div class="brand-title">FontCraft Ultra</div>
+            <div class="brand-box">
+                <div class="brand-logo"><i data-lucide="feather"></i></div>
+                <div>
+                    <div class="brand-title">FontCraft Supreme</div>
+                    <div class="save-indicator" id="saveBadge"><i data-lucide="check-circle-2" style="width:10px;"></i> Автосохранение</div>
+                </div>
             </div>
-            <div class="header-actions">
-                <button class="btn btn-primary" onclick="exportTTFFont()">
-                    <i data-lucide="download"></i>
-                    <span>Экспорт .TTF</span>
+            <div class="header-btns">
+                <button class="btn btn-sub" onclick="exportProjectJSON()" title="Экспорт проекта JSON">
+                    <i data-lucide="file-json" style="width:14px;"></i>
+                </button>
+                <label class="btn btn-sub" title="Импорт проекта JSON">
+                    <i data-lucide="upload-cloud" style="width:14px;"></i>
+                    <input type="file" accept=".json" style="display:none" onchange="importProjectJSON(event)">
+                </label>
+                <button class="btn btn-glow" onclick="buildAndDownloadTTF()">
+                    <i data-lucide="download" style="width:14px;"></i> .TTF
                 </button>
             </div>
         </header>
 
-        <!-- TABS BAR -->
-        <nav class="tabs-nav">
-            <button class="tab-item active" onclick="switchTab('draw')">
-                <i data-lucide="pen-tool"></i>
-                <span>Студия Кистей</span>
+        <!-- NAVIGATION TABS -->
+        <nav class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab('draw')">
+                <i data-lucide="pen-tool" style="width:16px;"></i>
+                <span>Рисование</span>
             </button>
-            <button class="tab-item" onclick="switchTab('preview')">
-                <i data-lucide="type"></i>
+            <button class="tab-btn" onclick="switchTab('preview')">
+                <i data-lucide="type" style="width:16px;"></i>
                 <span>Предпросмотр</span>
             </button>
-            <button class="tab-item" onclick="switchTab('photo')">
-                <i data-lucide="image"></i>
+            <button class="tab-btn" onclick="switchTab('photo')">
+                <i data-lucide="image" style="width:16px;"></i>
                 <span>Фото & Галерея</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('settings')">
+                <i data-lucide="sliders" style="width:16px;"></i>
+                <span>Проект & Настройки</span>
             </button>
         </nav>
 
-        <!-- VIEWPORT AREA -->
-        <main class="viewport">
+        <!-- MAIN VIEWPORT -->
+        <main class="main-viewport">
 
-            <!-- TAB 1: DRAW STUDIO -->
-            <div id="page-draw" class="tab-page active">
+            <!-- PAGE 1: DRAW STUDIO -->
+            <div id="page-draw" class="page-content active">
                 
-                <!-- Character & Category Selector -->
-                <div class="selector-bar">
-                    <div class="category-scroll">
-                        <button class="cat-chip active" onclick="setCategory('ru_cap')">РУС (А-Я)</button>
-                        <button class="cat-chip" onclick="setCategory('ru_low')">рус (а-я)</button>
-                        <button class="cat-chip" onclick="setCategory('en_cap')">ENG (A-Z)</button>
-                        <button class="cat-chip" onclick="setCategory('en_low')">eng (a-z)</button>
-                        <button class="cat-chip" onclick="setCategory('num')">0-9 & Знаки</button>
+                <div class="selector-row">
+                    <div class="category-bar">
+                        <button class="cat-badge active" onclick="selectCategory('ru_cap')">РУС (А-Я)</button>
+                        <button class="cat-badge" onclick="selectCategory('ru_low')">рус (а-я)</button>
+                        <button class="cat-badge" onclick="selectCategory('en_cap')">ENG (A-Z)</button>
+                        <button class="cat-badge" onclick="selectCategory('en_low')">eng (a-z)</button>
+                        <button class="cat-badge" onclick="selectCategory('num')">0-9 & Знаки</button>
                     </div>
 
-                    <div class="char-carousel" id="charCarousel">
+                    <div class="char-strip" id="charStrip">
                         <!-- Dynamic Tiles -->
                     </div>
                 </div>
 
-                <!-- Drawing Canvas Area -->
-                <div class="canvas-stage" id="canvasStage">
-                    <div class="guidelines">
-                        <div class="line cap"></div>
-                        <div class="line baseline"></div>
+                <!-- Canvas Workspace -->
+                <div class="stage-wrapper grid-bg" id="stageWrapper">
+                    <div class="guides-layer">
+                        <div class="guide-item cap"></div>
+                        <div class="guide-item baseline"></div>
                     </div>
-                    <canvas id="drawCanvas"></canvas>
+                    <div class="slant-line" id="slantGuide"></div>
+                    <div class="symm-line-v" id="symmV"></div>
+                    <div class="symm-line-h" id="symmH"></div>
+                    <canvas id="mainCanvas"></canvas>
                 </div>
 
-                <!-- Advanced Brush Studio Toolbar -->
-                <div class="studio-controls">
-                    <!-- Brush Presets Bar -->
-                    <div class="tool-row">
-                        <div class="brush-presets">
-                            <button class="preset-btn active" id="b-pen" onclick="setBrushMode('pen')">
-                                <i data-lucide="edit-3"></i> Ручка (G-Pen)
-                            </button>
-                            <button class="preset-btn" id="b-calligraphy" onclick="setBrushMode('calligraphy')">
-                                <i data-lucide="pen"></i> Каллиграфия
-                            </button>
-                            <button class="preset-btn" id="b-pencil" onclick="setBrushMode('pencil')">
-                                <i data-lucide="pencil"></i> Карандаш
-                            </button>
-                            <button class="preset-btn" id="b-neon" onclick="setBrushMode('neon')">
-                                <i data-lucide="sparkles"></i> Неон
-                            </button>
-                            <button class="preset-btn" id="b-marker" onclick="setBrushMode('marker')">
-                                <i data-lucide="square"></i> Маркер
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Sliders & Color Row -->
-                    <div class="tool-row">
-                        <div class="slider-group">
-                            <label>Размер</label>
-                            <input type="range" id="brushSize" min="4" max="60" value="22" oninput="updateBrushParams()">
-                        </div>
-
-                        <div class="slider-group">
-                            <label>Сглаживание</label>
-                            <input type="range" id="brushSmooth" min="0" max="90" value="40" oninput="updateBrushParams()">
-                        </div>
-
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="brushColor" value="#ffffff" onchange="updateBrushParams()">
-                        </div>
-                    </div>
-
-                    <!-- Action Controls -->
-                    <div class="tool-row">
-                        <div class="row">
-                            <button class="btn-icon active" id="btnToolDraw" onclick="setToolMode('draw')" title="Кисть">
-                                <i data-lucide="edit-2"></i>
-                            </button>
-                            <button class="btn-icon" id="btnToolErase" onclick="setToolMode('erase')" title="Ластик">
-                                <i data-lucide="eraser"></i>
-                            </button>
-                            <button class="btn-icon" onclick="undoLastStroke()" title="Отмена">
-                                <i data-lucide="undo-2"></i>
-                            </button>
-                            <button class="btn-icon" onclick="clearGlyphCanvas()" title="Очистить">
-                                <i data-lucide="trash-2"></i>
-                            </button>
-                        </div>
-
-                        <div class="row">
-                            <button class="btn-icon" onclick="navChar(-1)"><i data-lucide="chevron-left"></i></button>
-                            <button class="btn-icon" onclick="navChar(1)"><i data-lucide="chevron-right"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: LIVE PREVIEW -->
-            <div id="page-preview" class="tab-page">
-                <div class="panel-card">
-                    <span class="section-title">Введите текст для проверки:</span>
-                    <input type="text" class="input-field" id="previewInputText" value="Привет World 123!" oninput="updatePreviewText()">
+                <!-- IBIS Studio Toolbars -->
+                <div class="studio-panel">
                     
-                    <div class="row">
-                        <div class="slider-group">
-                            <label>Размер текста</label>
-                            <input type="range" id="previewFontSize" min="18" max="100" value="48" oninput="updatePreviewText()">
+                    <!-- Brush Presets & Tools Row -->
+                    <div class="scroll-row">
+                        <button class="chip-btn active" id="tool-draw" onclick="setActiveTool('draw')"><i data-lucide="edit-3" style="width:12px;"></i> Кисть</button>
+                        <button class="chip-btn" id="tool-erase" onclick="setActiveTool('erase')"><i data-lucide="eraser" style="width:12px;"></i> Ластик</button>
+                        <button class="chip-btn" id="tool-line" onclick="setActiveTool('line')"><i data-lucide="minus" style="width:12px;"></i> Линия</button>
+                        <button class="chip-btn" id="tool-rect" onclick="setActiveTool('rect')"><i data-lucide="square" style="width:12px;"></i> Прямоугольник</button>
+                        <button class="chip-btn" id="tool-circle" onclick="setActiveTool('circle')"><i data-lucide="circle" style="width:12px;"></i> Окружность</button>
+                        <button class="chip-btn" id="tool-fill" onclick="setActiveTool('fill')"><i data-lucide="paint-bucket" style="width:12px;"></i> Заливка</button>
+                    </div>
+
+                    <!-- Brush Modes Row -->
+                    <div class="scroll-row">
+                        <button class="chip-btn active" id="b-pen" onclick="setBrushMode('pen')">G-Pen</button>
+                        <button class="chip-btn" id="b-calligraphy" onclick="setBrushMode('calligraphy')">Перо Пера</button>
+                        <button class="chip-btn" id="b-pencil" onclick="setBrushMode('pencil')">Карандаш</button>
+                        <button class="chip-btn" id="b-neon" onclick="setBrushMode('neon')">Неон</button>
+                        <button class="chip-btn" id="b-taper" onclick="setBrushMode('taper')">Динамическая (Скорость)</button>
+                    </div>
+
+                    <!-- Sliders & Color Picker Row -->
+                    <div class="scroll-row">
+                        <div class="ctrl-slider">
+                            <label>Размер</label>
+                            <input type="range" id="sliderSize" min="3" max="70" value="20" oninput="updateBrushSettings()">
+                        </div>
+
+                        <div class="ctrl-slider">
+                            <label>Прозрачность</label>
+                            <input type="range" id="sliderOpacity" min="10" max="100" value="100" oninput="updateBrushSettings()">
+                        </div>
+
+                        <div class="ctrl-slider">
+                            <label>Сглаживание</label>
+                            <input type="range" id="sliderSmooth" min="0" max="95" value="50" oninput="updateBrushSettings()">
+                        </div>
+
+                        <div class="color-box" title="Цвет кисти">
+                            <input type="color" id="brushColorPicker" value="#00f0ff" onchange="updateBrushSettings()">
+                        </div>
+                    </div>
+
+                    <!-- Action Controls Row -->
+                    <div class="scroll-row" style="justify-content: space-between;">
+                        <div class="scroll-row">
+                            <button class="btn-icon" onclick="undo()" title="Отмена (Undo)"><i data-lucide="undo-2" style="width:16px;"></i></button>
+                            <button class="btn-icon" onclick="redo()" title="Повтор (Redo)"><i data-lucide="redo-2" style="width:16px;"></i></button>
+                            <button class="btn-icon" onclick="clearCanvasGlyph()" title="Очистить"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                            <button class="btn-icon" id="btnSymm" onclick="toggleSymmetry()" title="Симметрия"><i data-lucide="split" style="width:16px;"></i></button>
+                            <button class="btn-icon" onclick="copyGlyphData()" title="Копировать символ"><i data-lucide="copy" style="width:16px;"></i></button>
+                            <button class="btn-icon" onclick="pasteGlyphData()" title="Вставить символ"><i data-lucide="clipboard" style="width:16px;"></i></button>
+                        </div>
+
+                        <div class="scroll-row">
+                            <div class="ctrl-slider" style="min-width: 90px;" title="Ширина шага буквы (Advance Width)">
+                                <label>Ширина</label>
+                                <input type="range" id="sliderWidth" min="300" max="1200" value="750" oninput="updateGlyphAdvanceWidth(this.value)">
+                            </div>
+                            <button class="btn-icon" onclick="navChar(-1)"><i data-lucide="chevron-left" style="width:18px;"></i></button>
+                            <button class="btn-icon" onclick="navChar(1)"><i data-lucide="chevron-right" style="width:18px;"></i></button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- PAGE 2: LIVE PREVIEW -->
+            <div id="page-preview" class="page-content">
+                <div class="card-box">
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-sub);">Введите текст для теста:</span>
+                    <input type="text" class="input-box" id="previewInput" value="Съешь ещё этих мягких французских булок 123" oninput="renderLivePreview()">
+
+                    <div class="scroll-row">
+                        <div class="ctrl-slider">
+                            <label>Размер шрифта</label>
+                            <input type="range" id="previewSize" min="16" max="120" value="42" oninput="renderLivePreview()">
+                        </div>
+                        <div class="ctrl-slider">
+                            <label>Межбуквенный интервал</label>
+                            <input type="range" id="previewSpacing" min="-5" max="30" value="0" oninput="renderLivePreview()">
+                        </div>
+                    </div>
+
+                    <div class="scroll-row">
+                        <div class="color-box">
+                            <label style="font-size:0.65rem; color:var(--text-sub);">Цвет Текста:</label>
+                            <input type="color" id="previewTextColor" value="#00f0ff" onchange="renderLivePreview()">
+                        </div>
+                        <div class="color-box">
+                            <label style="font-size:0.65rem; color:var(--text-sub);">Фон:</label>
+                            <input type="color" id="previewBgColor" value="#000000" onchange="renderLivePreview()">
                         </div>
                     </div>
                 </div>
 
-                <div class="panel-card" style="flex:1;">
-                    <span class="section-title">Отрисовка вашего шрифта в реальном времени:</span>
-                    <div class="render-stage" id="previewBox">Привет World 123!</div>
+                <div class="card-box" style="flex:1;">
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-sub);">Живая демонстрация шрифта:</span>
+                    <div class="preview-display" id="previewRenderBox"></div>
                 </div>
             </div>
 
-            <!-- TAB 3: PHOTO GALLERY EDITOR -->
-            <div id="page-photo" class="tab-page">
-                <div class="panel-card">
-                    <label class="btn btn-primary" style="justify-content: center;">
-                        <i data-lucide="upload"></i> Выбрать Фото из Галереи
-                        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="loadGalleryImage(event)">
+            <!-- PAGE 3: PHOTO EDITOR -->
+            <div id="page-photo" class="page-content">
+                <div class="card-box">
+                    <label class="btn btn-glow" style="justify-content: center;">
+                        <i data-lucide="upload" style="width:14px;"></i> Выбрать фото из Галереи
+                        <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="loadPhotoFromFile(event)">
                     </label>
 
-                    <div class="row">
-                        <input type="text" class="input-field" id="photoTextStr" value="Создано в FontCraft" oninput="renderPhotoStage()">
-                    </div>
+                    <input type="text" class="input-box" id="photoTextStr" value="Шрифт созданный на телефоне" oninput="renderPhotoCanvas()">
 
-                    <div class="row">
-                        <div class="slider-group">
+                    <div class="scroll-row">
+                        <div class="ctrl-slider">
                             <label>Размер</label>
-                            <input type="range" id="photoFontSize" min="20" max="160" value="60" oninput="renderPhotoStage()">
+                            <input type="range" id="photoSize" min="20" max="180" value="65" oninput="renderPhotoCanvas()">
                         </div>
-                        <div class="slider-group">
+                        <div class="ctrl-slider">
                             <label>Позиция Y</label>
-                            <input type="range" id="photoTextY" min="0" max="100" value="50" oninput="renderPhotoStage()">
+                            <input type="range" id="photoPosY" min="0" max="100" value="50" oninput="renderPhotoCanvas()">
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="slider-group">
-                            <label>Обводка (px)</label>
-                            <input type="range" id="photoStrokeWidth" min="0" max="20" value="4" oninput="renderPhotoStage()">
+                    <div class="scroll-row">
+                        <div class="ctrl-slider">
+                            <label>Обводка</label>
+                            <input type="range" id="photoStroke" min="0" max="25" value="4" oninput="renderPhotoCanvas()">
                         </div>
-                        <div class="color-picker-wrapper">
-                            <label style="font-size: 0.7rem; color: var(--text-sub);">Текст:</label>
-                            <input type="color" id="photoTextColor" value="#ffffff" onchange="renderPhotoStage()">
-                            <label style="font-size: 0.7rem; color: var(--text-sub);">Обводка:</label>
-                            <input type="color" id="photoStrokeColor" value="#000000" onchange="renderPhotoStage()">
+                        <div class="color-box">
+                            <label style="font-size:0.65rem; color:var(--text-sub);">Текст:</label>
+                            <input type="color" id="photoTxtColor" value="#ffffff" onchange="renderPhotoCanvas()">
+                        </div>
+                        <div class="color-box">
+                            <label style="font-size:0.65rem; color:var(--text-sub);">Обводка:</label>
+                            <input type="color" id="photoStrokeColor" value="#000000" onchange="renderPhotoCanvas()">
                         </div>
                     </div>
                 </div>
 
-                <div class="photo-stage">
+                <div class="photo-canvas-box">
                     <canvas id="photoCanvas"></canvas>
                 </div>
 
-                <button class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-green), #00b894); color:#000;" onclick="savePhotoCard()">
-                    <i data-lucide="download"></i> Сохранить Картинку
+                <button class="btn btn-glow" style="background: linear-gradient(135deg, var(--accent-green), #059669); color:#000;" onclick="downloadPhotoResult()">
+                    <i data-lucide="download" style="width:14px;"></i> Скачать готовое изображение
                 </button>
+            </div>
+
+            <!-- PAGE 4: SETTINGS & PROJECT MANAGEMENT -->
+            <div id="page-settings" class="page-content">
+                <div class="card-box">
+                    <span style="font-size:0.8rem; font-weight:800; color:var(--accent-cyan);">Параметры шрифта</span>
+                    
+                    <div class="scroll-row">
+                        <input type="text" class="input-box" id="fontFamilyName" value="FontCraftCustom" placeholder="Имя шрифта" onchange="saveProjectToStorage()">
+                    </div>
+
+                    <div class="ctrl-slider">
+                        <label>Наклон руководящих линий (Italic Slant Guide)</label>
+                        <input type="range" id="slantAngle" min="-30" max="30" value="0" oninput="updateSlantGuide()">
+                    </div>
+
+                    <div class="scroll-row">
+                        <label style="font-size:0.75rem; color:var(--text-sub);">Фон холста:</label>
+                        <button class="chip-btn active" onclick="setCanvasBg('grid')">Сетка</button>
+                        <button class="chip-btn" onclick="setCanvasBg('checker')">Прозрачный</button>
+                        <button class="chip-btn" onclick="setCanvasBg('black')">Черный</button>
+                    </div>
+                </div>
+
+                <div class="card-box">
+                    <span style="font-size:0.8rem; font-weight:800; color:var(--accent-gold);">Управление локальной памятью</span>
+                    <p style="font-size:0.72rem; color:var(--text-sub);">Все ваши штрихи и нарисованные буквы **автоматически сохраняются во внутренней памяти браузера (localStorage)**. Вы не потеряете работу при закрытии сайта.</p>
+
+                    <div class="scroll-row" style="margin-top:6px;">
+                        <button class="btn btn-sub" style="color:var(--accent-red); border-color:var(--accent-red);" onclick="clearAllProjectData()">
+                            <i data-lucide="trash" style="width:14px;"></i> Сбросить весь проект
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-box">
+                    <span style="font-size:0.8rem; font-weight:800; color:var(--accent-purple);">Статистика проекта</span>
+                    <div id="projectStats" style="font-size:0.75rem; color:var(--text-main);">Загрузка статистики...</div>
+                </div>
             </div>
 
         </main>
     </div>
 
+    <!-- Toast Banner -->
+    <div class="toast" id="toastMsg">Автосохранение выполнено!</div>
+
     <script>
-        // --- DATA DICTIONARIES ---
+        // --- CONSTANTS & ALPHABETS ---
         const ALPHABETS = {
             ru_cap: "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split(""),
             ru_low: "абвгдеёжзийклмнопрстуфхцчшщъыьэюя".split(""),
@@ -712,119 +841,250 @@
             num: "0123456789!?,.-+#@%&*()".split("")
         };
 
-        let currentCat = 'ru_cap';
+        const STORAGE_KEY = "FontCraft_Supreme_ProjectData_v2";
+
+        // APP STATE
+        let currentCategory = 'ru_cap';
         let currentChar = 'А';
 
-        // Stores drawn paths per character
-        // Format: { 'A': [ { mode: 'pen', size: 20, color: '#fff', points: [{x,y}, ...] } ] }
+        /* Stroke Storage Schema:
+           strokeStorage = {
+              'А': {
+                 advanceWidth: 750,
+                 strokes: [
+                    { tool: 'draw', mode: 'pen', size: 20, opacity: 1, color: '#00f0ff', points: [{x,y}, ...] }
+                 ]
+              }
+           }
+        */
         let strokeStorage = {};
+        let undoStack = [];
+        let redoStack = [];
 
-        // Canvas & Brush State
+        // Canvas / Brush Engine State
         let canvas, ctx;
         let isDrawing = false;
-        let activeTool = 'draw'; // 'draw' or 'erase'
-        let brushMode = 'pen';   // 'pen', 'calligraphy', 'pencil', 'neon', 'marker'
-        let brushSize = 22;
-        let brushSmoothness = 40;
-        let brushColor = '#ffffff';
-        let currentStroke = null;
+        let activeTool = 'draw';      // 'draw', 'erase', 'line', 'rect', 'circle', 'fill'
+        let brushMode = 'pen';        // 'pen', 'calligraphy', 'pencil', 'neon', 'taper'
+        let brushSize = 20;
+        let brushOpacity = 1.0;
+        let brushSmoothness = 50;
+        let brushColor = '#00f0ff';
+        let isSymmetry = false;
+        let copiedGlyphData = null;
 
-        // Photo State
-        let photoImg = null;
+        // Shape Start Point
+        let shapeStartPt = null;
+        let currentStrokePoints = [];
 
-        // --- INIT ---
+        // Photo Canvas State
+        let photoImageObj = null;
+
+        // --- INITIALIZATION ---
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initDrawingCanvas();
-            setCategory('ru_cap');
-            window.addEventListener('resize', adaptCanvasDimensions);
+            loadProjectFromStorage();
+            selectCategory('ru_cap');
+            window.addEventListener('resize', adaptCanvasSize);
         });
 
-        // Tab Switcher
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-
-            event.currentTarget.classList.add('active');
-            document.getElementById(`page-${tabName}`).classList.add('active');
-
-            if (tabName === 'preview') {
-                compileFontAndInject(() => updatePreviewText());
-            } else if (tabName === 'photo') {
-                compileFontAndInject(() => renderPhotoStage());
+        // --- LOCAL STORAGE AUTO-SAVE SYSTEM ---
+        function saveProjectToStorage() {
+            try {
+                const fontName = document.getElementById('fontFamilyName')?.value || 'FontCraftCustom';
+                const payload = {
+                    fontName: fontName,
+                    strokeStorage: strokeStorage,
+                    updatedAt: Date.now()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                showToast("Сохранено локально!");
+            } catch(e) {
+                console.error("Storage save failed", e);
             }
         }
 
-        // --- CATEGORY & CHAR SELECTOR ---
-        function setCategory(catKey) {
-            currentCat = catKey;
-            document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+        function loadProjectFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.strokeStorage) {
+                        strokeStorage = parsed.strokeStorage;
+                    }
+                    if (parsed.fontName && document.getElementById('fontFamilyName')) {
+                        document.getElementById('fontFamilyName').value = parsed.fontName;
+                    }
+                    showToast("Проект автоматически восстановлен!");
+                }
+            } catch(e) {
+                console.error("Storage load failed", e);
+            }
+        }
+
+        function clearAllProjectData() {
+            if (confirm("Вы уверены? Это полностью удалит все нарисованные буквы!")) {
+                strokeStorage = {};
+                localStorage.removeItem(STORAGE_KEY);
+                redrawCurrentGlyph();
+                updateCategoryTiles();
+                showToast("Проект сброшен!");
+            }
+        }
+
+        function exportProjectJSON() {
+            const fontName = document.getElementById('fontFamilyName')?.value || 'FontCraftCustom';
+            const payload = {
+                fontName: fontName,
+                strokeStorage: strokeStorage,
+                exportedAt: new Date().toISOString()
+            };
+            const str = JSON.stringify(payload, null, 2);
+            const blob = new Blob([str], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.download = `${fontName}-project.json`;
+            a.href = URL.createObjectURL(blob);
+            a.click();
+        }
+
+        function importProjectJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (parsed.strokeStorage) {
+                        strokeStorage = parsed.strokeStorage;
+                        if (parsed.fontName) {
+                            document.getElementById('fontFamilyName').value = parsed.fontName;
+                        }
+                        saveProjectToStorage();
+                        selectCategory(currentCategory);
+                        redrawCurrentGlyph();
+                        alert("Проект успешно импортирован!");
+                    }
+                } catch(err) {
+                    alert("Ошибка при чтении JSON файла!");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastMsg');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // --- TAB NAVIGATION ---
+        function switchTab(pageId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+
+            event.currentTarget.classList.add('active');
+            document.getElementById(`page-${pageId}`).classList.add('active');
+
+            if (pageId === 'preview') {
+                compileTTFAndInject(() => renderLivePreview());
+            } else if (pageId === 'photo') {
+                compileTTFAndInject(() => renderPhotoCanvas());
+            } else if (pageId === 'settings') {
+                updateProjectStats();
+            }
+        }
+
+        // --- CATEGORIES & CHARACTERS ---
+        function selectCategory(catKey) {
+            currentCategory = catKey;
+            document.querySelectorAll('.cat-badge').forEach(b => b.classList.remove('active'));
             event?.target?.classList.add('active');
 
-            const carousel = document.getElementById('charCarousel');
-            carousel.innerHTML = '';
-
-            ALPHABETS[catKey].forEach(ch => {
-                const tile = document.createElement('div');
-                tile.className = `char-tile ${ch === currentChar ? 'active' : ''} ${hasStrokeData(ch) ? 'has-stroke' : ''}`;
-                tile.innerText = ch;
-                tile.onclick = () => selectChar(ch);
-                carousel.appendChild(tile);
-            });
+            updateCategoryTiles();
 
             if (!ALPHABETS[catKey].includes(currentChar)) {
                 selectChar(ALPHABETS[catKey][0]);
             }
         }
 
+        function updateCategoryTiles() {
+            const strip = document.getElementById('charStrip');
+            strip.innerHTML = '';
+
+            ALPHABETS[currentCategory].forEach(ch => {
+                const box = document.createElement('div');
+                const hasData = strokeStorage[ch] && strokeStorage[ch].strokes && strokeStorage[ch].strokes.length > 0;
+                box.className = `char-box ${ch === currentChar ? 'active' : ''} ${hasData ? 'has-data' : ''}`;
+                box.innerText = ch;
+                box.onclick = () => selectChar(ch);
+                strip.appendChild(box);
+            });
+        }
+
         function selectChar(ch) {
             currentChar = ch;
-            document.querySelectorAll('.char-tile').forEach(t => {
-                t.classList.toggle('active', t.innerText === ch);
+            document.querySelectorAll('.char-box').forEach(b => {
+                b.classList.toggle('active', b.innerText === ch);
             });
-            redrawGlyphCanvas();
+
+            // Initialize Glyph Data Container if needed
+            if (!strokeStorage[currentChar]) {
+                strokeStorage[currentChar] = { advanceWidth: 750, strokes: [] };
+            }
+
+            document.getElementById('sliderWidth').value = strokeStorage[currentChar].advanceWidth || 750;
+            undoStack = [];
+            redoStack = [];
+            redrawCurrentGlyph();
         }
 
         function navChar(dir) {
-            const list = ALPHABETS[currentCat];
+            const list = ALPHABETS[currentCategory];
             let idx = list.indexOf(currentChar) + dir;
             if (idx >= 0 && idx < list.length) {
                 selectChar(list[idx]);
             }
         }
 
-        function hasStrokeData(ch) {
-            return strokeStorage[ch] && strokeStorage[ch].length > 0;
+        function updateGlyphAdvanceWidth(val) {
+            if (!strokeStorage[currentChar]) {
+                strokeStorage[currentChar] = { advanceWidth: 750, strokes: [] };
+            }
+            strokeStorage[currentChar].advanceWidth = parseInt(val);
+            saveProjectToStorage();
         }
 
-        // --- CANVAS ENGINE ---
+        // --- DRAWING CANVAS ENGINE ---
         function initDrawingCanvas() {
-            canvas = document.getElementById('drawCanvas');
+            canvas = document.getElementById('mainCanvas');
             ctx = canvas.getContext('2d');
-            adaptCanvasDimensions();
+            adaptCanvasSize();
 
             // Touch events
-            canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
-            canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
-            canvas.addEventListener('touchend', handlePointerUp, { passive: false });
+            canvas.addEventListener('touchstart', handleStart, { passive: false });
+            canvas.addEventListener('touchmove', handleMove, { passive: false });
+            canvas.addEventListener('touchend', handleEnd, { passive: false });
 
             // Mouse events
-            canvas.addEventListener('mousedown', handlePointerDown);
-            canvas.addEventListener('mousemove', handlePointerMove);
-            canvas.addEventListener('mouseup', handlePointerUp);
+            canvas.addEventListener('mousedown', handleStart);
+            canvas.addEventListener('mousemove', handleMove);
+            canvas.addEventListener('mouseup', handleEnd);
         }
 
-        function adaptCanvasDimensions() {
-            const stage = document.getElementById('canvasStage');
-            const rect = stage.getBoundingClientRect();
-            const dim = Math.min(rect.width - 16, rect.height - 16, 450);
+        function adaptCanvasSize() {
+            const wrapper = document.getElementById('stageWrapper');
+            const rect = wrapper.getBoundingClientRect();
+            const size = Math.min(rect.width - 12, rect.height - 12, 450);
 
-            canvas.width = dim;
-            canvas.height = dim;
-            redrawGlyphCanvas();
+            canvas.width = size;
+            canvas.height = size;
+            redrawCurrentGlyph();
         }
 
-        function getCanvasCoords(e) {
+        function getCoords(e) {
             const rect = canvas.getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
@@ -834,249 +1094,398 @@
             };
         }
 
-        function handlePointerDown(e) {
+        function handleStart(e) {
             e.preventDefault();
             isDrawing = true;
-            const pt = getCanvasCoords(e);
+            const pt = getCoords(e);
+            shapeStartPt = pt;
+            currentStrokePoints = [pt];
 
-            if (!strokeStorage[currentChar]) {
-                strokeStorage[currentChar] = [];
+            // Save state for Undo
+            pushUndoState();
+
+            if (activeTool === 'fill') {
+                performFloodFill(pt);
+                isDrawing = false;
+                return;
             }
 
             if (activeTool === 'erase') {
-                performEraser(pt);
-            } else {
-                currentStroke = {
-                    mode: brushMode,
-                    size: brushSize,
-                    color: brushColor,
-                    points: [pt]
-                };
-                strokeStorage[currentChar].push(currentStroke);
+                eraseAtPoint(pt);
             }
-            redrawGlyphCanvas();
+            redrawCurrentGlyph();
         }
 
-        function handlePointerMove(e) {
+        function handleMove(e) {
             if (!isDrawing) return;
             e.preventDefault();
-            const pt = getCanvasCoords(e);
+            const pt = getCoords(e);
 
             if (activeTool === 'erase') {
-                performEraser(pt);
-            } else if (currentStroke) {
-                // Apply smoothing algorithm
-                const pts = currentStroke.points;
-                const lastPt = pts[pts.length - 1];
-                const factor = 1 - (brushSmoothness / 100) * 0.75;
-                
-                const smoothedX = lastPt.x + (pt.x - lastPt.x) * factor;
-                const smoothedY = lastPt.y + (pt.y - lastPt.y) * factor;
-
-                pts.push({ x: smoothedX, y: smoothedY });
+                eraseAtPoint(pt);
+                redrawCurrentGlyph();
+            } else if (activeTool === 'draw') {
+                // Smoothing calculation
+                const lastPt = currentStrokePoints[currentStrokePoints.length - 1];
+                const factor = 1 - (brushSmoothness / 100) * 0.8;
+                const smX = lastPt.x + (pt.x - lastPt.x) * factor;
+                const smY = lastPt.y + (pt.y - lastPt.y) * factor;
+                currentStrokePoints.push({ x: smX, y: smY });
+                redrawCurrentGlyph();
+            } else if (['line', 'rect', 'circle'].includes(activeTool)) {
+                redrawCurrentGlyph();
+                drawShapePreview(shapeStartPt, pt);
             }
-            redrawGlyphCanvas();
         }
 
-        function handlePointerUp(e) {
+        function handleEnd(e) {
+            if (!isDrawing) return;
             e.preventDefault();
             isDrawing = false;
-            currentStroke = null;
-            updateTileBadge();
+            const pt = getCoords(e) || shapeStartPt;
+
+            if (!strokeStorage[currentChar]) {
+                strokeStorage[currentChar] = { advanceWidth: 750, strokes: [] };
+            }
+
+            if (activeTool === 'draw') {
+                const newStroke = {
+                    type: 'path',
+                    mode: brushMode,
+                    size: brushSize,
+                    opacity: brushOpacity,
+                    color: brushColor,
+                    points: currentStrokePoints
+                };
+                strokeStorage[currentChar].strokes.push(newStroke);
+
+                if (isSymmetry) {
+                    const symmPoints = currentStrokePoints.map(p => ({ x: canvas.width - p.x, y: p.y }));
+                    strokeStorage[currentChar].strokes.push({ ...newStroke, points: symmPoints });
+                }
+            } else if (['line', 'rect', 'circle'].includes(activeTool)) {
+                const shapePoints = generateShapePoints(shapeStartPt, pt, activeTool);
+                strokeStorage[currentChar].strokes.push({
+                    type: 'path',
+                    mode: brushMode,
+                    size: brushSize,
+                    opacity: brushOpacity,
+                    color: brushColor,
+                    points: shapePoints
+                });
+            }
+
+            redrawCurrentGlyph();
+            updateCategoryTiles();
+            saveProjectToStorage();
         }
 
-        function performEraser(pt) {
-            if (!strokeStorage[currentChar]) return;
-            const rad = brushSize * 1.2;
-            strokeStorage[currentChar] = strokeStorage[currentChar].filter(stroke => {
-                return !stroke.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) < rad);
+        function eraseAtPoint(pt) {
+            if (!strokeStorage[currentChar]?.strokes) return;
+            const rad = brushSize * 1.5;
+            strokeStorage[currentChar].strokes = strokeStorage[currentChar].strokes.filter(st => {
+                return !st.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) < rad);
             });
         }
 
-        function updateTileBadge() {
-            document.querySelectorAll('.char-tile').forEach(t => {
-                if (t.innerText === currentChar) {
-                    t.classList.toggle('has-stroke', hasStrokeData(currentChar));
+        function performFloodFill(pt) {
+            // Flood fill shape background box
+            if (!strokeStorage[currentChar]) strokeStorage[currentChar] = { advanceWidth: 750, strokes: [] };
+            const rectPts = [
+                { x: 0, y: 0 }, { x: canvas.width, y: 0 },
+                { x: canvas.width, y: canvas.height }, { x: 0, y: canvas.height }, { x: 0, y: 0 }
+            ];
+            strokeStorage[currentChar].strokes.unshift({
+                type: 'fill',
+                mode: 'pen',
+                size: canvas.width * 2,
+                opacity: brushOpacity,
+                color: brushColor,
+                points: rectPts
+            });
+            redrawCurrentGlyph();
+            saveProjectToStorage();
+        }
+
+        function generateShapePoints(p1, p2, type) {
+            const pts = [];
+            if (type === 'line') {
+                const steps = 30;
+                for (let i = 0; i <= steps; i++) {
+                    pts.push({
+                        x: p1.x + (p2.x - p1.x) * (i / steps),
+                        y: p1.y + (p2.y - p1.y) * (i / steps)
+                    });
+                }
+            } else if (type === 'rect') {
+                pts.push({ x: p1.x, y: p1.y });
+                pts.push({ x: p2.x, y: p1.y });
+                pts.push({ x: p2.x, y: p2.y });
+                pts.push({ x: p1.x, y: p2.y });
+                pts.push({ x: p1.x, y: p1.y });
+            } else if (type === 'circle') {
+                const rx = Math.abs(p2.x - p1.x);
+                const ry = Math.abs(p2.y - p1.y);
+                const steps = 40;
+                for (let i = 0; i <= steps; i++) {
+                    const angle = (i / steps) * Math.PI * 2;
+                    pts.push({
+                        x: p1.x + Math.cos(angle) * rx,
+                        y: p1.y + Math.sin(angle) * ry
+                    });
+                }
+            }
+            return pts;
+        }
+
+        function drawShapePreview(p1, p2) {
+            ctx.save();
+            ctx.strokeStyle = brushColor;
+            ctx.lineWidth = brushSize;
+            ctx.globalAlpha = brushOpacity;
+            ctx.beginPath();
+            if (activeTool === 'line') {
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+            } else if (activeTool === 'rect') {
+                ctx.rect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+            } else if (activeTool === 'circle') {
+                ctx.ellipse(p1.x, p1.y, Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y), 0, 0, Math.PI * 2);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // --- IBIS TOOLBAR ACTIONS ---
+        function setActiveTool(tool) {
+            activeTool = tool;
+            document.querySelectorAll('.chip-btn').forEach(b => {
+                if (['tool-draw','tool-erase','tool-line','tool-rect','tool-circle','tool-fill'].includes(b.id)) {
+                    b.classList.remove('active');
                 }
             });
-        }
-
-        // --- BRUSH PARAMETERS & DRAWING ENGINE ---
-        function setToolMode(mode) {
-            activeTool = mode;
-            document.getElementById('btnToolDraw').classList.toggle('active', mode === 'draw');
-            document.getElementById('btnToolErase').classList.toggle('active', mode === 'erase');
+            document.getElementById(`tool-${tool}`)?.classList.add('active');
         }
 
         function setBrushMode(mode) {
             brushMode = mode;
-            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`b-${mode}`).classList.add('active');
+            document.querySelectorAll('.chip-btn').forEach(b => {
+                if (['b-pen','b-calligraphy','b-pencil','b-neon','b-taper'].includes(b.id)) {
+                    b.classList.remove('active');
+                }
+            });
+            document.getElementById(`b-${mode}`)?.classList.add('active');
         }
 
-        function updateBrushParams() {
-            brushSize = parseInt(document.getElementById('brushSize').value);
-            brushSmoothness = parseInt(document.getElementById('brushSmooth').value);
-            brushColor = document.getElementById('brushColor').value;
+        function updateBrushSettings() {
+            brushSize = parseInt(document.getElementById('sliderSize').value);
+            brushOpacity = parseInt(document.getElementById('sliderOpacity').value) / 100;
+            brushSmoothness = parseInt(document.getElementById('sliderSmooth').value);
+            brushColor = document.getElementById('brushColorPicker').value;
         }
 
-        function clearGlyphCanvas() {
-            strokeStorage[currentChar] = [];
-            redrawGlyphCanvas();
-            updateTileBadge();
+        function toggleSymmetry() {
+            isSymmetry = !isSymmetry;
+            document.getElementById('btnSymm').classList.toggle('active', isSymmetry);
+            document.getElementById('symmV').style.display = isSymmetry ? 'block' : 'none';
         }
 
-        function undoLastStroke() {
-            if (strokeStorage[currentChar] && strokeStorage[currentChar].length > 0) {
-                strokeStorage[currentChar].pop();
-                redrawGlyphCanvas();
-                updateTileBadge();
+        function updateSlantGuide() {
+            const angle = document.getElementById('slantAngle').value;
+            document.getElementById('slantGuide').style.transform = `rotate(${angle}deg)`;
+        }
+
+        function setCanvasBg(bgType) {
+            const stage = document.getElementById('stageWrapper');
+            stage.className = 'stage-wrapper ' + (bgType === 'grid' ? 'grid-bg' : bgType === 'checker' ? 'checker-bg' : '');
+        }
+
+        function pushUndoState() {
+            const curStrokes = strokeStorage[currentChar]?.strokes ? JSON.parse(JSON.stringify(strokeStorage[currentChar].strokes)) : [];
+            undoStack.push(curStrokes);
+            redoStack = [];
+        }
+
+        function undo() {
+            if (undoStack.length > 0) {
+                redoStack.push(JSON.parse(JSON.stringify(strokeStorage[currentChar].strokes || [])));
+                strokeStorage[currentChar].strokes = undoStack.pop();
+                redrawCurrentGlyph();
+                saveProjectToStorage();
             }
         }
 
-        function redrawGlyphCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const strokes = strokeStorage[currentChar] || [];
+        function redo() {
+            if (redoStack.length > 0) {
+                undoStack.push(JSON.parse(JSON.stringify(strokeStorage[currentChar].strokes || [])));
+                strokeStorage[currentChar].strokes = redoStack.pop();
+                redrawCurrentGlyph();
+                saveProjectToStorage();
+            }
+        }
 
-            strokes.forEach(stroke => {
-                if (stroke.points.length < 1) return;
+        function clearCanvasGlyph() {
+            pushUndoState();
+            strokeStorage[currentChar].strokes = [];
+            redrawCurrentGlyph();
+            updateCategoryTiles();
+            saveProjectToStorage();
+        }
+
+        function copyGlyphData() {
+            if (strokeStorage[currentChar]?.strokes) {
+                copiedGlyphData = JSON.parse(JSON.stringify(strokeStorage[currentChar].strokes));
+                showToast("Символ скопирован!");
+            }
+        }
+
+        function pasteGlyphData() {
+            if (copiedGlyphData) {
+                pushUndoState();
+                if (!strokeStorage[currentChar]) strokeStorage[currentChar] = { advanceWidth: 750, strokes: [] };
+                strokeStorage[currentChar].strokes = JSON.parse(JSON.stringify(copiedGlyphData));
+                redrawCurrentGlyph();
+                updateCategoryTiles();
+                saveProjectToStorage();
+                showToast("Символ вставлен!");
+            }
+        }
+
+        function redrawCurrentGlyph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const strokes = strokeStorage[currentChar]?.strokes || [];
+
+            strokes.forEach(st => {
+                if (!st.points || st.points.length < 1) return;
 
                 ctx.save();
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
+                ctx.globalAlpha = st.opacity || 1.0;
 
-                if (stroke.mode === 'neon') {
-                    ctx.shadowColor = stroke.color;
-                    ctx.shadowBlur = stroke.size;
-                    ctx.strokeStyle = stroke.color;
-                    ctx.lineWidth = stroke.size * 0.6;
-                } else if (stroke.mode === 'pencil') {
-                    ctx.strokeStyle = stroke.color;
-                    ctx.lineWidth = stroke.size * 0.7;
-                    ctx.globalAlpha = 0.85;
-                } else if (stroke.mode === 'calligraphy') {
-                    ctx.strokeStyle = stroke.color;
-                    ctx.lineWidth = stroke.size;
-                    // Chisel effect
+                if (st.mode === 'neon') {
+                    ctx.shadowColor = st.color;
+                    ctx.shadowBlur = st.size * 0.8;
+                    ctx.strokeStyle = st.color;
+                    ctx.lineWidth = st.size * 0.5;
+                } else if (st.mode === 'pencil') {
+                    ctx.strokeStyle = st.color;
+                    ctx.lineWidth = st.size * 0.6;
+                    ctx.globalAlpha = (st.opacity || 1.0) * 0.7;
+                } else if (st.mode === 'calligraphy') {
+                    ctx.strokeStyle = st.color;
+                    ctx.lineWidth = st.size;
                     ctx.lineCap = 'square';
-                } else if (stroke.mode === 'marker') {
-                    ctx.strokeStyle = stroke.color;
-                    ctx.lineWidth = stroke.size * 1.2;
-                    ctx.lineCap = 'square';
-                } else { // 'pen'
-                    ctx.strokeStyle = stroke.color;
-                    ctx.lineWidth = stroke.size;
+                } else {
+                    ctx.strokeStyle = st.color;
+                    ctx.lineWidth = st.size;
                 }
 
                 ctx.beginPath();
-                ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-                for (let i = 1; i < stroke.points.length; i++) {
-                    ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+                ctx.moveTo(st.points[0].x, st.points[0].y);
+                for (let i = 1; i < st.points.length; i++) {
+                    ctx.lineTo(st.points[i].x, st.points[i].y);
                 }
                 ctx.stroke();
                 ctx.restore();
             });
+
+            // Live stroke being drawn
+            if (isDrawing && currentStrokePoints.length > 0 && activeTool === 'draw') {
+                ctx.save();
+                ctx.strokeStyle = brushColor;
+                ctx.lineWidth = brushSize;
+                ctx.globalAlpha = brushOpacity;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(currentStrokePoints[0].x, currentStrokePoints[0].y);
+                for (let i = 1; i < currentStrokePoints.length; i++) {
+                    ctx.lineTo(currentStrokePoints[i].x, currentStrokePoints[i].y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
         }
 
-        // --- OPENTYPE.JS TTF VECTOR GENERATION ---
-        function convertStrokesToPath(strokes, scaleX, scaleY, ascender) {
-            const fontPath = new opentype.Path();
-
-            strokes.forEach(stroke => {
-                const pts = stroke.points;
-                if (pts.length < 2) return;
-
-                const halfW = (stroke.size * (stroke.mode === 'marker' ? 1.2 : 0.8)) / 2;
-                const lefts = [];
-                const rights = [];
-
-                for (let i = 0; i < pts.length; i++) {
-                    const p = pts[i];
-                    const prev = pts[Math.max(0, i - 1)];
-                    const next = pts[Math.min(pts.length - 1, i + 1)];
-
-                    let dx = next.x - prev.x;
-                    let dy = next.y - prev.y;
-                    let len = Math.hypot(dx, dy) || 1;
-
-                    let nx = -dy / len;
-                    let ny = dx / len;
-
-                    lefts.push({ x: p.x + nx * halfW, y: p.y + ny * halfW });
-                    rights.push({ x: p.x - nx * halfW, y: p.y - ny * halfW });
-                }
-
-                function toFontCoords(pt) {
-                    return {
-                        x: pt.x * scaleX,
-                        y: ascender - (pt.y * scaleY)
-                    };
-                }
-
-                let start = toFontCoords(lefts[0]);
-                fontPath.moveTo(start.x, start.y);
-
-                for (let i = 1; i < lefts.length; i++) {
-                    let pt = toFontCoords(lefts[i]);
-                    fontPath.lineTo(pt.x, pt.y);
-                }
-                for (let i = rights.length - 1; i >= 0; i--) {
-                    let pt = toFontCoords(rights[i]);
-                    fontPath.lineTo(pt.x, pt.y);
-                }
-                fontPath.close();
-            });
-
-            return fontPath;
-        }
-
-        function createFontObject() {
+        // --- OPENTYPE.JS VECTOR TTF ENGINE ---
+        function buildOpenTypeFontObject() {
             const unitsPerEm = 1000;
             const ascender = 800;
             const descender = -200;
             const glyphs = [];
 
-            // Default .notdef
+            // Standard Notdef
             const notdef = new opentype.Path();
-            notdef.moveTo(100, 0);
-            notdef.lineTo(100, 700);
-            notdef.lineTo(500, 700);
-            notdef.lineTo(500, 0);
-            notdef.close();
-            glyphs.push(new opentype.Glyph({
-                name: '.notdef',
-                unicode: 0,
-                advanceWidth: 600,
-                path: notdef
-            }));
+            notdef.moveTo(100, 0); notdef.lineTo(100, 700); notdef.lineTo(500, 700); notdef.lineTo(500, 0); notdef.close();
+            glyphs.push(new opentype.Glyph({ name: '.notdef', unicode: 0, advanceWidth: 600, path: notdef }));
 
             // Space
-            glyphs.push(new opentype.Glyph({
-                name: 'space',
-                unicode: 32,
-                advanceWidth: 400,
-                path: new opentype.Path()
-            }));
+            glyphs.push(new opentype.Glyph({ name: 'space', unicode: 32, advanceWidth: 400, path: new opentype.Path() }));
 
             const canvasDim = canvas.width || 300;
             const scaleX = 800 / canvasDim;
             const scaleY = 1000 / canvasDim;
 
-            for (const [ch, strokes] of Object.entries(strokeStorage)) {
-                if (!strokes || strokes.length === 0) continue;
+            for (const [ch, data] of Object.entries(strokeStorage)) {
+                if (!data || !data.strokes || data.strokes.length === 0) continue;
 
-                const fontPath = convertStrokesToPath(strokes, scaleX, scaleY, ascender);
+                const fontPath = new opentype.Path();
+
+                data.strokes.forEach(st => {
+                    const pts = st.points;
+                    if (!pts || pts.length < 2) return;
+
+                    const halfW = (st.size * 0.7) / 2;
+                    const lefts = [];
+                    const rights = [];
+
+                    for (let i = 0; i < pts.length; i++) {
+                        const p = pts[i];
+                        const prev = pts[Math.max(0, i - 1)];
+                        const next = pts[Math.min(pts.length - 1, i + 1)];
+
+                        let dx = next.x - prev.x;
+                        let dy = next.y - prev.y;
+                        let len = Math.hypot(dx, dy) || 1;
+
+                        let nx = -dy / len;
+                        let ny = dx / len;
+
+                        lefts.push({ x: p.x + nx * halfW, y: p.y + ny * halfW });
+                        rights.push({ x: p.x - nx * halfW, y: p.y - ny * halfW });
+                    }
+
+                    function toFontCoord(pt) {
+                        return { x: pt.x * scaleX, y: ascender - (pt.y * scaleY) };
+                    }
+
+                    let start = toFontCoord(lefts[0]);
+                    fontPath.moveTo(start.x, start.y);
+
+                    for (let i = 1; i < lefts.length; i++) {
+                        let pt = toFontCoord(lefts[i]);
+                        fontPath.lineTo(pt.x, pt.y);
+                    }
+                    for (let i = rights.length - 1; i >= 0; i--) {
+                        let pt = toFontCoord(rights[i]);
+                        fontPath.lineTo(pt.x, pt.y);
+                    }
+                    fontPath.close();
+                });
 
                 glyphs.push(new opentype.Glyph({
                     name: 'g_' + ch.charCodeAt(0),
                     unicode: ch.charCodeAt(0),
-                    advanceWidth: 780,
+                    advanceWidth: data.advanceWidth || 750,
                     path: fontPath
                 }));
             }
 
+            const fontName = document.getElementById('fontFamilyName')?.value || 'FontCraftCustom';
+
             return new opentype.Font({
-                familyName: 'FontCraftCustom',
+                familyName: fontName,
                 styleName: 'Regular',
                 unitsPerEm: unitsPerEm,
                 ascender: ascender,
@@ -1085,89 +1494,94 @@
             });
         }
 
-        function exportTTFFont() {
+        function buildAndDownloadTTF() {
             try {
-                const font = createFontObject();
-                font.download('MyFontCraft.ttf');
-            } catch (err) {
-                alert('Нарисуйте хотя бы один символ перед экспортом!');
-                console.error(err);
+                const font = buildOpenTypeFontObject();
+                font.download();
+            } catch(e) {
+                alert("Нарисуйте хотя бы один символ перед экспортом!");
+                console.error(e);
             }
         }
 
-        function compileFontAndInject(callback) {
+        function compileTTFAndInject(callback) {
             try {
-                const font = createFontObject();
+                const font = buildOpenTypeFontObject();
                 const buffer = font.toArrayBuffer();
                 const fontFace = new FontFace('FontCraftCustom', buffer);
 
                 fontFace.load().then(loaded => {
                     document.fonts.add(loaded);
                     if (callback) callback();
-                }).catch(e => {
-                    console.log('Font face inject error:', e);
+                }).catch(err => {
                     if (callback) callback();
                 });
-            } catch (e) {
+            } catch(e) {
                 if (callback) callback();
             }
         }
 
         // --- PREVIEW TAB ---
-        function updatePreviewText() {
-            const str = document.getElementById('previewInputText').value;
-            const size = document.getElementById('previewFontSize').value;
-            const box = document.getElementById('previewBox');
+        function renderLivePreview() {
+            const str = document.getElementById('previewInput').value;
+            const size = document.getElementById('previewSize').value;
+            const spacing = document.getElementById('previewSpacing').value;
+            const txtColor = document.getElementById('previewTextColor').value;
+            const bgColor = document.getElementById('previewBgColor').value;
 
+            const box = document.getElementById('previewRenderBox');
             box.style.fontFamily = "'FontCraftCustom', sans-serif";
             box.style.fontSize = `${size}px`;
+            box.style.letterSpacing = `${spacing}px`;
+            box.style.color = txtColor;
+            box.style.backgroundColor = bgColor;
             box.innerText = str || "Начни рисовать...";
         }
 
-        // --- GALLERY PHOTO EDITOR ---
-        function loadGalleryImage(e) {
+        // --- PHOTO EDITOR TAB ---
+        function loadPhotoFromFile(e) {
             const file = e.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = (evt) => {
                 const img = new Image();
                 img.onload = () => {
-                    photoImg = img;
-                    renderPhotoStage();
+                    photoImageObj = img;
+                    renderPhotoCanvas();
                 };
-                img.src = event.target.result;
+                img.src = evt.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function renderPhotoStage() {
+        function renderPhotoCanvas() {
             const pCanvas = document.getElementById('photoCanvas');
             const pCtx = pCanvas.getContext('2d');
 
-            if (!photoImg) {
+            if (!photoImageObj) {
                 pCanvas.width = 600;
                 pCanvas.height = 400;
-                pCtx.fillStyle = '#0b0b12';
+                pCtx.fillStyle = '#0a0a10';
                 pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-                pCtx.fillStyle = '#8e8ea7';
+                pCtx.fillStyle = '#94a3b8';
                 pCtx.font = '20px sans-serif';
                 pCtx.textAlign = 'center';
-                pCtx.fillText('Выберите фото из галереи выше', pCanvas.width / 2, pCanvas.height / 2);
+                pCtx.fillText('Выберите фото из галереи', pCanvas.width / 2, pCanvas.height / 2);
                 return;
             }
 
-            pCanvas.width = photoImg.width;
-            pCanvas.height = photoImg.height;
+            pCanvas.width = photoImageObj.width;
+            pCanvas.height = photoImageObj.height;
 
-            pCtx.drawImage(photoImg, 0, 0);
+            pCtx.drawImage(photoImageObj, 0, 0);
 
             const str = document.getElementById('photoTextStr').value;
-            const scaleFactor = pCanvas.width / 500;
-            const fontSize = parseInt(document.getElementById('photoFontSize').value) * scaleFactor;
-            const posY = (parseInt(document.getElementById('photoTextY').value) / 100) * pCanvas.height;
-            const strokeW = parseInt(document.getElementById('photoStrokeWidth').value) * scaleFactor;
-            const txtColor = document.getElementById('photoTextColor').value;
+            const scale = pCanvas.width / 500;
+            const fontSize = parseInt(document.getElementById('photoSize').value) * scale;
+            const posY = (parseInt(document.getElementById('photoPosY').value) / 100) * pCanvas.height;
+            const strokeW = parseInt(document.getElementById('photoStroke').value) * scale;
+            const txtColor = document.getElementById('photoTxtColor').value;
             const strokeColor = document.getElementById('photoStrokeColor').value;
 
             pCtx.font = `${fontSize}px 'FontCraftCustom', sans-serif`;
@@ -1184,12 +1598,24 @@
             pCtx.fillText(str, pCanvas.width / 2, posY);
         }
 
-        function savePhotoCard() {
+        function downloadPhotoResult() {
             const pCanvas = document.getElementById('photoCanvas');
             const a = document.createElement('a');
-            a.download = 'fontcraft-photo.jpg';
-            a.href = pCanvas.toDataURL('image/jpeg', 0.92);
+            a.download = 'fontcraft-photo-result.jpg';
+            a.href = pCanvas.toDataURL('image/jpeg', 0.95);
             a.click();
+        }
+
+        // --- STATS ---
+        function updateProjectStats() {
+            let totalDrawn = 0;
+            for (const [ch, data] of Object.entries(strokeStorage)) {
+                if (data.strokes && data.strokes.length > 0) totalDrawn++;
+            }
+            document.getElementById('projectStats').innerHTML = `
+                <b>Всего нарисовано символов:</b> ${totalDrawn}<br>
+                <b>Размер данных в памяти:</b> ${(JSON.stringify(strokeStorage).length / 1024).toFixed(2)} KB
+            `;
         }
     </script>
 </body>
