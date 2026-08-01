@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mtproto-proxy
+    runtime: docker
+    plan: free
+    envVars:
+      - key: SECRET
+        generateValue: true  # Render сгенерирует случайный секрет
+      - key: PORT
+        value: 8443
+    healthCheckPath: /health
