@@ -26,17 +26,6 @@ header h1::before { content:"✈️"; }
   color:#8b949e; display:flex; align-items:center; gap:6px;
 }
 .section-body { padding:16px; }
-.status-badge {
-  display:inline-flex; align-items:center; gap:6px; padding:6px 14px;
-  border-radius:20px; font-size:12px; font-weight:600;
-}
-.status-online { background:rgba(35,134,54,.15); color:#3fb950; border:1px solid rgba(35,134,54,.3); }
-.status-offline { background:rgba(248,81,73,.15); color:#f85149; border:1px solid rgba(248,81,73,.3); }
-.status-checking { background:rgba(88,166,255,.15); color:#58a6ff; border:1px solid rgba(88,166,255,.3); }
-.dot { width:8px; height:8px; border-radius:50%; }
-.status-online .dot { background:#3fb950; animation:pulse 2s infinite; }
-.status-offline .dot { background:#f85149; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 .proxy-card {
   background:#0d1117; border:1px solid #30363d; border-radius:12px;
   padding:16px; margin-top:12px;
@@ -61,9 +50,7 @@ header h1::before { content:"✈️"; }
   color:#8b949e; font-size:12px; cursor:pointer; margin-top:8px;
 }
 .copy-btn:active { background:#30363d; color:#c9d1d9; }
-.hint {
-  font-size:12px; color:#484f58; margin-top:12px; line-height:1.5;
-}
+.hint { font-size:12px; color:#484f58; margin-top:12px; line-height:1.5; }
 .warn-box {
   background:rgba(210,153,34,.1); border:1px solid rgba(210,153,34,.3);
   border-radius:10px; padding:12px; margin-top:12px; font-size:12px; color:#d29922;
@@ -78,21 +65,10 @@ footer { text-align:center; padding:16px; font-size:11px; color:#484f58; }
 
 <div class="container">
   <div class="section">
-    <div class="section-title">📡 Статус прокси</div>
-    <div class="section-body">
-      <div class="status-badge status-checking" id="statusBadge">
-        <span class="dot"></span>
-        <span id="statusText">Проверка...</span>
-      </div>
-      <div class="hint">Прокси на Render Free — может спать 15 мин без запросов. Первое подключение ~30 сек.</div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">🔗 Ссылка для подключения</div>
+    <div class="section-title">🔗 Данные прокси</div>
     <div class="section-body">
       <div class="proxy-card">
-        <label>Ссылка (нажми и откроется Telegram)</label>
+        <label>Ссылка для Telegram</label>
         <div class="proxy-value" id="proxyLink">Загрузка...</div>
         <button class="copy-btn" onclick="copyLink()">📋 Копировать ссылку</button>
         <a class="proxy-link" id="tgLink" href="#">🚀 Подключиться в Telegram</a>
@@ -102,24 +78,23 @@ footer { text-align:center; padding:16px; font-size:11px; color:#484f58; }
         <label>Ручная настройка</label>
         <div class="proxy-value">
           <div>Server: <span id="serverValue">-</span></div>
-          <div>Port: <span id="portValue">-</span></div>
+          <div>Port: <span id="portValue">8443</span></div>
           <div>Secret: <span id="secretValue">-</span></div>
         </div>
-        <button class="copy-btn" onclick="copySecret()">📋 Копировать секрет</button>
       </div>
 
       <div class="warn-box">
-        ⚠️ <b>Важно:</b> Render Free засыпает через 15 мин бездействия. Для стабильной работы используй Hetzner VPS (~€3/мес) или Oracle Cloud Free.
+        ⚠️ <b>Важно:</b> Render Free засыпает через 15 мин бездействия. Первое подключение ~30 сек. Для стабильной работы используй VPS.
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">📖 Инструкция</div>
+    <div class="section-title">📖 Как подключить</div>
     <div class="section-body">
       <div class="hint">
         1. Нажми "Подключиться в Telegram" — откроется приложение<br>
-        2. Или зайди в Настройки → Данные и память → Настройки прокси → Добавить прокси<br>
+        2. Или: Настройки → Данные и память → Прокси → Добавить прокси<br>
         3. Вставь ссылку или введи данные вручную<br>
         4. Готово!
       </div>
@@ -130,52 +105,32 @@ footer { text-align:center; padding:16px; font-size:11px; color:#484f58; }
 <footer>MTProto Proxy • Render Free</footer>
 
 <script>
-// ===== ЗАМЕНИ НА СВОИ ДАННЫЕ ПОСЛЕ ДЕПЛОЯ =====
-const PROXY_SERVER = "android-mtproto.onrender.com";  // Твой домен Render
-const PROXY_PORT = "8443";
-const PROXY_SECRET = "ee0000000000000000000000000000000000000000000000000000000000000000";  // Сгенерируется сервером
-// ================================================
+// ===== ЗАМЕНИ НА СВОЙ ДОМЕН RENDER =====
+const RENDER_HOST = "mtproto-proxy-xxx.onrender.com";  // Вставь свой домен
+// ========================================
 
-function generateProxyLink() {
-  const secret = PROXY_SECRET;
-  const link = `https://t.me/proxy?server=${PROXY_SERVER}&port=${PROXY_PORT}&secret=${secret}`;
+async function loadProxyInfo() {
+  try {
+    const res = await fetch(`https://${RENDER_HOST}/info`);
+    const data = await res.json();
 
-  document.getElementById('proxyLink').textContent = link;
-  document.getElementById('tgLink').href = link;
-  document.getElementById('serverValue').textContent = PROXY_SERVER;
-  document.getElementById('portValue').textContent = PROXY_PORT;
-  document.getElementById('secretValue').textContent = secret.substring(0, 16) + "...";
+    document.getElementById('proxyLink').textContent = data.mtproto_link;
+    document.getElementById('tgLink').href = data.mtproto_link;
+    document.getElementById('serverValue').textContent = data.server;
+    document.getElementById('portValue').textContent = data.port;
+    document.getElementById('secretValue').textContent = data.secret.substring(0, 16) + "...";
+  } catch(e) {
+    document.getElementById('proxyLink').textContent = "Ошибка загрузки. Сервер спит?";
+  }
 }
 
 function copyLink() {
   const link = document.getElementById('tgLink').href;
-  navigator.clipboard.writeText(link).then(() => {
-    alert("Ссылка скопирована!");
-  });
+  if(link === "#") return;
+  navigator.clipboard.writeText(link).then(() => alert("Скопировано!"));
 }
 
-function copySecret() {
-  navigator.clipboard.writeText(PROXY_SECRET).then(() => {
-    alert("Секрет скопирован!");
-  });
-}
-
-async function checkStatus() {
-  const badge = document.getElementById('statusBadge');
-  const text = document.getElementById('statusText');
-
-  try {
-    const res = await fetch(`https://${PROXY_SERVER}/health`, { method: 'GET', mode: 'no-cors' });
-    badge.className = 'status-badge status-online';
-    text.textContent = 'Онлайн';
-  } catch(e) {
-    badge.className = 'status-badge status-offline';
-    text.textContent = 'Оффлайн (спит)';
-  }
-}
-
-generateProxyLink();
-checkStatus();
+loadProxyInfo();
 </script>
 </body>
 </html>
