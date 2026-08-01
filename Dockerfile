@@ -1,10 +1,20 @@
-FROM telegrammessenger/proxy:latest
+FROM python:3.11-slim
 
-# Render использует порт из переменной окружения
-ENV PORT=8443
+WORKDIR /app
 
-# Открываем порт
+# Установка зависимостей
+RUN apt-get update && apt-get install -y --no-install-recommends     gcc     libffi-dev     && rm -rf /var/lib/apt/lists/*
+
+# Python зависимости
+RUN pip install --no-cache-dir     cryptography     aiohttp     python-socks[asyncio]
+
+# Копируем код
+COPY mtproto_server.py /app/
+COPY server.py /app/
+
+# Порт
 EXPOSE 8443
 
-# Запуск с нашим портом
-CMD ["-p", "8443"]
+# Запуск
+CMD ["python", "server.py"]
+
