@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MTProto Proxy</title>
+<title>SOCKS5 Proxy</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -15,7 +15,7 @@ header {
   position:sticky; top:0; z-index:100;
 }
 header h1 { font-size:16px; color:#2aabee; display:flex; align-items:center; gap:8px; }
-header h1::before { content:"✈️"; }
+header h1::before { content:"🧦"; }
 .container { flex:1; padding:14px; max-width:100%; }
 .section {
   background:#161b22; border:1px solid #30363d; border-radius:14px;
@@ -35,15 +35,9 @@ header h1::before { content:"✈️"; }
   margin-bottom:6px; display:block;
 }
 .proxy-value {
-  font-family:"SF Mono", Monaco, monospace; font-size:13px; color:#c9d1d9;
-  word-break:break-all; line-height:1.6;
+  font-family:"SF Mono", Monaco, monospace; font-size:14px; color:#c9d1d9;
+  word-break:break-all; line-height:1.8;
 }
-.proxy-link {
-  display:block; margin-top:12px; padding:14px;
-  background:#2aabee; color:#fff; text-align:center;
-  border-radius:12px; text-decoration:none; font-weight:700; font-size:15px;
-}
-.proxy-link:active { background:#229ed9; transform:scale(.98); }
 .copy-btn {
   display:inline-flex; align-items:center; gap:6px; padding:8px 14px;
   background:#21262d; border:1px solid #30363d; border-radius:8px;
@@ -55,12 +49,16 @@ header h1::before { content:"✈️"; }
   background:rgba(210,153,34,.1); border:1px solid rgba(210,153,34,.3);
   border-radius:10px; padding:12px; margin-top:12px; font-size:12px; color:#d29922;
 }
+.success-box {
+  background:rgba(35,134,54,.1); border:1px solid rgba(35,134,54,.3);
+  border-radius:10px; padding:12px; margin-top:12px; font-size:12px; color:#3fb950;
+}
 footer { text-align:center; padding:16px; font-size:11px; color:#484f58; }
 </style>
 </head>
 <body>
 <header>
-  <h1>MTProto Proxy</h1>
+  <h1>SOCKS5 Proxy</h1>
 </header>
 
 <div class="container">
@@ -68,69 +66,91 @@ footer { text-align:center; padding:16px; font-size:11px; color:#484f58; }
     <div class="section-title">🔗 Данные прокси</div>
     <div class="section-body">
       <div class="proxy-card">
-        <label>Ссылка для Telegram</label>
-        <div class="proxy-value" id="proxyLink">Загрузка...</div>
-        <button class="copy-btn" onclick="copyLink()">📋 Копировать ссылку</button>
-        <a class="proxy-link" id="tgLink" href="#">🚀 Подключиться в Telegram</a>
+        <label>Server</label>
+        <div class="proxy-value" id="server">-</div>
+        <button class="copy-btn" onclick="copy('server')">📋 Копировать</button>
       </div>
 
-      <div class="proxy-card" style="margin-top:12px;">
-        <label>Ручная настройка</label>
-        <div class="proxy-value">
-          <div>Server: <span id="serverValue">-</span></div>
-          <div>Port: <span id="portValue">8443</span></div>
-          <div>Secret: <span id="secretValue">-</span></div>
-        </div>
+      <div class="proxy-card" style="margin-top:10px;">
+        <label>Port</label>
+        <div class="proxy-value" id="port">-</div>
+        <button class="copy-btn" onclick="copy('port')">📋 Копировать</button>
+      </div>
+
+      <div class="proxy-card" style="margin-top:10px;">
+        <label>Username</label>
+        <div class="proxy-value" id="username">-</div>
+        <button class="copy-btn" onclick="copy('username')">📋 Копировать</button>
+      </div>
+
+      <div class="proxy-card" style="margin-top:10px;">
+        <label>Password</label>
+        <div class="proxy-value" id="password">-</div>
+        <button class="copy-btn" onclick="copy('password')">📋 Копировать</button>
+      </div>
+
+      <div class="success-box">
+        ✅ <b>Работает в Telegram!</b> Настройки → Данные и память → Прокси → Добавить прокси → SOCKS5
       </div>
 
       <div class="warn-box">
-        ⚠️ <b>Важно:</b> Render Free засыпает через 15 мин бездействия. Первое подключение ~30 сек. Для стабильной работы используй VPS.
+        ⚠️ Render Free спит через 15 мин бездействия. Первое подключение ~30 сек.
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">📖 Как подключить</div>
+    <div class="section-title">📖 Инструкция для Telegram</div>
     <div class="section-body">
       <div class="hint">
-        1. Нажми "Подключиться в Telegram" — откроется приложение<br>
-        2. Или: Настройки → Данные и память → Прокси → Добавить прокси<br>
-        3. Вставь ссылку или введи данные вручную<br>
-        4. Готово!
+        1. Настройки → Данные и память → Прокси<br>
+        2. Добавить прокси → SOCKS5<br>
+        3. Введи Server, Port, Username, Password<br>
+        4. Сохрани → Готово!
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🌐 Для браузера/ПК</div>
+    <div class="section-body">
+      <div class="hint">
+        Chrome: Расширение FoxyProxy<br>
+        Firefox: Настройки → Сеть → Прокси → SOCKS5<br>
+        Windows: Настройки → Прокси → Использовать прокси-сервер<br>
+        Android: Настройки WiFi → Дополнительно → Прокси → Вручную
       </div>
     </div>
   </div>
 </div>
 
-<footer>MTProto Proxy • Render Free</footer>
+<footer>SOCKS5 Proxy • Render Free</footer>
 
 <script>
 // ===== ЗАМЕНИ НА СВОЙ ДОМЕН RENDER =====
-const RENDER_HOST = "mtproto-proxy-xxx.onrender.com";  // Вставь свой домен
+const RENDER_HOST = "socks5-proxy-xxx.onrender.com";  // Вставь свой домен
 // ========================================
 
-async function loadProxyInfo() {
+async function loadInfo() {
   try {
     const res = await fetch(`https://${RENDER_HOST}/info`);
     const data = await res.json();
 
-    document.getElementById('proxyLink').textContent = data.mtproto_link;
-    document.getElementById('tgLink').href = data.mtproto_link;
-    document.getElementById('serverValue').textContent = data.server;
-    document.getElementById('portValue').textContent = data.port;
-    document.getElementById('secretValue').textContent = data.secret.substring(0, 16) + "...";
+    document.getElementById('server').textContent = data.server;
+    document.getElementById('port').textContent = data.port;
+    document.getElementById('username').textContent = data.username || "(не требуется)";
+    document.getElementById('password').textContent = data.password || "(не требуется)";
   } catch(e) {
-    document.getElementById('proxyLink').textContent = "Ошибка загрузки. Сервер спит?";
+    document.getElementById('server').textContent = "Ошибка загрузки. Сервер спит?";
   }
 }
 
-function copyLink() {
-  const link = document.getElementById('tgLink').href;
-  if(link === "#") return;
-  navigator.clipboard.writeText(link).then(() => alert("Скопировано!"));
+function copy(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => alert("Скопировано: " + text));
 }
 
-loadProxyInfo();
+loadInfo();
 </script>
 </body>
 </html>
