@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Flask API + SOCKS5 proxy для Render.
+SOCKS5 работает на порту из PORT (Render).
+Flask API работает на порту PORT+1 (внутренний).
 """
 import os
 import threading
@@ -47,7 +49,11 @@ def init_proxy():
     """Инициализация proxy."""
     global proxy_info
 
-    port = int(os.environ.get("PORT", "1080"))
+    # Render даёт PORT для внешнего доступа — используем его для SOCKS5
+    socks5_port = int(os.environ.get("PORT", "10000"))
+    # Flask API на внутреннем порту (Render не проксирует его наружу, но для логов ок)
+    flask_port = socks5_port + 1
+
     username = os.environ.get("PROXY_USER", "user")
     password = os.environ.get("PROXY_PASS", "pass123")
     host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost")
@@ -55,7 +61,7 @@ def init_proxy():
     proxy_info = {
         "type": "socks5",
         "server": host,
-        "port": port,
+        "port": socks5_port,
         "username": username,
         "password": password,
         "auth_required": bool(username and password)
@@ -64,7 +70,7 @@ def init_proxy():
     print("=" * 50)
     print("SOCKS5 PROXY")
     print(f"Server: {host}")
-    print(f"Port: {port}")
+    print(f"SOCKS5 Port: {socks5_port}")
     print(f"Username: {username}")
     print(f"Password: {password}")
     print("=" * 50)
@@ -72,12 +78,15 @@ def init_proxy():
     # Запускаем SOCKS5 в отдельном потоке
     proxy_thread = threading.Thread(
         target=run_socks5,
-        args=(port, username, password),
+        args=(socks5_port, username, password),
         daemon=True
     )
     proxy_thread.start()
 
+    return flask_port
+
 
 if __name__ == "__main__":
-    init_proxy()
-    app.run(host="0.0.0.0", port=10000)
+    flask_port = init_proxy()
+    # Flask на внутреннем порту (не конфликтует с SOCKS5)
+    app.run(host="0.0.0.0", port=flask_port)
