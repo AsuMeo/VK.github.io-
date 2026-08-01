@@ -5,7 +5,9 @@ services:
     plan: free
     envVars:
       - key: SECRET
-        generateValue: true  # Render сгенерирует случайный секрет
+        generateValue: true
       - key: PORT
-        value: 8443
-    healthCheckPath: /health
+        value: "8443"
+    ports:
+      - port: 8443
+        protocol: TCP
