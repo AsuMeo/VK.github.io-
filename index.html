@@ -2,117 +2,109 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050508">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PhotoForge Pro</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0f; color: #e8e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  ::-webkit-scrollbar { width: 0; height: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#050508; color:#e0e0f0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+  ::-webkit-scrollbar { display:none; }
 
-  #app { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  #app { width:100%; height:100%; display:flex; flex-direction:column; }
 
-  /* Header */
-  .header { flex-shrink: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; background: rgba(10,10,15,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 100; }
-  .header-title { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
-  .btn-icon { width: 36px; height: 36px; border-radius: 10px; border: none; background: rgba(255,255,255,0.06); color: #b0b0c0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
-  .btn-icon:active { background: rgba(255,255,255,0.12); transform: scale(0.92); }
-  .btn-icon svg { width: 18px; height: 18px; }
-  .btn-primary { padding: 8px 16px; border-radius: 10px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
-  .btn-primary:active { opacity: 0.8; transform: scale(0.96); }
+  /* ===== HEADER ===== */
+  .header { flex-shrink:0; height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; background:rgba(5,5,8,0.92); backdrop-filter:blur(24px); border-bottom:1px solid rgba(255,255,255,0.04); z-index:100; }
+  .header-title { font-size:17px; font-weight:800; letter-spacing:0.8px; background:linear-gradient(135deg,#8b5cf6,#ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .header-actions { display:flex; gap:6px; align-items:center; }
+  .btn-icon { width:36px; height:36px; border-radius:10px; border:none; background:rgba(255,255,255,0.05); color:#a0a0b8; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.12s; }
+  .btn-icon:active { background:rgba(255,255,255,0.12); transform:scale(0.9); }
+  .btn-icon svg { width:18px; height:18px; }
+  .btn-primary { padding:8px 18px; border-radius:10px; border:none; background:linear-gradient(135deg,#8b5cf6,#ec4899); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+  .btn-primary:active { opacity:0.7; transform:scale(0.92); }
 
-  /* Canvas Area */
-  .canvas-wrapper { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #0d0d14; }
-  #canvas { max-width: 100%; max-height: 100%; touch-action: none; }
+  /* ===== CANVAS ===== */
+  .canvas-wrapper { flex:1; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at center,#0c0c18 0%,#050508 100%); }
+  #canvas { max-width:100%; max-height:100%; touch-action:none; border-radius:4px; }
 
-  /* Empty State */
-  .empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
-  .empty-state svg { width: 64px; height: 64px; opacity: 0.3; }
-  .empty-state h2 { font-size: 18px; color: #8888a0; font-weight: 500; }
-  .empty-state p { font-size: 13px; color: #555; }
-  .upload-btn { padding: 14px 32px; border-radius: 14px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-  .upload-btn:active { transform: scale(0.95); }
+  .empty-state { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; }
+  .empty-state svg { width:60px; height:60px; opacity:0.25; }
+  .empty-state h2 { font-size:18px; color:#666680; font-weight:600; }
+  .empty-state p { font-size:13px; color:#444; }
+  .upload-btn { padding:14px 36px; border-radius:14px; border:none; background:linear-gradient(135deg,#8b5cf6,#ec4899); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; box-shadow:0 4px 20px rgba(139,92,246,0.3); }
+  .upload-btn:active { transform:scale(0.95); }
 
-  /* Tools Panel */
-  .tools-panel { flex-shrink: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.05); z-index: 100; }
+  /* ===== TOOLS PANEL ===== */
+  .tools-panel { flex-shrink:0; background:rgba(5,5,8,0.95); backdrop-filter:blur(24px); border-top:1px solid rgba(255,255,255,0.04); z-index:100; }
 
-  /* Tool Tabs */
-  .tool-tabs { display: flex; overflow-x: auto; padding: 8px 12px; gap: 6px; scrollbar-width: none; }
-  .tool-tabs::-webkit-scrollbar { display: none; }
-  .tool-tab { flex-shrink: 0; padding: 8px 14px; border-radius: 10px; border: none; background: rgba(255,255,255,0.04); color: #8888a0; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
-  .tool-tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-  .tool-tab:active { transform: scale(0.95); }
+  .tool-tabs { display:flex; overflow-x:auto; padding:8px 12px; gap:4px; scrollbar-width:none; }
+  .tool-tab { flex-shrink:0; padding:8px 14px; border-radius:10px; border:none; background:transparent; color:#666680; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+  .tool-tab.active { background:linear-gradient(135deg,#8b5cf6,#ec4899); color:#fff; }
+  .tool-tab:active { transform:scale(0.95); }
 
-  /* Tool Content */
-  .tool-content { padding: 8px 12px 12px; display: none; }
-  .tool-content.active { display: block; }
+  .tool-content { padding:8px 12px 12px; display:none; }
+  .tool-content.active { display:block; }
 
-  /* Brush Tool */
-  .brush-preview { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .brush-preview-canvas { width: 48px; height: 48px; border-radius: 10px; background: rgba(255,255,255,0.04); flex-shrink: 0; }
-  .brush-controls { flex: 1; }
-  .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .slider-row label { font-size: 11px; color: #8888a0; width: 50px; flex-shrink: 0; }
-  .slider-row input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; }
-  .slider-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); cursor: pointer; }
-  .slider-row span { font-size: 11px; color: #b0b0c0; width: 30px; text-align: right; }
+  /* ===== BRUSH ===== */
+  .brush-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .brush-preview-canvas { width:44px; height:44px; border-radius:10px; background:rgba(255,255,255,0.03); flex-shrink:0; }
+  .brush-controls { flex:1; }
+  .slider-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .slider-row label { font-size:11px; color:#666680; width:52px; flex-shrink:0; font-weight:500; }
+  .slider-row input[type="range"] { flex:1; -webkit-appearance:none; height:5px; border-radius:3px; background:rgba(255,255,255,0.08); outline:none; }
+  .slider-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#8b5cf6,#ec4899); cursor:pointer; box-shadow:0 2px 8px rgba(139,92,246,0.4); }
+  .slider-row span { font-size:11px; color:#a0a0b8; width:32px; text-align:right; font-weight:600; }
 
-  .color-palette { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .color-swatch { width: 28px; height: 28px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: all 0.15s; }
-  .color-swatch.active { border-color: #667eea; transform: scale(1.15); }
-  .color-swatch:active { transform: scale(0.9); }
+  .color-palette { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+  .color-swatch { width:26px; height:26px; border-radius:8px; border:2px solid transparent; cursor:pointer; transition:all 0.15s; }
+  .color-swatch.active { border-color:#8b5cf6; transform:scale(1.2); box-shadow:0 0 8px rgba(139,92,246,0.5); }
+  .color-swatch:active { transform:scale(0.85); }
 
-  /* Adjustments */
-  .adjust-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .adjust-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 10px; }
-  .adjust-item label { font-size: 11px; color: #8888a0; display: block; margin-bottom: 6px; }
-  .adjust-item input[type="range"] { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; }
-  .adjust-item input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); cursor: pointer; }
-  .adjust-value { font-size: 11px; color: #b0b0c0; text-align: right; margin-top: 4px; }
+  /* ===== ADJUSTMENTS ===== */
+  .adjust-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .adjust-item { background:rgba(255,255,255,0.025); border-radius:12px; padding:10px; }
+  .adjust-item label { font-size:11px; color:#666680; display:block; margin-bottom:5px; font-weight:500; }
+  .adjust-item input[type="range"] { width:100%; -webkit-appearance:none; height:5px; border-radius:3px; background:rgba(255,255,255,0.08); outline:none; }
+  .adjust-item input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#8b5cf6,#ec4899); cursor:pointer; box-shadow:0 2px 8px rgba(139,92,246,0.4); }
+  .adjust-value { font-size:11px; color:#a0a0b8; text-align:right; margin-top:3px; font-weight:600; }
 
-  /* Filters */
-  .filters-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .filter-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; }
-  .filter-item.active { border-color: #667eea; background: rgba(102,126,234,0.1); }
-  .filter-item:active { transform: scale(0.95); }
-  .filter-item .filter-preview { width: 100%; aspect-ratio: 1; border-radius: 8px; background: linear-gradient(135deg, #1a1a2e, #16213e); margin-bottom: 6px; position: relative; overflow: hidden; }
-  .filter-item .filter-preview img { width: 100%; height: 100%; object-fit: cover; }
-  .filter-item span { font-size: 10px; color: #8888a0; }
+  /* ===== FILTERS ===== */
+  .filters-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+  .filter-item { flex-shrink:0; width:72px; background:rgba(255,255,255,0.025); border-radius:12px; padding:6px; text-align:center; cursor:pointer; transition:all 0.15s; border:2px solid transparent; }
+  .filter-item.active { border-color:#8b5cf6; background:rgba(139,92,246,0.08); }
+  .filter-item:active { transform:scale(0.95); }
+  .filter-item .filter-preview { width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden; margin-bottom:5px; position:relative; }
+  .filter-item .filter-preview img, .filter-item .filter-preview div { width:100%; height:100%; object-fit:cover; }
+  .filter-item span { font-size:9px; color:#8888a0; }
 
-  /* Effects */
-  .effects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .effect-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; }
-  .effect-item.active { border-color: #667eea; background: rgba(102,126,234,0.1); }
-  .effect-item:active { transform: scale(0.95); }
-  .effect-item svg { width: 24px; height: 24px; margin-bottom: 6px; color: #667eea; }
-  .effect-item span { font-size: 10px; color: #8888a0; display: block; }
+  /* ===== EFFECTS ===== */
+  .effects-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .effect-item { background:rgba(255,255,255,0.025); border-radius:10px; padding:10px 4px; text-align:center; cursor:pointer; transition:all 0.15s; border:2px solid transparent; }
+  .effect-item.active { border-color:#8b5cf6; background:rgba(139,92,246,0.08); }
+  .effect-item:active { transform:scale(0.92); }
+  .effect-item svg { width:20px; height:20px; margin-bottom:4px; color:#8b5cf6; }
+  .effect-item span { font-size:9px; color:#8888a0; display:block; }
 
-  /* Crop & Rotate */
-  .crop-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .crop-item { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
-  .crop-item:active { transform: scale(0.95); }
-  .crop-item svg { width: 20px; height: 20px; color: #8888a0; }
-  .crop-item span { font-size: 10px; color: #8888a0; display: block; margin-top: 4px; }
+  /* ===== CROP ===== */
+  .crop-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .crop-item { background:rgba(255,255,255,0.025); border-radius:10px; padding:10px 4px; text-align:center; cursor:pointer; transition:all 0.15s; }
+  .crop-item:active { transform:scale(0.92); }
+  .crop-item svg { width:18px; height:18px; color:#8888a0; }
+  .crop-item span { font-size:9px; color:#8888a0; display:block; margin-top:3px; }
 
-  /* Undo/Redo bar */
-  .undo-bar { display: flex; justify-content: center; gap: 16px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.03); }
+  /* ===== LOADING ===== */
+  .loading-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:999; }
+  .loading-overlay.active { display:flex; }
+  .spinner { width:36px; height:36px; border:3px solid rgba(255,255,255,0.08); border-top-color:#8b5cf6; border-radius:50%; animation:spin 0.7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 
-  /* Loading */
-  .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 999; }
-  .loading-overlay.active { display: flex; }
-  .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* ===== TOAST ===== */
+  .toast { position:fixed; bottom:120px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(20,20,35,0.95); color:#fff; padding:10px 22px; border-radius:12px; font-size:13px; opacity:0; pointer-events:none; transition:all 0.3s; z-index:1000; border:1px solid rgba(255,255,255,0.06); }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* Toast */
-  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(30,30,45,0.95); color: white; padding: 10px 20px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 1000; }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  /* Hidden file input */
-  #fileInput { display: none; }
+  #fileInput { display:none; }
 </style>
 </head>
 <body>
@@ -141,7 +133,7 @@
     <div class="empty-state" id="emptyState">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
       <h2>Нет фото</h2>
-      <p>Загрузите фото из галереи, чтобы начать редактирование</p>
+      <p>Загрузите фото из галереи</p>
       <button class="upload-btn" onclick="uploadPhoto()">Выбрать фото</button>
     </div>
   </div>
@@ -153,169 +145,103 @@
       <button class="tool-tab" data-tab="filters">Фильтры</button>
       <button class="tool-tab" data-tab="effects">Эффекты</button>
       <button class="tool-tab" data-tab="crop">Кадр</button>
+      <button class="tool-tab" data-tab="more">Ещё</button>
     </div>
 
     <div class="tool-content active" id="tab-brush">
-      <div class="brush-preview">
+      <div class="brush-row">
         <canvas class="brush-preview-canvas" id="brushPreview"></canvas>
         <div class="brush-controls">
           <div class="slider-row">
             <label>Размер</label>
-            <input type="range" id="brushSize" min="1" max="100" value="20" oninput="updateBrush()">
-            <span id="brushSizeVal">20</span>
+            <input type="range" id="brushSize" min="0.5" max="100" step="0.5" value="15" oninput="updateBrush()">
+            <span id="brushSizeVal">15</span>
           </div>
           <div class="slider-row">
-            <label>Непрозрач.</label>
+            <label>Непрозр.</label>
             <input type="range" id="brushOpacity" min="1" max="100" value="100" oninput="updateBrush()">
             <span id="brushOpacityVal">100</span>
           </div>
           <div class="slider-row">
             <label>Размытие</label>
-            <input type="range" id="brushBlur" min="0" max="20" value="0" oninput="updateBrush()">
+            <input type="range" id="brushBlur" min="0" max="20" step="0.5" value="0" oninput="updateBrush()">
             <span id="brushBlurVal">0</span>
           </div>
         </div>
       </div>
       <div class="color-palette" id="colorPalette">
         <div class="color-swatch active" style="background:#ff0000" data-color="#ff0000"></div>
-        <div class="color-swatch" style="background:#00ff00" data-color="#00ff00"></div>
-        <div class="color-swatch" style="background:#0000ff" data-color="#0000ff"></div>
-        <div class="color-swatch" style="background:#ffff00" data-color="#ffff00"></div>
-        <div class="color-swatch" style="background:#ff00ff" data-color="#ff00ff"></div>
-        <div class="color-swatch" style="background:#00ffff" data-color="#00ffff"></div>
-        <div class="color-swatch" style="background:#ffffff" data-color="#ffffff"></div>
-        <div class="color-swatch" style="background:#000000" data-color="#000000"></div>
+        <div class="color-swatch" style="background:#ff4400" data-color="#ff4400"></div>
         <div class="color-swatch" style="background:#ff8800" data-color="#ff8800"></div>
+        <div class="color-swatch" style="background:#ffcc00" data-color="#ffcc00"></div>
+        <div class="color-swatch" style="background:#88ff00" data-color="#88ff00"></div>
+        <div class="color-swatch" style="background:#00ff00" data-color="#00ff00"></div>
+        <div class="color-swatch" style="background:#00ff88" data-color="#00ff88"></div>
+        <div class="color-swatch" style="background:#00ffff" data-color="#00ffff"></div>
+        <div class="color-swatch" style="background:#0088ff" data-color="#0088ff"></div>
+        <div class="color-swatch" style="background:#0000ff" data-color="#0000ff"></div>
         <div class="color-swatch" style="background:#8800ff" data-color="#8800ff"></div>
-        <div class="color-swatch" style="background:#ff5555" data-color="#ff5555"></div>
-        <div class="color-swatch" style="background:#55ff55" data-color="#55ff55"></div>
+        <div class="color-swatch" style="background:#ff00ff" data-color="#ff00ff"></div>
+        <div class="color-swatch" style="background:#ff0088" data-color="#ff0088"></div>
+        <div class="color-swatch" style="background:#ffffff" data-color="#ffffff"></div>
+        <div class="color-swatch" style="background:#aaaaaa" data-color="#aaaaaa"></div>
+        <div class="color-swatch" style="background:#000000" data-color="#000000"></div>
       </div>
     </div>
 
     <div class="tool-content" id="tab-adjust">
       <div class="adjust-grid">
-        <div class="adjust-item">
-          <label>Яркость</label>
-          <input type="range" id="brightness" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="brightnessVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Контраст</label>
-          <input type="range" id="contrast" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="contrastVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Насыщенность</label>
-          <input type="range" id="saturation" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="saturationVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Теплота</label>
-          <input type="range" id="warmth" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="warmthVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Резкость</label>
-          <input type="range" id="sharpness" min="0" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="sharpnessVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Экспозиция</label>
-          <input type="range" id="exposure" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="exposureVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Тени</label>
-          <input type="range" id="shadows" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="shadowsVal">0</div>
-        </div>
-        <div class="adjust-item">
-          <label>Света</label>
-          <input type="range" id="highlights" min="-100" max="100" value="0" oninput="applyAdjustments()">
-          <div class="adjust-value" id="highlightsVal">0</div>
-        </div>
+        <div class="adjust-item"><label>Яркость</label><input type="range" id="brightness" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="brightnessVal">0</div></div>
+        <div class="adjust-item"><label>Контраст</label><input type="range" id="contrast" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="contrastVal">0</div></div>
+        <div class="adjust-item"><label>Насыщенность</label><input type="range" id="saturation" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="saturationVal">0</div></div>
+        <div class="adjust-item"><label>Теплота</label><input type="range" id="warmth" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="warmthVal">0</div></div>
+        <div class="adjust-item"><label>Резкость</label><input type="range" id="sharpness" min="0" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="sharpnessVal">0</div></div>
+        <div class="adjust-item"><label>Экспозиция</label><input type="range" id="exposure" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="exposureVal">0</div></div>
+        <div class="adjust-item"><label>Тени</label><input type="range" id="shadows" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="shadowsVal">0</div></div>
+        <div class="adjust-item"><label>Света</label><input type="range" id="highlights" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="highlightsVal">0</div></div>
       </div>
     </div>
 
     <div class="tool-content" id="tab-filters">
-      <div class="filters-grid" id="filtersGrid"></div>
+      <div class="filters-scroll" id="filtersGrid"></div>
     </div>
 
     <div class="tool-content" id="tab-effects">
       <div class="effects-grid">
-        <div class="effect-item" onclick="applyEffect('blur')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-          <span>Размытие</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('pixelate')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          <span>Пиксель</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('vignette')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/></svg>
-          <span>Виньетка</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('noise')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          <span>Шум</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('oil')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-          <span>Масло</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('sketch')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-          <span>Эскиз</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('invert')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z"/></svg>
-          <span>Инверсия</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('sepia')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span>Сепия</span>
-        </div>
-        <div class="effect-item" onclick="applyEffect('emboss')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l16 16"/><path d="M4 20l16-16"/></svg>
-          <span>Тиснение</span>
-        </div>
+        <div class="effect-item" onclick="applyEffect('blur')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg><span>Размытие</span></div>
+        <div class="effect-item" onclick="applyEffect('pixelate')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Пиксель</span></div>
+        <div class="effect-item" onclick="applyEffect('vignette')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/></svg><span>Виньетка</span></div>
+        <div class="effect-item" onclick="applyEffect('noise')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span>Шум</span></div>
+        <div class="effect-item" onclick="applyEffect('oil')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg><span>Масло</span></div>
+        <div class="effect-item" onclick="applyEffect('sketch')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg><span>Эскиз</span></div>
+        <div class="effect-item" onclick="applyEffect('invert')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z"/></svg><span>Инверсия</span></div>
+        <div class="effect-item" onclick="applyEffect('sepia')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>Сепия</span></div>
+        <div class="effect-item" onclick="applyEffect('emboss')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l16 16"/><path d="M4 20l16-16"/></svg><span>Тиснение</span></div>
+        <div class="effect-item" onclick="applyEffect('edge')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 4l16 16"/></svg><span>Контуры</span></div>
+        <div class="effect-item" onclick="applyEffect('posterize')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg><span>Постер</span></div>
+        <div class="effect-item" onclick="applyEffect('threshold')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4" y1="12" x2="20" y2="12"/></svg><span>Порог</span></div>
       </div>
     </div>
 
     <div class="tool-content" id="tab-crop">
       <div class="crop-grid">
-        <div class="crop-item" onclick="rotateImage(90)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          <span>Повернуть 90°</span>
-        </div>
-        <div class="crop-item" onclick="rotateImage(-90)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-          <span>Повернуть -90°</span>
-        </div>
-        <div class="crop-item" onclick="flipImage('h')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V4"/><path d="M5 10l7-6 7 6"/></svg>
-          <span>Отразить Г</span>
-        </div>
-        <div class="crop-item" onclick="flipImage('v')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/><path d="M14 6l6 6-6 6"/></svg>
-          <span>Отразить В</span>
-        </div>
-        <div class="crop-item" onclick="cropRatio(1,1)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-          <span>1:1</span>
-        </div>
-        <div class="crop-item" onclick="cropRatio(4,3)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/></svg>
-          <span>4:3</span>
-        </div>
-        <div class="crop-item" onclick="cropRatio(16,9)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="22" height="12" rx="2"/></svg>
-          <span>16:9</span>
-        </div>
-        <div class="crop-item" onclick="cropRatio(3,4)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/></svg>
-          <span>3:4</span>
-        </div>
+        <div class="crop-item" onclick="rotateImage(90)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>90°</span></div>
+        <div class="crop-item" onclick="rotateImage(-90)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span>-90°</span></div>
+        <div class="crop-item" onclick="flipImage('h')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V4"/><path d="M5 10l7-6 7 6"/></svg><span>Гориз.</span></div>
+        <div class="crop-item" onclick="flipImage('v')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/><path d="M14 6l6 6-6 6"/></svg><span>Верт.</span></div>
+        <div class="crop-item" onclick="cropRatio(1,1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg><span>1:1</span></div>
+        <div class="crop-item" onclick="cropRatio(4,3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/></svg><span>4:3</span></div>
+        <div class="crop-item" onclick="cropRatio(16,9)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="22" height="12" rx="2"/></svg><span>16:9</span></div>
+        <div class="crop-item" onclick="cropRatio(3,4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/></svg><span>3:4</span></div>
+      </div>
+    </div>
+
+    <div class="tool-content" id="tab-more">
+      <div class="adjust-grid">
+        <div class="adjust-item"><label>Зернистость</label><input type="range" id="grain" min="0" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="grainVal">0</div></div>
+        <div class="adjust-item"><label>Тональность</label><input type="range" id="tint" min="-100" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="tintVal">0</div></div>
+        <div class="adjust-item"><label>Гамма</label><input type="range" id="gamma" min="50" max="200" step="0.5" value="100" oninput="debouncedAdjust()"><div class="adjust-value" id="gammaVal">100</div></div>
+        <div class="adjust-item"><label>Виньетка</label><input type="range" id="vignetteAmount" min="0" max="100" step="0.5" value="0" oninput="debouncedAdjust()"><div class="adjust-value" id="vignetteAmountVal">0</div></div>
       </div>
     </div>
   </div>
@@ -330,10 +256,12 @@
 let canvas, ctx, originalImage = null, currentImage = null;
 let historyStack = [], historyIndex = -1;
 let isDrawing = false, lastX = 0, lastY = 0;
-let brushColor = '#ff0000', brushSize = 20, brushOpacity = 1, brushBlur = 0;
-let adjustments = { brightness:0, contrast:0, saturation:0, warmth:0, sharpness:0, exposure:0, shadows:0, highlights:0 };
+let brushColor = '#ff0000', brushSize = 15, brushOpacity = 1, brushBlur = 0;
+let adjustments = { brightness:0, contrast:0, saturation:0, warmth:0, sharpness:0, exposure:0, shadows:0, highlights:0, grain:0, tint:0, gamma:100, vignetteAmount:0 };
 let currentFilter = 'none';
 let rotation = 0, flipH = 1, flipV = 1;
+let adjustTimeout = null;
+let pendingAdjust = false;
 
 // ===== INIT =====
 window.onload = function() {
@@ -344,7 +272,6 @@ window.onload = function() {
   updateBrush();
   generateFilterPreviews();
 
-  // Touch events for drawing
   canvas.addEventListener('touchstart', handleTouchStart, {passive:false});
   canvas.addEventListener('touchmove', handleTouchMove, {passive:false});
   canvas.addEventListener('touchend', handleTouchEnd, {passive:false});
@@ -373,7 +300,7 @@ function initColorPalette() {
   });
 }
 
-// ===== FILE UPLOAD =====
+// ===== FILE =====
 function uploadPhoto() {
   document.getElementById('fileInput').click();
 }
@@ -404,18 +331,17 @@ function handleFile(e) {
 function fitCanvas() {
   if (!currentImage) return;
   const wrapper = document.getElementById('canvasWrapper');
-  const maxW = wrapper.clientWidth - 20;
-  const maxH = wrapper.clientHeight - 20;
+  const maxW = wrapper.clientWidth - 16;
+  const maxH = wrapper.clientHeight - 16;
   let w = currentImage.width;
   let h = currentImage.height;
   const ratio = Math.min(maxW / w, maxH / h, 1);
   canvas.width = w;
   canvas.height = h;
-  canvas.style.width = (w * ratio) + 'px';
-  canvas.style.height = (h * ratio) + 'px';
+  canvas.style.width = Math.round(w * ratio) + 'px';
+  canvas.style.height = Math.round(h * ratio) + 'px';
 }
 
-// ===== RENDER =====
 function renderCanvas() {
   if (!currentImage) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -433,9 +359,9 @@ function pushHistory() {
   if (historyIndex < historyStack.length - 1) {
     historyStack = historyStack.slice(0, historyIndex + 1);
   }
-  historyStack.push(canvas.toDataURL());
+  historyStack.push(canvas.toDataURL('image/jpeg', 0.92));
   historyIndex++;
-  if (historyStack.length > 20) {
+  if (historyStack.length > 15) {
     historyStack.shift();
     historyIndex--;
   }
@@ -477,7 +403,7 @@ function resetAll() {
 
 function resetState() {
   rotation = 0; flipH = 1; flipV = 1;
-  adjustments = { brightness:0, contrast:0, saturation:0, warmth:0, sharpness:0, exposure:0, shadows:0, highlights:0 };
+  adjustments = { brightness:0, contrast:0, saturation:0, warmth:0, sharpness:0, exposure:0, shadows:0, highlights:0, grain:0, tint:0, gamma:100, vignetteAmount:0 };
   currentFilter = 'none';
   document.querySelectorAll('.tool-tab').forEach(t => t.classList.remove('active'));
   document.querySelector('.tool-tab[data-tab="brush"]').classList.add('active');
@@ -485,25 +411,22 @@ function resetState() {
   document.getElementById('tab-brush').classList.add('active');
   document.querySelectorAll('.filter-item').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.effect-item').forEach(e => e.classList.remove('active'));
-  document.querySelectorAll('input[type="range"]').forEach(s => {
-    if (s.id !== 'brushSize' && s.id !== 'brushOpacity' && s.id !== 'brushBlur') {
-      s.value = 0;
-      const valId = s.id + 'Val';
-      if (document.getElementById(valId)) document.getElementById(valId).textContent = '0';
-    }
+  const ids = ['brightness','contrast','saturation','warmth','sharpness','exposure','shadows','highlights','grain','tint','gamma','vignetteAmount'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = id === 'gamma' ? 100 : 0; }
+    const valEl = document.getElementById(id + 'Val');
+    if (valEl) valEl.textContent = id === 'gamma' ? '100' : '0';
   });
 }
 
-// ===== BRUSH DRAWING =====
+// ===== BRUSH =====
 function getTouchPos(e) {
   const rect = canvas.getBoundingClientRect();
   const touch = e.touches[0];
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  return {
-    x: (touch.clientX - rect.left) * scaleX,
-    y: (touch.clientY - rect.top) * scaleY
-  };
+  return { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
 }
 
 function handleTouchStart(e) {
@@ -512,8 +435,7 @@ function handleTouchStart(e) {
   e.preventDefault();
   isDrawing = true;
   const pos = getTouchPos(e);
-  lastX = pos.x;
-  lastY = pos.y;
+  lastX = pos.x; lastY = pos.y;
   drawPoint(pos.x, pos.y);
 }
 
@@ -522,21 +444,17 @@ function handleTouchMove(e) {
   e.preventDefault();
   const pos = getTouchPos(e);
   drawLine(lastX, lastY, pos.x, pos.y);
-  lastX = pos.x;
-  lastY = pos.y;
+  lastX = pos.x; lastY = pos.y;
 }
 
 function handleTouchEnd(e) {
-  if (isDrawing) {
-    isDrawing = false;
-    pushHistory();
-  }
+  if (isDrawing) { isDrawing = false; pushHistory(); }
 }
 
 function drawPoint(x, y) {
   ctx.save();
   ctx.globalAlpha = brushOpacity;
-  ctx.filter = 'blur(' + brushBlur + 'px)';
+  if (brushBlur > 0) ctx.filter = 'blur(' + brushBlur + 'px)';
   ctx.beginPath();
   ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
   ctx.fillStyle = brushColor;
@@ -547,7 +465,7 @@ function drawPoint(x, y) {
 function drawLine(x1, y1, x2, y2) {
   ctx.save();
   ctx.globalAlpha = brushOpacity;
-  ctx.filter = 'blur(' + brushBlur + 'px)';
+  if (brushBlur > 0) ctx.filter = 'blur(' + brushBlur + 'px)';
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
@@ -560,47 +478,61 @@ function drawLine(x1, y1, x2, y2) {
 }
 
 function updateBrush() {
-  brushSize = parseInt(document.getElementById('brushSize').value);
+  brushSize = parseFloat(document.getElementById('brushSize').value);
   brushOpacity = parseInt(document.getElementById('brushOpacity').value) / 100;
-  brushBlur = parseInt(document.getElementById('brushBlur').value);
+  brushBlur = parseFloat(document.getElementById('brushBlur').value);
   document.getElementById('brushSizeVal').textContent = brushSize;
   document.getElementById('brushOpacityVal').textContent = document.getElementById('brushOpacity').value;
   document.getElementById('brushBlurVal').textContent = brushBlur;
 
   const preview = document.getElementById('brushPreview');
   const pctx = preview.getContext('2d');
-  preview.width = 48; preview.height = 48;
-  pctx.clearRect(0, 0, 48, 48);
+  preview.width = 44; preview.height = 44;
+  pctx.clearRect(0, 0, 44, 44);
   pctx.save();
   pctx.globalAlpha = brushOpacity;
-  pctx.filter = 'blur(' + brushBlur + 'px)';
+  if (brushBlur > 0) pctx.filter = 'blur(' + brushBlur + 'px)';
   pctx.beginPath();
-  pctx.arc(24, 24, Math.min(brushSize/2, 20), 0, Math.PI * 2);
+  pctx.arc(22, 22, Math.min(brushSize/2, 18), 0, Math.PI * 2);
   pctx.fillStyle = brushColor;
   pctx.fill();
   pctx.restore();
 }
 
-// ===== ADJUSTMENTS =====
+// ===== ADJUSTMENTS (DEBOUNCED) =====
+function debouncedAdjust() {
+  pendingAdjust = true;
+  if (adjustTimeout) clearTimeout(adjustTimeout);
+  adjustTimeout = setTimeout(() => {
+    if (pendingAdjust) {
+      pendingAdjust = false;
+      applyAdjustments();
+    }
+  }, 80);
+}
+
 function applyAdjustments() {
   if (!originalImage) return;
-  adjustments.brightness = parseInt(document.getElementById('brightness').value);
-  adjustments.contrast = parseInt(document.getElementById('contrast').value);
-  adjustments.saturation = parseInt(document.getElementById('saturation').value);
-  adjustments.warmth = parseInt(document.getElementById('warmth').value);
-  adjustments.sharpness = parseInt(document.getElementById('sharpness').value);
-  adjustments.exposure = parseInt(document.getElementById('exposure').value);
-  adjustments.shadows = parseInt(document.getElementById('shadows').value);
-  adjustments.highlights = parseInt(document.getElementById('highlights').value);
+  adjustments.brightness = parseFloat(document.getElementById('brightness').value);
+  adjustments.contrast = parseFloat(document.getElementById('contrast').value);
+  adjustments.saturation = parseFloat(document.getElementById('saturation').value);
+  adjustments.warmth = parseFloat(document.getElementById('warmth').value);
+  adjustments.sharpness = parseFloat(document.getElementById('sharpness').value);
+  adjustments.exposure = parseFloat(document.getElementById('exposure').value);
+  adjustments.shadows = parseFloat(document.getElementById('shadows').value);
+  adjustments.highlights = parseFloat(document.getElementById('highlights').value);
 
-  document.getElementById('brightnessVal').textContent = adjustments.brightness;
-  document.getElementById('contrastVal').textContent = adjustments.contrast;
-  document.getElementById('saturationVal').textContent = adjustments.saturation;
-  document.getElementById('warmthVal').textContent = adjustments.warmth;
-  document.getElementById('sharpnessVal').textContent = adjustments.sharpness;
-  document.getElementById('exposureVal').textContent = adjustments.exposure;
-  document.getElementById('shadowsVal').textContent = adjustments.shadows;
-  document.getElementById('highlightsVal').textContent = adjustments.highlights;
+  const moreIds = ['grain','tint','gamma','vignetteAmount'];
+  moreIds.forEach(id => {
+    if (document.getElementById(id)) {
+      adjustments[id] = parseFloat(document.getElementById(id).value);
+    }
+  });
+
+  ['brightness','contrast','saturation','warmth','sharpness','exposure','shadows','highlights','grain','tint','gamma','vignetteAmount'].forEach(id => {
+    const valEl = document.getElementById(id + 'Val');
+    if (valEl && document.getElementById(id)) valEl.textContent = document.getElementById(id).value;
+  });
 
   applyAllEffects();
 }
@@ -618,7 +550,11 @@ const filters = [
   {name:'Пастель', filter:'saturate(0.5) brightness(1.1)'},
   {name:'Драма', filter:'contrast(1.5) brightness(0.8) saturate(0.8)'},
   {name:'Мягкий', filter:'brightness(1.1) contrast(0.9) saturate(0.9)'},
-  {name:'HDR', filter:'contrast(1.4) saturate(1.3)'}
+  {name:'HDR', filter:'contrast(1.4) saturate(1.3)'},
+  {name:'Мороз', filter:'hue-rotate(180deg) brightness(1.1) saturate(0.8)'},
+  {name:'Закат', filter:'hue-rotate(-30deg) saturate(1.5) contrast(1.1)'},
+  {name:'Ночь', filter:'brightness(0.7) contrast(1.3) saturate(0.7)'},
+  {name:'Поп', filter:'saturate(2.5) contrast(1.2)'}
 ];
 
 function generateFilterPreviews() {
@@ -626,7 +562,7 @@ function generateFilterPreviews() {
   filters.forEach((f, i) => {
     const div = document.createElement('div');
     div.className = 'filter-item' + (i === 0 ? ' active' : '');
-    div.innerHTML = '<div class="filter-preview" style="filter:' + f.filter + '"><div style="width:100%;height:100%;background:linear-gradient(135deg,#667eea,#764ba2)"></div></div><span>' + f.name + '</span>';
+    div.innerHTML = '<div class="filter-preview" style="filter:' + f.filter + '"><div style="width:100%;height:100%;background:linear-gradient(135deg,#8b5cf6,#ec4899)"></div></div><span>' + f.name + '</span>';
     div.onclick = () => applyFilter(f.filter, div);
     grid.appendChild(div);
   });
@@ -644,7 +580,7 @@ function applyFilter(filterStr, el) {
 function applyEffect(type) {
   if (!currentImage) { showToast('Сначала загрузите фото'); return; }
   showLoading(true);
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
@@ -652,36 +588,18 @@ function applyEffect(type) {
     tctx.drawImage(canvas, 0, 0);
 
     switch(type) {
-      case 'blur':
-        tctx.filter = 'blur(5px)';
-        tctx.drawImage(tempCanvas, 0, 0);
-        break;
-      case 'pixelate':
-        pixelate(tctx, tempCanvas.width, tempCanvas.height, 10);
-        break;
-      case 'vignette':
-        applyVignette(tctx, tempCanvas.width, tempCanvas.height);
-        break;
-      case 'noise':
-        applyNoise(tctx, tempCanvas.width, tempCanvas.height);
-        break;
-      case 'invert':
-        tctx.filter = 'invert(100%)';
-        tctx.drawImage(tempCanvas, 0, 0);
-        break;
-      case 'sepia':
-        tctx.filter = 'sepia(100%)';
-        tctx.drawImage(tempCanvas, 0, 0);
-        break;
-      case 'emboss':
-        applyEmboss(tctx, tempCanvas.width, tempCanvas.height);
-        break;
-      case 'sketch':
-        applySketch(tctx, tempCanvas.width, tempCanvas.height);
-        break;
-      case 'oil':
-        applyOil(tctx, tempCanvas.width, tempCanvas.height);
-        break;
+      case 'blur': tctx.filter = 'blur(5px)'; tctx.drawImage(tempCanvas, 0, 0); break;
+      case 'pixelate': pixelate(tctx, tempCanvas.width, tempCanvas.height, 10); break;
+      case 'vignette': applyVignette(tctx, tempCanvas.width, tempCanvas.height, 0.6); break;
+      case 'noise': applyNoise(tctx, tempCanvas.width, tempCanvas.height); break;
+      case 'invert': tctx.filter = 'invert(100%)'; tctx.drawImage(tempCanvas, 0, 0); break;
+      case 'sepia': tctx.filter = 'sepia(100%)'; tctx.drawImage(tempCanvas, 0, 0); break;
+      case 'emboss': applyEmboss(tctx, tempCanvas.width, tempCanvas.height); break;
+      case 'sketch': applySketch(tctx, tempCanvas.width, tempCanvas.height); break;
+      case 'oil': applyOil(tctx, tempCanvas.width, tempCanvas.height); break;
+      case 'edge': applyEdge(tctx, tempCanvas.width, tempCanvas.height); break;
+      case 'posterize': applyPosterize(tctx, tempCanvas.width, tempCanvas.height, 4); break;
+      case 'threshold': applyThreshold(tctx, tempCanvas.width, tempCanvas.height, 128); break;
     }
 
     const img = new Image();
@@ -692,8 +610,8 @@ function applyEffect(type) {
       showLoading(false);
       showToast('Эффект применен');
     };
-    img.src = tempCanvas.toDataURL();
-  }, 50);
+    img.src = tempCanvas.toDataURL('image/jpeg', 0.92);
+  });
 }
 
 function pixelate(ctx, w, h, blockSize) {
@@ -720,10 +638,10 @@ function pixelate(ctx, w, h, blockSize) {
   ctx.putImageData(imgData, 0, 0);
 }
 
-function applyVignette(ctx, w, h) {
-  const grad = ctx.createRadialGradient(w/2, h/2, w*0.3, w/2, h/2, w*0.8);
+function applyVignette(ctx, w, h, strength) {
+  const grad = ctx.createRadialGradient(w/2, h/2, w*0.25, w/2, h/2, w*0.75);
   grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+  grad.addColorStop(1, 'rgba(0,0,0,' + strength + ')');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 }
@@ -732,7 +650,7 @@ function applyNoise(ctx, w, h) {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
   for (let i = 0; i < data.length; i += 4) {
-    const noise = (Math.random() - 0.5) * 40;
+    const noise = (Math.random() - 0.5) * 35;
     data[i] = Math.min(255, Math.max(0, data[i] + noise));
     data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
     data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
@@ -747,11 +665,9 @@ function applyEmboss(ctx, w, h) {
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
       const i = (y * w + x) * 4;
-      const upLeft = ((y-1) * w + (x-1)) * 4;
-      const downRight = ((y+1) * w + (x+1)) * 4;
-      for (let c = 0; c < 3; c++) {
-        data[i+c] = 128 + copy[upLeft+c] - copy[downRight+c];
-      }
+      const ul = ((y-1) * w + (x-1)) * 4;
+      const dr = ((y+1) * w + (x+1)) * 4;
+      for (let c = 0; c < 3; c++) data[i+c] = 128 + copy[ul+c] - copy[dr+c];
     }
   }
   ctx.putImageData(imgData, 0, 0);
@@ -774,22 +690,66 @@ function applyOil(ctx, w, h) {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
   const copy = new Uint8ClampedArray(data);
-  const radius = 3;
-  for (let y = radius; y < h - radius; y++) {
-    for (let x = radius; x < w - radius; x++) {
+  const r = 3;
+  for (let y = r; y < h - r; y++) {
+    for (let x = r; x < w - r; x++) {
       const hist = new Array(256).fill(0);
-      let maxCount = 0, maxVal = 0;
-      for (let dy = -radius; dy <= radius; dy++) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          const i = ((y + dy) * w + (x + dx)) * 4;
-          const gray = Math.round((copy[i] + copy[i+1] + copy[i+2]) / 3);
-          hist[gray]++;
-          if (hist[gray] > maxCount) { maxCount = hist[gray]; maxVal = gray; }
+      let maxC = 0, maxV = 0;
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const i = ((y+dy)*w+(x+dx))*4;
+          const g = Math.round((copy[i]+copy[i+1]+copy[i+2])/3);
+          hist[g]++;
+          if (hist[g] > maxC) { maxC = hist[g]; maxV = g; }
         }
       }
-      const i = (y * w + x) * 4;
-      data[i] = data[i+1] = data[i+2] = maxVal;
+      const i = (y*w+x)*4;
+      data[i] = data[i+1] = data[i+2] = maxV;
     }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function applyEdge(ctx, w, h) {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  const copy = new Uint8ClampedArray(data);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = (y*w+x)*4;
+      for (let c = 0; c < 3; c++) {
+        const gx = -copy[((y-1)*w+x-1)*4+c] + copy[((y-1)*w+x+1)*4+c]
+                 -2*copy[(y*w+x-1)*4+c] + 2*copy[(y*w+x+1)*4+c]
+                 -copy[((y+1)*w+x-1)*4+c] + copy[((y+1)*w+x+1)*4+c];
+        const gy = -copy[((y-1)*w+x-1)*4+c] - 2*copy[((y-1)*w+x)*4+c] - copy[((y-1)*w+x+1)*4+c]
+                 + copy[((y+1)*w+x-1)*4+c] + 2*copy[((y+1)*w+x)*4+c] + copy[((y+1)*w+x+1)*4+c];
+        const val = Math.min(255, Math.sqrt(gx*gx + gy*gy));
+        data[i+c] = 255 - val;
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function applyPosterize(ctx, w, h, levels) {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  const step = 255 / (levels - 1);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = Math.round(data[i] / step) * step;
+    data[i+1] = Math.round(data[i+1] / step) * step;
+    data[i+2] = Math.round(data[i+2] / step) * step;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function applyThreshold(ctx, w, h, threshold) {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = (data[i] + data[i+1] + data[i+2]) / 3;
+    const v = gray > threshold ? 255 : 0;
+    data[i] = data[i+1] = data[i+2] = v;
   }
   ctx.putImageData(imgData, 0, 0);
 }
@@ -807,15 +767,16 @@ function applyAllEffects() {
   if (adjustments.contrast !== 0) filterStr += ' contrast(' + (100 + adjustments.contrast) + '%)';
   if (adjustments.saturation !== 0) filterStr += ' saturate(' + (100 + adjustments.saturation) + '%)';
   if (adjustments.exposure !== 0) filterStr += ' brightness(' + (100 + adjustments.exposure * 0.5) + '%)';
+  if (adjustments.gamma !== 100) filterStr += ' brightness(' + adjustments.gamma + '%)';
   if (currentFilter !== 'none') filterStr += ' ' + currentFilter;
 
   tctx.filter = filterStr.trim() || 'none';
   tctx.drawImage(originalImage, 0, 0);
   tctx.filter = 'none';
 
-  if (adjustments.sharpness > 0) {
-    applySharpen(tctx, tempCanvas.width, tempCanvas.height, adjustments.sharpness);
-  }
+  if (adjustments.sharpness > 0) applySharpen(tctx, tempCanvas.width, tempCanvas.height, adjustments.sharpness);
+  if (adjustments.grain > 0) applyGrain(tctx, tempCanvas.width, tempCanvas.height, adjustments.grain);
+  if (adjustments.vignetteAmount > 0) applyVignette(tctx, tempCanvas.width, tempCanvas.height, adjustments.vignetteAmount / 100);
 
   const img = new Image();
   img.onload = function() {
@@ -823,25 +784,35 @@ function applyAllEffects() {
     fitCanvas();
     renderCanvas();
   };
-  img.src = tempCanvas.toDataURL();
+  img.src = tempCanvas.toDataURL('image/jpeg', 0.92);
 }
 
 function applySharpen(ctx, w, h, amount) {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
   const copy = new Uint8ClampedArray(data);
-  const factor = amount / 100;
+  const f = amount / 100;
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
-      const i = (y * w + x) * 4;
+      const i = (y*w+x)*4;
       for (let c = 0; c < 3; c++) {
-        const val = copy[i+c] * (1 + 4*factor) - factor * (
-          copy[((y-1)*w+x)*4+c] + copy[((y+1)*w+x)*4+c] +
-          copy[(y*w+x-1)*4+c] + copy[(y*w+x+1)*4+c]
-        );
-        data[i+c] = Math.min(255, Math.max(0, val));
+        const v = copy[i+c]*(1+4*f) - f*(copy[((y-1)*w+x)*4+c]+copy[((y+1)*w+x)*4+c]+copy[(y*w+x-1)*4+c]+copy[(y*w+x+1)*4+c]);
+        data[i+c] = Math.min(255, Math.max(0, v));
       }
     }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function applyGrain(ctx, w, h, amount) {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  const intensity = amount / 100 * 50;
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * intensity;
+    data[i] = Math.min(255, Math.max(0, data[i] + noise));
+    data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
+    data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
   }
   ctx.putImageData(imgData, 0, 0);
 }
@@ -856,8 +827,7 @@ function rotateImage(deg) {
 
 function flipImage(axis) {
   if (!currentImage) return;
-  if (axis === 'h') flipH *= -1;
-  else flipV *= -1;
+  if (axis === 'h') flipH *= -1; else flipV *= -1;
   renderCanvas();
   pushHistory();
 }
@@ -865,40 +835,24 @@ function flipImage(axis) {
 function cropRatio(w, h) {
   if (!currentImage) return;
   showLoading(true);
-  setTimeout(() => {
-    const currentW = canvas.width;
-    const currentH = canvas.height;
-    const targetRatio = w / h;
-    const currentRatio = currentW / currentH;
-    let newW, newH, sx, sy;
-    if (currentRatio > targetRatio) {
-      newH = currentH;
-      newW = currentH * targetRatio;
-      sx = (currentW - newW) / 2;
-      sy = 0;
-    } else {
-      newW = currentW;
-      newH = currentW / targetRatio;
-      sx = 0;
-      sy = (currentH - newH) / 2;
-    }
+  requestAnimationFrame(() => {
+    const cw = canvas.width, ch = canvas.height;
+    const tr = w / h, cr = cw / ch;
+    let nw, nh, sx, sy;
+    if (cr > tr) { nh = ch; nw = ch * tr; sx = (cw - nw) / 2; sy = 0; }
+    else { nw = cw; nh = cw / tr; sx = 0; sy = (ch - nh) / 2; }
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = newW;
-    tempCanvas.height = newH;
+    tempCanvas.width = nw; tempCanvas.height = nh;
     const tctx = tempCanvas.getContext('2d');
-    tctx.drawImage(canvas, sx, sy, newW, newH, 0, 0, newW, newH);
+    tctx.drawImage(canvas, sx, sy, nw, nh, 0, 0, nw, nh);
     const img = new Image();
     img.onload = function() {
-      currentImage = img;
-      originalImage = img;
-      fitCanvas();
-      renderCanvas();
-      pushHistory();
-      showLoading(false);
-      showToast('Обрезано ' + w + ':' + h);
+      currentImage = img; originalImage = img;
+      fitCanvas(); renderCanvas(); pushHistory();
+      showLoading(false); showToast('Обрезано ' + w + ':' + h);
     };
-    img.src = tempCanvas.toDataURL();
-  }, 50);
+    img.src = tempCanvas.toDataURL('image/jpeg', 0.92);
+  });
 }
 
 // ===== DOWNLOAD =====
@@ -920,10 +874,9 @@ function showToast(msg) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
+  setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
-// Prevent zoom on double tap
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(e) {
   const now = Date.now();
