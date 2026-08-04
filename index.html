@@ -5110,7 +5110,7 @@ const messageDateStr = new Date(m.time).toDateString();
                     container.addEventListener('touchstart', (e) => {
                         startX = e.touches[0].clientX; startY = e.touches[0].clientY; isSwiping = false;
                         msgPressTimer = setTimeout(() => {
-                            if (!isSwiping && !selectModeActive) { meowVibrate(10); triggerMessageMenu(msgId, messageObject, m.sender);                         }, 550);
+                            if (!isSwiping && !selectModeActive) { meowVibrate(10); triggerMessageMenu(msgId, messageObject, m.sender); }                        }, 550);
                     }, { passive: true });
 
                     container.addEventListener('touchmove', (e) => {
