@@ -1,69 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8" text-security="dismissed">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VK Meow Messenger Pro</title>
-    
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlZLIE1lb3cgTWVzc2VuZ2VyIiwKICAic2hvcnRfbmFtZSI6ICJWSyBNZW93IiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwMDAwMDAiLAogICJ0aGVtZV9jb2xvciI6ICIxRjgwE0EiCi99">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie.js/5.12.2/lottie.min.js"></script>
-
-    <script>
-(function(){
-const DB_NAME='MeowDB',DB_VERSION=1;
-let dbP;
-function openDB(){if(dbP)return dbP;dbP=new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=(e)=>{const d=e.target.result;if(!d.objectStoreNames.contains('outbox'))d.createObjectStore('outbox',{keyPath:'id',autoIncrement:true});};});return dbP;}
-window.meowSaveToOutbox=async(data)=>{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('outbox','readwrite');tx.objectStore('outbox').add(data);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});};
-window.meowGetOutbox=async()=>{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('outbox','readonly');const r=tx.objectStore('outbox').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});};
-window.meowRemoveFromOutbox=async(id)=>{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('outbox','readwrite');tx.objectStore('outbox').delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});};
-window.meowRequestSync=async()=>{if('serviceWorker'in navigator&&'SyncManager'in window){try{const reg=await navigator.serviceWorker.ready;await reg.sync.register('send-message');}catch(e){}}};
-window.meowShowToast=(text)=>{let el=document.getElementById('offline-toast');if(!el){el=document.createElement('div');el.id='offline-toast';el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(31,128,224,0.95);color:white;padding:10px 18px;border-radius:22px;font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:opacity 0.3s;opacity:0;pointer-events:none;';document.body.appendChild(el);}el.innerText=text;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',3200);};
-if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(r=>console.log('SW ok')).catch(e=>console.log('SW err',e));}
-window.addEventListener('online',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='none';if(window.sendQueuedMessages)window.sendQueuedMessages();});
-window.addEventListener('offline',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='flex';});
-navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_QUEUED_MESSAGES'&&window.sendQueuedMessages)window.sendQueuedMessages();});
-        window.initE2EE = initE2EE;
-        window.deriveMasterKey = deriveMasterKey;
-        window.encryptWithMasterKey = encryptWithMasterKey;
-        window.decryptWithMasterKey = decryptWithMasterKey;
-        window.saveKeyStoreToCloud = saveKeyStoreToCloud;
-        window.loadKeyStoreFromCloud = loadKeyStoreFromCloud;
-        window.getSharedKeyForKv = getSharedKeyForKv;
-        window.signPayload = signPayload;
-        window.verifyPayloadSignature = verifyPayloadSignature;
-        window.aesEncrypt = aesEncrypt;
-        window.aesDecrypt = aesDecrypt;
-
-        })();
-</script>
-<script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue, get, update, remove, onDisconnect, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-        const firebaseConfig = {
-          apiKey: "AIzaSyDQMqwnJp34H6I7ragLr14LQ4YszpDFYbg",
-          authDomain: "meowmessenger.firebaseapp.com",
-          databaseURL: "https://meowmessenger-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "meowmessenger",
-          storageBucket: "meowmessenger.firebasestorage.app",
-          messagingSenderId: "906512822162",
-          appId: "1:906512822162:web:a868af851cec5a3381db4b"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
-
-        window.fb = { db, auth, ref, set, push, onValue, get, update, remove, onDisconnect, query, orderByKey, startAt, endAt, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut };
-    </script>
-
-    <style>
         :root {
             --bg-dark: #000000;
             --bg-bar: #0A0A0C;
@@ -682,7 +623,21 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             overflow: hidden;
             cursor: pointer;
             width: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+        .msg-media .media-time-overlay {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            background: rgba(0,0,0,0.55);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 10px;
+            backdrop-filter: blur(4px);
+            z-index: 2;
+            pointer-events: none;
         }
 
         .msg-media img, .msg-media video {
@@ -1946,45 +1901,49 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         .media-preview-bar.active {
             display: flex;
         }
-        .media-preview-item {
+        .media-preview-thumbs {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            max-width: 260px;
+            overflow-x: auto;
+            padding: 2px;
+        }
+        .media-preview-thumb-wrap {
             position: relative;
             flex-shrink: 0;
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.08);
         }
-        .media-preview-item img, .media-preview-item video {
-            width: 80px;
-            height: 80px;
+        .media-preview-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
             object-fit: cover;
             display: block;
+            border: 1px solid rgba(255,255,255,0.08);
         }
-        .media-preview-remove {
+        .media-preview-thumb-remove {
             position: absolute;
-            top: 2px;
-            right: 2px;
+            top: -6px;
+            right: -6px;
             width: 20px;
             height: 20px;
+            background: var(--error);
             border-radius: 50%;
-            background: rgba(0,0,0,0.6);
+            border: 2px solid #000;
             color: white;
-            border: none;
             font-size: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 2;
         }
         .media-preview-count {
-            position: absolute;
-            bottom: 2px;
-            left: 2px;
-            background: rgba(0,0,0,0.6);
-            color: white;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            padding: 0 4px;
+            align-self: center;
         }
         .media-preview-caption {
             flex: 1;
@@ -2022,10 +1981,11 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         /* ===== Коллаж сообщений в чате (как в Telegram) ===== */
         .msg-media-collage {
             display: grid;
-            gap: 2px;
+            gap: 1px;
             border-radius: 14px;
             overflow: hidden;
             margin: 4px 8px 0 8px;
+            border: 0.5px solid rgba(255,255,255,0.04);
         }
         .msg-media-collage.count-2 {
             grid-template-columns: 1fr 1fr;
@@ -2062,6 +2022,20 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             cursor: pointer;
             background: #111;
         }
+        .collage-item .media-time-overlay {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.55);
+            color: white;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 1px 5px;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            z-index: 2;
+            pointer-events: none;
+        }
         .collage-item img, .collage-item video {
             width: 100%;
             height: 100%;
@@ -2079,9 +2053,73 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             font-size: 22px;
             font-weight: 800;
         }
+
+        .msg-audio {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            min-width: 220px;
+        }
+        .msg-audio-play {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+        .msg-audio-wave {
+            flex: 1;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .msg-audio-wave-bar {
+            width: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .msg-audio-wave-bar.active {
+            opacity: 1;
+        }
+        .msg-audio-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        
 </style>
 </head>
 <body>
+<div id="global-audio-player" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;height:40px;background:rgba(22,22,24,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;border:1px solid rgba(255,255,255,0.06);z-index:3000;align-items:center;padding:0 12px;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,0.5);">
+    <button id="global-play-btn" style="width:28px;height:28px;border-radius:50%;background:var(--accent);border:none;color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;">
+        <svg id="global-play-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="global-pause-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
+    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;">
+        <div style="font-size:12px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;" id="global-audio-title">Аудио</div>
+        <div style="width:100%;height:2px;background:rgba(255,255,255,0.1);border-radius:1px;position:relative;">
+            <div id="global-audio-progress" style="position:absolute;left:0;top:0;height:100%;width:0%;background:var(--accent);border-radius:1px;transition:width 0.1s;"></div>
+        </div>
+    </div>
+    <div id="global-audio-time" style="font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">0:00</div>
+    <button onclick="closeGlobalAudioPlayer()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+</div>
+
     <div id="offline-indicator" style="position:fixed;top:0;left:0;right:0;height:28px;background:var(--error);color:white;font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;z-index:9999;letter-spacing:0.5px;">Нет подключения к интернету — сообщения отправятся позже</div>
 
     <div id="global-wallpaper-overlay"></div>
@@ -2447,7 +2485,8 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         </div>
 
         <div class="media-preview-bar" id="media-preview-bar">
-            <div id="media-preview-items" style="display: flex; gap: 8px; flex-shrink: 0;"></div>
+            <div class="media-preview-count" id="media-preview-count"></div>
+            <div class="media-preview-thumbs" id="media-preview-items"></div>
             <div class="media-preview-caption">
                 <input type="text" id="media-caption-input" placeholder="Подпись...">
             </div>
@@ -2475,6 +2514,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         <div class="chat-input-bar" id="chat-normal-input-bar">
             <div id="composer-normal" style="display: flex; align-items: center; gap: 8px; width: 100%;">
                 <input type="file" id="media-upload" style="display: none;" accept="image/*,video/*" multiple onchange="handleMediaFilesSelected(this.files); this.value='';">
+                <input type="file" id="audio-upload" style="display: none;" accept="audio/*" onchange="handleAudioSelected(this.files[0]); this.value='';">
                 <input type="file" id="doc-upload" style="display: none;" onchange="handleDocumentSelected(this.files[0]); this.value='';">
                 <input type="file" id="sticker-upload" style="display: none;" accept=".tgs,.webp,.png,.jpg,.jpeg" onchange="handleStickerFileChosen(this.files[0]); this.value='';">
                 <input type="file" id="sticker-editor-upload" style="display: none;" accept="image/*" onchange="openStickerEditorWithFile(this.files[0]); this.value='';">
@@ -2721,6 +2761,10 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: var(--accent); flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Фото или видео
             <button class="menu-btn" style="display: flex; align-items: center; gap: 10px; text-align: left;" onclick="closeModal('attach-menu-modal'); document.getElementById('doc-upload').click();">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: #A695E7; flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Файл
+            </button>
+            <button class="menu-btn" style="display: flex; align-items: center; gap: 10px; text-align: left;" onclick="closeModal('attach-menu-modal'); document.getElementById('audio-upload').click();">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: #FF6B9D; flex-shrink: 0;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span>Музыка</span>
             </button>
             <button class="menu-btn" style="display: flex; align-items: center; gap: 10px; text-align: left;" onclick="closeModal('attach-menu-modal'); openContactSharePicker();">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: #FAA774; flex-shrink: 0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Контакт
@@ -2982,7 +3026,44 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         <div style="font-size: 14px;">Контент защищён владельцем переписки</div>
     </div>
 
-    <script type="module">
+    <script>
+(function(){
+const DB_NAME='MeowDB',DB_VERSION=1;
+let dbP;
+function openDB(){if(dbP)return dbP;dbP=new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=(e)=>{const d=e.target.result;if(!d.objectStoreNames.contains('outbox'))d.createObjectStore('outbox',{keyPath:'id',autoIncrement:true});};});return dbP;}
+window.meowSaveToOutbox=async(data)=>{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('outbox','readwrite');tx.objectStore('outbox').add(data);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});};
+window.meowGetOutbox=async()=>{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('outbox','readonly');const r=tx.objectStore('outbox').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});};
+window.meowRemoveFromOutbox=async(id)=>{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('outbox','readwrite');tx.objectStore('outbox').delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});};
+window.meowRequestSync=async()=>{if('serviceWorker'in navigator&&'SyncManager'in window){try{const reg=await navigator.serviceWorker.ready;await reg.sync.register('send-message');}catch(e){}}};
+window.meowShowToast=(text)=>{let el=document.getElementById('offline-toast');if(!el){el=document.createElement('div');el.id='offline-toast';el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(31,128,224,0.95);color:white;padding:10px 18px;border-radius:22px;font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:opacity 0.3s;opacity:0;pointer-events:none;';document.body.appendChild(el);}el.innerText=text;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',3200);};
+if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(r=>console.log('SW ok')).catch(e=>console.log('SW err',e));}
+window.addEventListener('online',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='none';if(window.sendQueuedMessages)window.sendQueuedMessages();});
+window.addEventListener('offline',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='flex';});
+navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_QUEUED_MESSAGES'&&window.sendQueuedMessages)window.sendQueuedMessages();});
+})();
+
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, get, update, remove, onDisconnect, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDQMqwnJp34H6I7ragLr14LQ4YszpDFYbg",
+          authDomain: "meowmessenger.firebaseapp.com",
+          databaseURL: "https://meowmessenger-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "meowmessenger",
+          storageBucket: "meowmessenger.firebasestorage.app",
+          messagingSenderId: "906512822162",
+          appId: "1:906512822162:web:a868af851cec5a3381db4b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        window.fb = { db, auth, ref, set, push, onValue, get, update, remove, onDisconnect, query, orderByKey, startAt, endAt, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut };
+    
+
         const TG_AVATAR_COLORS = ["#E17076", "#FAA774", "#A695E7", "#34C759", "#6EC9CB", "#1F80E0"];
         const PROFILE_LOOKUP_SALT = "MeowProfileLookupSalt_2026_";
 
@@ -3206,78 +3287,6 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             }
         }
 
-        // ===== CLOUD KEY STORAGE (master key from email+password) =====
-        async function deriveMasterKey(email, password) {
-            const salt = CryptoJS.SHA256(email.toLowerCase().trim()).toString();
-            const key = CryptoJS.PBKDF2(password, salt, { keySize: 256/32, iterations: 100000 });
-            return key.toString();
-        }
-
-        function encryptWithMasterKey(dataJwk, masterKey) {
-            const key = CryptoJS.enc.Hex.parse(masterKey);
-            const iv = CryptoJS.lib.WordArray.random(16);
-            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(dataJwk), key, { iv: iv });
-            return iv.toString() + encrypted.toString();
-        }
-
-        function decryptWithMasterKey(encryptedData, masterKey) {
-            try {
-                const key = CryptoJS.enc.Hex.parse(masterKey);
-                const iv = CryptoJS.enc.Hex.parse(encryptedData.substring(0, 32));
-                const ciphertext = encryptedData.substring(32);
-                const decrypted = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv });
-                return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
-            } catch (e) {
-                return null;
-            }
-        }
-
-        async function saveKeyStoreToCloud() {
-            if (!myKeyStore || !window.meowMasterKey || !myUid) return;
-            const masterKey = window.meowMasterKey;
-            const encryptedPairs = {};
-            for (const ver in myKeyStore.pairs) {
-                const pair = myKeyStore.pairs[ver];
-                encryptedPairs[ver] = {
-                    priv: encryptWithMasterKey(pair.priv, masterKey),
-                    pub: pair.pub,
-                    signPriv: encryptWithMasterKey(pair.signPriv, masterKey),
-                    signPub: pair.signPub
-                };
-            }
-            const cloudStore = {
-                current: myKeyStore.current,
-                pairs: encryptedPairs,
-                version: myKeyStore.version || 1
-            };
-            await window.fb.set(window.fb.ref(window.fb.db, `users/${myUid}/keystore`), cloudStore);
-        }
-
-        async function loadKeyStoreFromCloud() {
-            if (!window.meowMasterKey || !myUid) return false;
-            try {
-                const snap = await window.fb.get(window.fb.ref(window.fb.db, `users/${myUid}/keystore`));
-                if (!snap.exists()) return false;
-                const cloudStore = snap.val();
-                const masterKey = window.meowMasterKey;
-                myKeyStore = { current: cloudStore.current, pairs: {}, version: cloudStore.version || 1 };
-                for (const ver in cloudStore.pairs) {
-                    const pair = cloudStore.pairs[ver];
-                    myKeyStore.pairs[ver] = {
-                        priv: decryptWithMasterKey(pair.priv, masterKey),
-                        pub: pair.pub,
-                        signPriv: decryptWithMasterKey(pair.signPriv, masterKey),
-                        signPub: pair.signPub
-                    };
-                }
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        
-
         function getMyProfileKey() {
             let key = localStorage.getItem(`meow_prof_key_${myUid}`);
             if (!key) {
@@ -3306,7 +3315,6 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             const encrypted = CryptoJS.AES.encrypt(plain, key, { iv: iv });
             const hmac = CryptoJS.HmacSHA256(iv.toString() + encrypted.toString(), key);
             localStorage.setItem(`meow_keystore_${myUid}`, iv.toString() + encrypted.toString() + hmac.toString());
-            if (window.meowMasterKey) saveKeyStoreToCloud();
         }
 
         // ======== НОВАЯ СИСТЕМА КЛЮЧЕЙ E2EE v2 (версии + история ключей) ========
@@ -3488,25 +3496,12 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         }
 
         async function initE2EE() {
-            if (window.meowMasterKey) {
-                const loaded = await loadKeyStoreFromCloud();
-                if (loaded) {
-                    await cleanupOldKeys();
-                    if (!myKeyStore.current || !myKeyStore.pairs[myKeyStore.current]) {
-                        await generateAndAddKeypair();
-                    }
-                    await saveMyKeyStoreAndPublish();
-                    await saveKeyStoreToCloud();
-                    return;
-                }
-            }
             await loadMyKeyStore();
             await cleanupOldKeys();
             if (!myKeyStore.current || !myKeyStore.pairs[myKeyStore.current]) {
                 await generateAndAddKeypair();
             }
             await saveMyKeyStoreAndPublish();
-            if (window.meowMasterKey) await saveKeyStoreToCloud();
         }
 
         function getSelfChatKey(ver) {
@@ -5054,9 +5049,9 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
                 if (m.sender !== myUid && m.read !== true) {
                     window.fb.update(window.fb.ref(window.fb.db, `messages/${currentRoomId}/list/${msgId}`), { read: true });
                 }
-let isBurnModeActive = false;
-        let burnDelayMs = 10000;
-        const messageDateStr = new Date(m.time).toDateString();
+
+                
+const messageDateStr = new Date(m.time).toDateString();
                 if (messageDateStr !== lastMessageDateStr) {
                     const dateDiv = document.createElement('div');
                     dateDiv.className = "date-separator";
@@ -5243,22 +5238,22 @@ let isBurnModeActive = false;
                             const isVideo = item.type && item.type.startsWith('video/');
                             const moreOverlay = (count > 6 && idx === 5) ? `<div class="collage-more-overlay">+${count - 6}</div>` : '';
                             if (isVideo) {
-                                html += `<div class="collage-item" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', true, '${escapeHTML(msgId)}')"><video src="${escapeHTML(blobUrl)}" muted></video>${moreOverlay}</div>`;
+                                html += `<div class="collage-item" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', true, '${escapeHTML(msgId)}')"><video src="${escapeHTML(blobUrl)}" muted></video>${moreOverlay}<div class="media-time-overlay">${timeString}</div></div>`;
                             } else {
-                                html += `<div class="collage-item" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', false, '${escapeHTML(msgId)}')"><img src="${escapeHTML(blobUrl)}">${moreOverlay}</div>`;
+                                html += `<div class="collage-item" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', false, '${escapeHTML(msgId)}')"><img src="${escapeHTML(blobUrl)}">${moreOverlay}<div class="media-time-overlay">${timeString}</div></div>`;
                             }
                         });
                         html += `</div>`;
                         bubbleHtml += html;
                     } else if (messageObject.isAudio) {
                         const blobUrl = getCachedObjectUrl(msgId, messageObject.fileData);
-                        bubbleHtml += buildAudioHtml(msgId, blobUrl, messageObject.audioDuration, messageObject.fileName);
+                        bubbleHtml += buildAudioHtml(msgId, blobUrl, messageObject.audioDuration, messageObject.fileName || messageObject.name);
                     } else if (messageObject.fileData) {
                         const blobUrl = getCachedObjectUrl(msgId, messageObject.fileData);
                         if (messageObject.fileType && messageObject.fileType.startsWith('video/')) {
-                            bubbleHtml += `<div class="msg-media" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', true, '${escapeHTML(msgId)}')"><video src="${escapeHTML(blobUrl)}" style="width:100%;height:100%;object-fit:cover;"></video></div>`;
+                            bubbleHtml += `<div class="msg-media" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', true, '${escapeHTML(msgId)}')"><video src="${escapeHTML(blobUrl)}" style="width:100%;height:100%;object-fit:cover;"></video><div class="media-time-overlay">${timeString}</div></div>`;
                         } else {
-                            bubbleHtml += `<div class="msg-media" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', false, '${escapeHTML(msgId)}')"><img src="${escapeHTML(blobUrl)}"></div>`;
+                            bubbleHtml += `<div class="msg-media" onclick="event.stopPropagation(); viewMediaFull('${escapeHTML(blobUrl)}', false, '${escapeHTML(msgId)}')"><img src="${escapeHTML(blobUrl)}"></img><div class="media-time-overlay">${timeString}</div></div>`;
                         }
                     }
 
@@ -5296,7 +5291,7 @@ let isBurnModeActive = false;
                         <div class="msg-reactions-inline">${getReactionsHtmlInline(msgId, m.reactions)}</div>
                         <div class="msg-meta">
                             ${m.edited ? `<span class="edited-label" style="font-size:9px; opacity:0.6; margin-right:3px;">ред.</span>` : ''}
-                            <span>${escapeHTML(timeString)}</span>
+                            ${!isMediaOrVoice ? `<span>${escapeHTML(timeString)}</span>` : ''}
                             ${ticksHtml}
                         </div>
                     </div>`;
@@ -5654,6 +5649,7 @@ let isBurnModeActive = false;
             const clientMsgId = 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
             const dbPacket = { sender: myUid, text: finalString, time: Date.now(), read: false, kv: activeRoomKv, clientMsgId };
             if (sig) dbPacket.sig = sig;
+            if (isBurnModeActive) dbPacket.burnTime = messagePayload.burnTime;
 
             // Оптимистичная отправка: не ждём ответа сервера, UI обновится мгновенно через realtime-слушатель
             cancelReply();
@@ -6272,18 +6268,12 @@ let isBurnModeActive = false;
                 if (logDiv) logDiv.innerText = "⏳ Вход в аккаунт...";
                 await window.fb.signInWithEmailAndPassword(window.fb.auth, email, password);
                 if (logDiv) { logDiv.innerText = "✅ Успешный вход!"; logDiv.style.color = "var(--secure)"; }
-                const masterKey = await deriveMasterKey(email, password);
-                window.meowMasterKey = masterKey;
-                sessionStorage.setItem("meow_master_key", masterKey);
             } catch (err) {
                 if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-email") {
                     if (logDiv) logDiv.innerText = "⏳ Аккаунт не найден, создаём новый...";
                     try {
                         await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, password);
                         if (logDiv) { logDiv.innerText = "✅ Аккаунт создан! Добро пожаловать!"; logDiv.style.color = "var(--secure)"; }
-                        const masterKey = await deriveMasterKey(email, password);
-                        window.meowMasterKey = masterKey;
-                        sessionStorage.setItem("meow_master_key", masterKey);
                     } catch (regErr) {
                         if (logDiv) { logDiv.innerText = "❌ Ошибка: " + regErr.message; logDiv.style.color = "var(--error)"; }
                         errorDiv.innerText = regErr.message; errorDiv.style.display = "block";
@@ -9949,12 +9939,11 @@ let isBurnModeActive = false;
 
         function buildAudioHtml(msgId, blobUrl, duration, fileName) {
             const durStr = formatAudioTime(duration || 0);
-            const title = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Аудио';
             const bars = Array(20).fill(0).map(() => `<div class="msg-audio-wave-bar" style="height:${Math.random()*16+4}px"></div>`).join('');
-            return `<div class="msg-audio" id="audio-${msgId}" data-title="${title.replace(/"/g, '&quot;')}"><button class="msg-audio-play" onclick="event.stopPropagation(); toggleAudioPlay('${msgId}','${blobUrl}')">▶</button><div class="msg-audio-wave">${bars}</div><div class="msg-audio-time" id="time-${msgId}">${durStr}</div></div>`;
+            return `<div class="msg-audio" id="audio-${msgId}"><button class="msg-audio-play" onclick="event.stopPropagation(); toggleAudioPlay('${msgId}','${blobUrl}','${escapeHTML(fileName || 'Аудио')}')">▶</button><div class="msg-audio-wave">${bars}</div><div class="msg-audio-time" id="time-${msgId}">${durStr}</div></div>`;
         }
 
-        function toggleAudioPlay(msgId, blobUrl) {
+        function toggleAudioPlay(msgId, blobUrl, fileName) {
             if (globalAudio && globalAudioMsgId === msgId && !globalAudio.paused) {
                 globalAudio.pause();
                 updatePlayBtn(msgId, false);
@@ -9970,9 +9959,9 @@ let isBurnModeActive = false;
             globalAudio.play();
             updatePlayBtn(msgId, true);
             updateGlobalPlayBtn(true);
-            const audioEl = document.getElementById('audio-' + msgId);
-            const title = audioEl ? audioEl.getAttribute('data-title') : 'Аудио';
-            showGlobalAudioPlayer(title);
+            showGlobalAudioPlayer();
+            const titleEl = document.getElementById('global-audio-title');
+            if (titleEl && fileName) titleEl.textContent = fileName;
             globalAudio.ontimeupdate = () => {
                 if (!globalAudio || !globalAudio.duration) return;
                 const pct = (globalAudio.currentTime / globalAudio.duration) * 100;
@@ -9997,12 +9986,12 @@ let isBurnModeActive = false;
         }
 
         function updateGlobalPlayBtn(playing) {
+            const btn = document.getElementById('global-play-btn');
             const playIcon = document.getElementById('global-play-icon');
             const pauseIcon = document.getElementById('global-pause-icon');
+            if (!btn) return;
             if (playIcon) playIcon.style.display = playing ? 'none' : 'block';
             if (pauseIcon) pauseIcon.style.display = playing ? 'block' : 'none';
-            const btn = document.getElementById('global-play-btn');
-            if (!btn) return;
             btn.onclick = () => {
                 if (!globalAudio) return;
                 if (globalAudio.paused) { globalAudio.play(); updateGlobalPlayBtn(true); updatePlayBtn(globalAudioMsgId, true); }
@@ -10010,11 +9999,9 @@ let isBurnModeActive = false;
             };
         }
 
-        function showGlobalAudioPlayer(title) {
+        function showGlobalAudioPlayer() {
             const p = document.getElementById('global-audio-player');
             if (p) p.style.display = 'flex';
-            const t = document.getElementById('global-audio-title');
-            if (t && title) t.textContent = title;
         }
 
         function closeGlobalAudioPlayer() {
@@ -10048,11 +10035,6 @@ let isBurnModeActive = false;
 
         window.updateComposerButton = updateComposerButton;
         window.handleMediaFilesSelected = handleMediaFilesSelected;
-        window.deriveMasterKey = deriveMasterKey;
-        window.encryptWithMasterKey = encryptWithMasterKey;
-        window.decryptWithMasterKey = decryptWithMasterKey;
-        window.saveKeyStoreToCloud = saveKeyStoreToCloud;
-        window.loadKeyStoreFromCloud = loadKeyStoreToCloud;
         window.toggleAudioPlay = toggleAudioPlay;
         window.closeGlobalAudioPlayer = closeGlobalAudioPlayer;
         window.handleAudioSelected = handleAudioSelected;
@@ -10163,7 +10145,6 @@ let isBurnModeActive = false;
                 myUid = user.uid; myEmail = user.email;
                 document.getElementById('login-screen').style.display = "none";
                 
-                
                 await initE2EE();
                 startMyProfileRealtime();
                 
@@ -10247,6 +10228,8 @@ let isBurnModeActive = false;
         window.viewMyAvatarFull = viewMyAvatarFull;
         window.copyMyUsername = copyMyUsername;
 </script>
+</body>
+</html>
     <div class="modal-overlay" id="edit-profile-modal">
         <div class="modal-card">
             <h3 style="margin-bottom: 16px; text-align: center;">Изменить профиль</h3>
@@ -10268,7 +10251,5 @@ let isBurnModeActive = false;
             </div>
         </div>
     </div>
-
 </body>
 </html>
-                
