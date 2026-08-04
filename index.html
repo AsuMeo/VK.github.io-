@@ -1934,45 +1934,49 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         .media-preview-bar.active {
             display: flex;
         }
-        .media-preview-item {
+        .media-preview-thumbs {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            max-width: 260px;
+            overflow-x: auto;
+            padding: 2px;
+        }
+        .media-preview-thumb-wrap {
             position: relative;
             flex-shrink: 0;
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.08);
         }
-        .media-preview-item img, .media-preview-item video {
-            width: 80px;
-            height: 80px;
+        .media-preview-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
             object-fit: cover;
             display: block;
+            border: 1px solid rgba(255,255,255,0.08);
         }
-        .media-preview-remove {
+        .media-preview-thumb-remove {
             position: absolute;
-            top: 2px;
-            right: 2px;
+            top: -6px;
+            right: -6px;
             width: 20px;
             height: 20px;
+            background: var(--error);
             border-radius: 50%;
-            background: rgba(0,0,0,0.6);
+            border: 2px solid #000;
             color: white;
-            border: none;
             font-size: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 2;
         }
         .media-preview-count {
-            position: absolute;
-            bottom: 2px;
-            left: 2px;
-            background: rgba(0,0,0,0.6);
-            color: white;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            padding: 0 4px;
+            align-self: center;
         }
         .media-preview-caption {
             flex: 1;
@@ -1988,8 +1992,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             padding: 0 14px;
             font-size: 14px;
             outline: none;
-        }
-        .media-preview-send-btn {
+        }.media-preview-send-btn {
             width: 44px;
             height: 44px;
             border-radius: 50%;
@@ -2435,7 +2438,8 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         </div>
 
         <div class="media-preview-bar" id="media-preview-bar">
-            <div id="media-preview-items" style="display: flex; gap: 8px; flex-shrink: 0;"></div>
+            <div class="media-preview-count" id="media-preview-count"></div>
+            <div class="media-preview-thumbs" id="media-preview-items"></div>
             <div class="media-preview-caption">
                 <input type="text" id="media-caption-input" placeholder="Подпись...">
             </div>
@@ -4957,7 +4961,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
                     window.fb.update(window.fb.ref(window.fb.db, `messages/${currentRoomId}/list/${msgId}`), { read: true });
                 }
 
-                const messageDateStr = new Date(m.time).toDateString();
+const messageDateStr = new Date(m.time).toDateString();
                 if (messageDateStr !== lastMessageDateStr) {
                     const dateDiv = document.createElement('div');
                     dateDiv.className = "date-separator";
@@ -5454,7 +5458,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             document.getElementById('emoji-panel').classList.remove('open');
             newBelowCount = 0; initialLoadDone = false; activeChatIsMuted = false;
             document.getElementById('chat-window').classList.remove('active');
-            currentPeer = null; currentRoomId = null; activeRoomSharedKey = null; activeRoomKv = "";
+            currentPeer = null; currentRoomId = null; activeRoomSharedKey = null; activeRoomKv = ""; selectedMediaFiles = [];
             msgDecryptCache = {}; activeChatMessagesData = {}; activeChatLocalDeleted = {};
             cancelActiveRecording();
             setActiveChatProtection(false);
@@ -5572,43 +5576,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         }
 
 
-        async function compressAndSendMedia(file) {
-            if (!file || !activeRoomSharedKey) return;
-            const clipBtn = document.getElementById('clip-btn');
-            const originalClipHtml = clipBtn.innerHTML;
-            const loadingSvg = `<svg viewBox="0 0 50 50" width="18" height="18" style="animation:rotate 1s linear infinite; stroke:white;"><circle cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-linecap="round"></circle></svg>`;
-
-            clipBtn.innerHTML = loadingSvg;
-            try {
-                if (file.type.startsWith('image/')) {
-                    const finalBase64 = await processImageHD(file, 1600);
-                    await transmitDirectMedia(finalBase64, file.type);
-                } else if (file.type.startsWith('video/')) {
-                    if (file.size > 8 * 1024 * 1024) { alert("Видео больше 8 МБ!"); return; }
-                    const base64 = await fileToBase64(file);
-                    await transmitDirectMedia(base64, file.type);
-                }
-                clipBtn.innerHTML = originalClipHtml;
-            } catch (e) {
-                alert("Ошибка медиа"); clipBtn.innerHTML = originalClipHtml;
-            }
-        }
-
-        async function transmitDirectMedia(base64Data, contentType) {
-            const payload = { text: "[Медиа]", fileData: base64Data, fileType: contentType };
-            if (isBurnModeActive) payload.burnTime = Date.now() + burnDelayMs;
-            const payloadJson = JSON.stringify(payload);
-            const sig = await signPayload(payloadJson);
-            const finalString = "[MEOW]" + aesEncrypt(payloadJson, activeRoomSharedKey);
-            const dbPacket = { sender: myUid, text: finalString, time: Date.now(), read: false, kv: activeRoomKv };
-            if (sig) dbPacket.sig = sig;
-            const nowTime = Date.now();
-            await window.fb.push(window.fb.ref(window.fb.db, `messages/${currentRoomId}/list`), dbPacket);
-            await window.fb.update(window.fb.ref(window.fb.db, `users/${myUid}/chats/${currentPeer}`), { lastTime: nowTime });
-            if (currentPeer !== myUid) await window.fb.update(window.fb.ref(window.fb.db, `users/${currentPeer}/chats/${myUid}`), { lastTime: nowTime });
-        }
-
-        function toggleBurnMode() {
+        async function toggleBurnMode() {
             if (suppressBurnClick) { suppressBurnClick = false; return; }
             isBurnModeActive = !isBurnModeActive;
             const b = document.getElementById('burn-btn');
@@ -9463,13 +9431,98 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         // ============================================================
         // ======== v3: ФАЙЛЫ-ДОКУМЕНТЫ
         // ============================================================
-        async function handleMediaFilesSelected(files) {
+        async let selectedMediaFiles = [];
+
+        function handleMediaFilesSelected(files) {
             if (!files || !files.length) return;
-            for (const f of Array.from(files).slice(0, 10)) {
+            const newFiles = Array.from(files).slice(0, 10 - selectedMediaFiles.length);
+            if (!newFiles.length) return;
+            for (const f of newFiles) {
                 if (f.type.startsWith('image/') || f.type.startsWith('video/')) {
-                    await compressAndSendMedia(f);
+                    selectedMediaFiles.push(f);
                 }
             }
+            updateMediaPreviewBar();
+        }
+
+        function updateMediaPreviewBar() {
+            const bar = document.getElementById('media-preview-bar');
+            const items = document.getElementById('media-preview-items');
+            const countEl = document.getElementById('media-preview-count');
+            if (!bar || !items) return;
+            if (!selectedMediaFiles.length) {
+                bar.style.display = 'none';
+                items.innerHTML = '';
+                if (countEl) countEl.textContent = '';
+                return;
+            }
+            bar.style.display = 'flex';
+            if (countEl) countEl.textContent = selectedMediaFiles.length;
+            items.innerHTML = selectedMediaFiles.map((f, idx) => {
+                const url = URL.createObjectURL(f);
+                const isVideo = f.type.startsWith('video/');
+                return `<div class="media-preview-thumb-wrap">
+                    ${isVideo ? `<video class="media-preview-thumb" src="${url}" muted></video>` : `<img class="media-preview-thumb" src="${url}">`}
+                    <button class="media-preview-thumb-remove" onclick="event.stopPropagation(); removeMediaPreview(${idx})">×</button>
+                </div>`;
+            }).join('');
+        }
+
+        function removeMediaPreview(idx) {
+            selectedMediaFiles.splice(idx, 1);
+            updateMediaPreviewBar();
+        }
+
+        function cancelMediaPreview() {
+            selectedMediaFiles = [];
+            updateMediaPreviewBar();
+        }
+
+        async function sendMediaWithCaption() {
+            if (!selectedMediaFiles.length || !activeRoomSharedKey) return;
+            const captionInput = document.getElementById('media-caption-input');
+            const caption = captionInput ? captionInput.value.trim() : '';
+            const clipBtn = document.getElementById('clip-btn');
+            const originalClipHtml = clipBtn ? clipBtn.innerHTML : '';
+            const loadingSvg = `<svg viewBox="0 0 50 50" width="18" height="18" style="animation:rotate 1s linear infinite; stroke:white;"><circle cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-linecap="round"></circle></svg>`;
+            if (clipBtn) clipBtn.innerHTML = loadingSvg;
+
+            try {
+                const collageItems = [];
+                for (const f of selectedMediaFiles) {
+                    let data, type;
+                    if (f.type.startsWith('image/')) {
+                        data = await processImageHD(f, 1600);
+                        type = f.type;
+                    } else if (f.type.startsWith('video/')) {
+                        if (f.size > 8 * 1024 * 1024) continue;
+                        data = await fileToBase64(f);
+                        type = f.type;
+                    }
+                    if (data) collageItems.push({ data, type });
+                }
+
+                if (collageItems.length) {
+                    const payload = { text: caption || "[Медиа]", mediaCollage: collageItems };
+                    if (isBurnModeActive) payload.burnTime = Date.now() + burnDelayMs;
+                    const payloadJson = JSON.stringify(payload);
+                    const sig = await signPayload(payloadJson);
+                    const finalString = "[MEOW]" + aesEncrypt(payloadJson, activeRoomSharedKey);
+                    const dbPacket = { sender: myUid, text: finalString, time: Date.now(), read: false, kv: activeRoomKv };
+                    if (sig) dbPacket.sig = sig;
+                    const nowTime = Date.now();
+                    await window.fb.push(window.fb.ref(window.fb.db, `messages/${currentRoomId}/list`), dbPacket);
+                    await window.fb.update(window.fb.ref(window.fb.db, `users/${myUid}/chats/${currentPeer}`), { lastTime: nowTime });
+                    if (currentPeer !== myUid) await window.fb.update(window.fb.ref(window.fb.db, `users/${currentPeer}/chats/${myUid}`), { lastTime: nowTime });
+                }
+
+                selectedMediaFiles = [];
+                if (captionInput) captionInput.value = '';
+                updateMediaPreviewBar();
+            } catch (e) {
+                alert("Ошибка отправки медиа");
+            }
+            if (clipBtn) clipBtn.innerHTML = originalClipHtml;
         }
 
         async function handleDocumentSelected(file) {
