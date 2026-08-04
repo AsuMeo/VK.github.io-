@@ -27,7 +27,13 @@ if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(r
 window.addEventListener('online',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='none';if(window.sendQueuedMessages)window.sendQueuedMessages();});
 window.addEventListener('offline',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='flex';});
 navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_QUEUED_MESSAGES'&&window.sendQueuedMessages)window.sendQueuedMessages();});
-})();
+        window.deriveMasterKey = deriveMasterKey;
+        window.encryptWithMasterKey = encryptWithMasterKey;
+        window.decryptWithMasterKey = decryptWithMasterKey;
+        window.saveKeyStoreToCloud = saveKeyStoreToCloud;
+        window.loadKeyStoreFromCloud = loadKeyStoreFromCloud;
+
+        })();
 </script>
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -670,6 +676,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             overflow: hidden;
             cursor: pointer;
             width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .msg-media img, .msg-media video {
@@ -1933,49 +1940,45 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         .media-preview-bar.active {
             display: flex;
         }
-        .media-preview-thumbs {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
-            max-width: 260px;
-            overflow-x: auto;
-            padding: 2px;
-        }
-        .media-preview-thumb-wrap {
+        .media-preview-item {
             position: relative;
             flex-shrink: 0;
-        }
-        .media-preview-thumb {
-            width: 60px;
-            height: 60px;
             border-radius: 10px;
-            object-fit: cover;
-            display: block;
+            overflow: hidden;
             border: 1px solid rgba(255,255,255,0.08);
         }
-        .media-preview-thumb-remove {
+        .media-preview-item img, .media-preview-item video {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            display: block;
+        }
+        .media-preview-remove {
             position: absolute;
-            top: -6px;
-            right: -6px;
+            top: 2px;
+            right: 2px;
             width: 20px;
             height: 20px;
-            background: var(--error);
             border-radius: 50%;
-            border: 2px solid #000;
+            background: rgba(0,0,0,0.6);
             color: white;
+            border: none;
             font-size: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 2;
         }
         .media-preview-count {
-            font-size: 12px;
-            color: var(--text-muted);
-            white-space: nowrap;
-            padding: 0 4px;
-            align-self: center;
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 6px;
         }
         .media-preview-caption {
             flex: 1;
@@ -2013,7 +2016,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         /* ===== Коллаж сообщений в чате (как в Telegram) ===== */
         .msg-media-collage {
             display: grid;
-            gap: 1px;
+            gap: 2px;
             border-radius: 14px;
             overflow: hidden;
             margin: 4px 8px 0 8px;
@@ -2070,71 +2073,10 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             font-size: 22px;
             font-weight: 800;
         }
-
-        .msg-audio {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            min-width: 220px;
-        }
-        .msg-audio-play {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            font-size: 14px;
-        }
-        .msg-audio-wave {
-            flex: 1;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
-        .msg-audio-wave-bar {
-            width: 3px;
-            background: var(--accent);
-            border-radius: 2px;
-            opacity: 0.5;
-            transition: opacity 0.2s;
-        }
-        .msg-audio-wave-bar.active {
-            opacity: 1;
-        }
-        .msg-audio-time {
-            font-size: 12px;
-            color: var(--text-muted);
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        </style>
+</style>
 </head>
 <body>
-<div id="global-audio-player" style="display:none;position:fixed;top:0;left:0;right:0;height:56px;background:#161618;border-bottom:1px solid #2C2C2E;z-index:3000;align-i<div id="global-audio-player" style="display:none;position:fixed;top:0;left:0;right:0;height:42px;background:rgba(22,22,24,0.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(44,44,46,0.5);z-index:3000;align-items:center;padding:0 12px;gap:10px;">
-    <button id="global-play-btn" style="width:28px;height:28px;border-radius:50%;background:var(--accent);border:none;color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
-        <svg id="global-play-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <svg id="global-pause-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-    </button>
-    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;">
-        <div style="font-size:12px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="global-audio-title">Аудио</div>
-        <div style="width:100%;height:2px;background:rgba(44,44,46,0.5);border-radius:1px;position:relative;">
-            <div id="global-audio-progress" style="position:absolute;left:0;top:0;height:100%;width:0%;background:var(--accent);border-radius:1px;transition:width 0.1s;"></div>
-        </div>
-    </div>
-    <div id="global-audio-time" style="font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">0:00</div>
-    <button onclick="closeGlobalAudioPlayer()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-</div>align-items:center;justify-content:center;z-index:9999;letter-spacing:0.5px;">Нет подключения к интернету — сообщения отправятся позже</div>
+    <div id="offline-indicator" style="position:fixed;top:0;left:0;right:0;height:28px;background:var(--error);color:white;font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;z-index:9999;letter-spacing:0.5px;">Нет подключения к интернету — сообщения отправятся позже</div>
 
     <div id="global-wallpaper-overlay"></div>
 
@@ -2499,8 +2441,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         </div>
 
         <div class="media-preview-bar" id="media-preview-bar">
-            <div class="media-preview-count" id="media-preview-count"></div>
-            <div class="media-preview-thumbs" id="media-preview-items"></div>
+            <div id="media-preview-items" style="display: flex; gap: 8px; flex-shrink: 0;"></div>
             <div class="media-preview-caption">
                 <input type="text" id="media-caption-input" placeholder="Подпись...">
             </div>
@@ -2528,7 +2469,6 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         <div class="chat-input-bar" id="chat-normal-input-bar">
             <div id="composer-normal" style="display: flex; align-items: center; gap: 8px; width: 100%;">
                 <input type="file" id="media-upload" style="display: none;" accept="image/*,video/*" multiple onchange="handleMediaFilesSelected(this.files); this.value='';">
-                <input type="file" id="audio-upload" style="display: none;" accept="audio/*" onchange="handleAudioSelected(this.files[0]); this.value='';">
                 <input type="file" id="doc-upload" style="display: none;" onchange="handleDocumentSelected(this.files[0]); this.value='';">
                 <input type="file" id="sticker-upload" style="display: none;" accept=".tgs,.webp,.png,.jpg,.jpeg" onchange="handleStickerFileChosen(this.files[0]); this.value='';">
                 <input type="file" id="sticker-editor-upload" style="display: none;" accept="image/*" onchange="openStickerEditorWithFile(this.files[0]); this.value='';">
@@ -2775,10 +2715,6 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: var(--accent); flex-shrink: 0;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Фото или видео
             <button class="menu-btn" style="display: flex; align-items: center; gap: 10px; text-align: left;" onclick="closeModal('attach-menu-modal'); document.getElementById('doc-upload').click();">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: #A695E7; flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Файл
-            </button>
-            <button class="menu-btn" style="display: flex; align-items: center; gap: 10px; text-align: left;" onclick="closeModal('attach-menu-modal'); document.getElementById('audio-upload').click();">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: #FF6B9D; flex-shrink: 0;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                <span>Музыка</span>
             </button>
             <button class="menu-btn" style="display: flex; align-items: center; gap: 10px; text-align: left;" onclick="closeModal('attach-menu-modal'); openContactSharePicker();">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: #FAA774; flex-shrink: 0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Контакт
@@ -3264,6 +3200,78 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             }
         }
 
+        // ===== CLOUD KEY STORAGE (master key from email+password) =====
+        async function deriveMasterKey(email, password) {
+            const salt = CryptoJS.SHA256(email.toLowerCase().trim()).toString();
+            const key = CryptoJS.PBKDF2(password, salt, { keySize: 256/32, iterations: 100000 });
+            return key.toString();
+        }
+
+        function encryptWithMasterKey(dataJwk, masterKey) {
+            const key = CryptoJS.enc.Hex.parse(masterKey);
+            const iv = CryptoJS.lib.WordArray.random(16);
+            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(dataJwk), key, { iv: iv });
+            return iv.toString() + encrypted.toString();
+        }
+
+        function decryptWithMasterKey(encryptedData, masterKey) {
+            try {
+                const key = CryptoJS.enc.Hex.parse(masterKey);
+                const iv = CryptoJS.enc.Hex.parse(encryptedData.substring(0, 32));
+                const ciphertext = encryptedData.substring(32);
+                const decrypted = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv });
+                return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function saveKeyStoreToCloud() {
+            if (!myKeyStore || !window.meowMasterKey || !myUid) return;
+            const masterKey = window.meowMasterKey;
+            const encryptedPairs = {};
+            for (const ver in myKeyStore.pairs) {
+                const pair = myKeyStore.pairs[ver];
+                encryptedPairs[ver] = {
+                    priv: encryptWithMasterKey(pair.priv, masterKey),
+                    pub: pair.pub,
+                    signPriv: encryptWithMasterKey(pair.signPriv, masterKey),
+                    signPub: pair.signPub
+                };
+            }
+            const cloudStore = {
+                current: myKeyStore.current,
+                pairs: encryptedPairs,
+                version: myKeyStore.version || 1
+            };
+            await window.fb.set(window.fb.ref(window.fb.db, `users/${myUid}/keystore`), cloudStore);
+        }
+
+        async function loadKeyStoreFromCloud() {
+            if (!window.meowMasterKey || !myUid) return false;
+            try {
+                const snap = await window.fb.get(window.fb.ref(window.fb.db, `users/${myUid}/keystore`));
+                if (!snap.exists()) return false;
+                const cloudStore = snap.val();
+                const masterKey = window.meowMasterKey;
+                myKeyStore = { current: cloudStore.current, pairs: {}, version: cloudStore.version || 1 };
+                for (const ver in cloudStore.pairs) {
+                    const pair = cloudStore.pairs[ver];
+                    myKeyStore.pairs[ver] = {
+                        priv: decryptWithMasterKey(pair.priv, masterKey),
+                        pub: pair.pub,
+                        signPriv: decryptWithMasterKey(pair.signPriv, masterKey),
+                        signPub: pair.signPub
+                    };
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        
+
         function getMyProfileKey() {
             let key = localStorage.getItem(`meow_prof_key_${myUid}`);
             if (!key) {
@@ -3292,6 +3300,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             const encrypted = CryptoJS.AES.encrypt(plain, key, { iv: iv });
             const hmac = CryptoJS.HmacSHA256(iv.toString() + encrypted.toString(), key);
             localStorage.setItem(`meow_keystore_${myUid}`, iv.toString() + encrypted.toString() + hmac.toString());
+            if (window.meowMasterKey) saveKeyStoreToCloud();
         }
 
         // ======== НОВАЯ СИСТЕМА КЛЮЧЕЙ E2EE v2 (версии + история ключей) ========
@@ -3473,12 +3482,20 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         }
 
         async function initE2EE() {
-            await loadMyKeyStore();
+            if (!window.meowMasterKey) {
+                console.error("Master key not set");
+                return;
+            }
+            const loaded = await loadKeyStoreFromCloud();
+            if (!loaded) {
+                await loadMyKeyStore();
+            }
             await cleanupOldKeys();
             if (!myKeyStore.current || !myKeyStore.pairs[myKeyStore.current]) {
                 await generateAndAddKeypair();
             }
             await saveMyKeyStoreAndPublish();
+            await saveKeyStoreToCloud();
         }
 
         function getSelfChatKey(ver) {
@@ -6244,12 +6261,18 @@ let isBurnModeActive = false;
                 if (logDiv) logDiv.innerText = "⏳ Вход в аккаунт...";
                 await window.fb.signInWithEmailAndPassword(window.fb.auth, email, password);
                 if (logDiv) { logDiv.innerText = "✅ Успешный вход!"; logDiv.style.color = "var(--secure)"; }
+                const masterKey = await deriveMasterKey(email, password);
+                window.meowMasterKey = masterKey;
+                sessionStorage.setItem("meow_master_key", masterKey);
             } catch (err) {
                 if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-email") {
                     if (logDiv) logDiv.innerText = "⏳ Аккаунт не найден, создаём новый...";
                     try {
                         await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, password);
                         if (logDiv) { logDiv.innerText = "✅ Аккаунт создан! Добро пожаловать!"; logDiv.style.color = "var(--secure)"; }
+                        const masterKey = await deriveMasterKey(email, password);
+                        window.meowMasterKey = masterKey;
+                        sessionStorage.setItem("meow_master_key", masterKey);
                     } catch (regErr) {
                         if (logDiv) { logDiv.innerText = "❌ Ошибка: " + regErr.message; logDiv.style.color = "var(--error)"; }
                         errorDiv.innerText = regErr.message; errorDiv.style.display = "block";
@@ -10014,6 +10037,11 @@ let isBurnModeActive = false;
 
         window.updateComposerButton = updateComposerButton;
         window.handleMediaFilesSelected = handleMediaFilesSelected;
+        window.deriveMasterKey = deriveMasterKey;
+        window.encryptWithMasterKey = encryptWithMasterKey;
+        window.decryptWithMasterKey = decryptWithMasterKey;
+        window.saveKeyStoreToCloud = saveKeyStoreToCloud;
+        window.loadKeyStoreFromCloud = loadKeyStoreToCloud;
         window.toggleAudioPlay = toggleAudioPlay;
         window.closeGlobalAudioPlayer = closeGlobalAudioPlayer;
         window.handleAudioSelected = handleAudioSelected;
@@ -10124,7 +10152,21 @@ let isBurnModeActive = false;
                 myUid = user.uid; myEmail = user.email;
                 document.getElementById('login-screen').style.display = "none";
                 
-                await initE2EE();
+                
+                // Master key from email+password
+                let masterKey = sessionStorage.getItem('meow_master_key');
+                if (!masterKey && user.email) {
+                    masterKey = window.meowMasterKey;
+                }
+                if (!masterKey) {
+                    const password = prompt("Введите пароль для расшифровки переписок:");
+                    if (!password) { window.fb.signOut(window.fb.auth); return; }
+                    masterKey = await deriveMasterKey(user.email, password);
+                }
+                window.meowMasterKey = masterKey;
+                sessionStorage.setItem('meow_master_key', masterKey);
+
+await initE2EE();
                 startMyProfileRealtime();
                 
                 window.fb.onValue(window.fb.ref(window.fb.db, `users/${myUid}/contacts`), (snap) => {
