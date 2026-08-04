@@ -4961,7 +4961,8 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
                 if (m.sender !== myUid && m.read !== true) {
                     window.fb.update(window.fb.ref(window.fb.db, `messages/${currentRoomId}/list/${msgId}`), { read: true });
                 }
-const messageDateStr = new Date(m.time).toDateString();
+
+    const messageDateStr = new Date(m.time).toDateString();
                 if (messageDateStr !== lastMessageDateStr) {
                     const dateDiv = document.createElement('div');
                     dateDiv.className = "date-separator";
@@ -9840,6 +9841,9 @@ const messageDateStr = new Date(m.time).toDateString();
         window.openChatFromGlobalSearch = openChatFromGlobalSearch;
         window.updateComposerButton = updateComposerButton;
         window.handleMediaFilesSelected = handleMediaFilesSelected;
+        window.sendMediaWithCaption = sendMediaWithCaption;
+        window.cancelMediaPreview = cancelMediaPreview;
+        window.removeMediaPreview = removeMediaPreview;
         window.handleDocumentSelected = handleDocumentSelected;
         window.handleStickerFileChosen = handleStickerFileChosen;
         window.openStickerEditorWithFile = openStickerEditorWithFile;
@@ -10050,5 +10054,4 @@ const messageDateStr = new Date(m.time).toDateString();
     </div>
 
 </body>
-</html>
-                
+</html>            
