@@ -27,11 +27,17 @@ if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(r
 window.addEventListener('online',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='none';if(window.sendQueuedMessages)window.sendQueuedMessages();});
 window.addEventListener('offline',()=>{const ind=document.getElementById('offline-indicator');if(ind)ind.style.display='flex';});
 navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_QUEUED_MESSAGES'&&window.sendQueuedMessages)window.sendQueuedMessages();});
+        window.initE2EE = initE2EE;
         window.deriveMasterKey = deriveMasterKey;
         window.encryptWithMasterKey = encryptWithMasterKey;
         window.decryptWithMasterKey = decryptWithMasterKey;
         window.saveKeyStoreToCloud = saveKeyStoreToCloud;
         window.loadKeyStoreFromCloud = loadKeyStoreFromCloud;
+        window.getSharedKeyForKv = getSharedKeyForKv;
+        window.signPayload = signPayload;
+        window.verifyPayloadSignature = verifyPayloadSignature;
+        window.aesEncrypt = aesEncrypt;
+        window.aesDecrypt = aesDecrypt;
 
         })();
 </script>
@@ -3482,20 +3488,25 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         }
 
         async function initE2EE() {
-            if (!window.meowMasterKey) {
-                console.error("Master key not set");
-                return;
+            if (window.meowMasterKey) {
+                const loaded = await loadKeyStoreFromCloud();
+                if (loaded) {
+                    await cleanupOldKeys();
+                    if (!myKeyStore.current || !myKeyStore.pairs[myKeyStore.current]) {
+                        await generateAndAddKeypair();
+                    }
+                    await saveMyKeyStoreAndPublish();
+                    await saveKeyStoreToCloud();
+                    return;
+                }
             }
-            const loaded = await loadKeyStoreFromCloud();
-            if (!loaded) {
-                await loadMyKeyStore();
-            }
+            await loadMyKeyStore();
             await cleanupOldKeys();
             if (!myKeyStore.current || !myKeyStore.pairs[myKeyStore.current]) {
                 await generateAndAddKeypair();
             }
             await saveMyKeyStoreAndPublish();
-            await saveKeyStoreToCloud();
+            if (window.meowMasterKey) await saveKeyStoreToCloud();
         }
 
         function getSelfChatKey(ver) {
@@ -10153,20 +10164,7 @@ let isBurnModeActive = false;
                 document.getElementById('login-screen').style.display = "none";
                 
                 
-                // Master key from email+password
-                let masterKey = sessionStorage.getItem('meow_master_key');
-                if (!masterKey && user.email) {
-                    masterKey = window.meowMasterKey;
-                }
-                if (!masterKey) {
-                    const password = prompt("Введите пароль для расшифровки переписок:");
-                    if (!password) { window.fb.signOut(window.fb.auth); return; }
-                    masterKey = await deriveMasterKey(user.email, password);
-                }
-                window.meowMasterKey = masterKey;
-                sessionStorage.setItem('meow_master_key', masterKey);
-
-await initE2EE();
+                await initE2EE();
                 startMyProfileRealtime();
                 
                 window.fb.onValue(window.fb.ref(window.fb.db, `users/${myUid}/contacts`), (snap) => {
