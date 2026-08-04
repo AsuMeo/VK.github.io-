@@ -1992,7 +1992,8 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             padding: 0 14px;
             font-size: 14px;
             outline: none;
-        }.media-preview-send-btn {
+        }
+        .media-preview-send-btn {
             width: 44px;
             height: 44px;
             border-radius: 50%;
@@ -4960,7 +4961,6 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
                 if (m.sender !== myUid && m.read !== true) {
                     window.fb.update(window.fb.ref(window.fb.db, `messages/${currentRoomId}/list/${msgId}`), { read: true });
                 }
-
 const messageDateStr = new Date(m.time).toDateString();
                 if (messageDateStr !== lastMessageDateStr) {
                     const dateDiv = document.createElement('div');
@@ -7655,7 +7655,7 @@ const messageDateStr = new Date(m.time).toDateString();
                 const f = e.clipboardData.files[0];
                 if (f && (f.type.startsWith('image/') || f.type.startsWith('video/'))) {
                     e.preventDefault();
-                    compressAndSendMedia(f);
+                    handleMediaFilesSelected([f]);
                 }
             });
 
@@ -7680,7 +7680,7 @@ const messageDateStr = new Date(m.time).toDateString();
                     dropHint.classList.remove('visible');
                     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
                     if (f && (f.type.startsWith('image/') || f.type.startsWith('video/'))) {
-                        compressAndSendMedia(f);
+                        handleMediaFilesSelected([f]);
                     }
                 });
             }
@@ -9431,9 +9431,9 @@ const messageDateStr = new Date(m.time).toDateString();
         // ============================================================
         // ======== v3: ФАЙЛЫ-ДОКУМЕНТЫ
         // ============================================================
-        async let selectedMediaFiles = [];
+        let selectedMediaFiles = [];
 
-        function handleMediaFilesSelected(files) {
+        async function handleMediaFilesSelected(files) {
             if (!files || !files.length) return;
             const newFiles = Array.from(files).slice(0, 10 - selectedMediaFiles.length);
             if (!newFiles.length) return;
@@ -9524,6 +9524,8 @@ const messageDateStr = new Date(m.time).toDateString();
             }
             if (clipBtn) clipBtn.innerHTML = originalClipHtml;
         }
+
+        
 
         async function handleDocumentSelected(file) {
             if (!file) return;
@@ -9800,7 +9802,7 @@ const messageDateStr = new Date(m.time).toDateString();
         window.scrollToMessage = scrollToMessage;
         window.viewMediaFull = viewMediaFull;
         window.processAndSetCrop = processAndSetCrop;
-        window.compressAndSendMedia = compressAndSendMedia;
+        
         window.triggerTypingStatus = triggerTypingStatus;
         window.startContactChat = startContactChat;
         window.switchFolder = switchFolder;
@@ -10049,3 +10051,4 @@ const messageDateStr = new Date(m.time).toDateString();
 
 </body>
 </html>
+                
