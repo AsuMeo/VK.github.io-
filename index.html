@@ -844,7 +844,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
     <button class="action-btn icon-btn music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
     <button class="action-btn icon-btn" onclick="toggleGesturePanel()" title="Жесты и эмодзи">🎭</button>
     <button class="action-btn icon-btn" onclick="toggleAttachMenu()" title="Прикрепить">📎</button>
-    <button class="action-btn icon-btn" onclick="toggleChatHistory()" title="История чата">💬</button>
+    <button class="action-btn icon-btn" onclick="toggleChatHistory()" title="2D Чат (История)">💬</button>
     <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
     <input type="file" id="tvFileInput" accept="video/*" style="display:none" onchange="handleTvFile(this)">
     <input type="text" class="msg-input" id="msgInput" placeholder="Сообщение... (введите 'miside')" onkeydown="if(event.key==='Enter')sendMessage()" oninput="onTyping()">
@@ -858,7 +858,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   <h3>🎵 Музыка</h3>
   <div class="music-track" data-src="genshin" onclick="playTrack('genshin')">
     <div class="track-icon">🌸</div>
-    <div class="track-info"><div class="track-name">Genshin Impact</div><div class="track-desc">Мелодичная фантазия</div></div>
+    <div class="track-info"><div class="track-name">Genshin Impact (Фон)</div><div class="track-desc">Постоянная фоновая музыка</div></div>
     <div class="track-play" id="play-genshin">▶</div>
     <a class="music-download" id="dl-genshin" href="" download="genshin.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
@@ -996,10 +996,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   <div class="avatar-3d" id="avatar3d"></div>
 </div>
 
-<!-- Chat History Panel -->
+<!-- Chat History Panel (2D Chat) -->
 <div class="chat-history-panel" id="chatHistoryPanel">
   <div class="chat-history-header">
-    <h3>💬 История переписки</h3>
+    <h3>💬 2D Чат (История)</h3>
     <button class="close-btn" onclick="toggleChatHistory()">✕</button>
   </div>
   <div class="chat-history-clear">
@@ -1064,18 +1064,21 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   </div>
 </div>
 
-<!-- Horror Jumpscare Overlay -->
+<!-- Horror Jumpscare Overlay with Miside image support -->
 <div class="horror-overlay" id="horrorOverlay">
-  <!-- Scary toothy creature face -->
-  <svg class="horror-face" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- 
+    Используется картинка miside.png. 
+    Вы можете положить в одну папку с проектом файл miside.png, 
+    либо заменить путь в теге <img> ниже на свой.
+  -->
+  <img src="miside.png" class="horror-face" id="horrorImg" alt="Miside Screamer" onerror="this.onerror=null; this.style.display='none'; document.getElementById('horrorSvgFallback').style.display='block';">
+  <svg class="horror-face" id="horrorSvgFallback" style="display:none;" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="#110002"/>
     <circle cx="250" cy="250" r="180" fill="#220005" stroke="#ff0044" stroke-width="4"/>
-    <!-- Glowing red eyes -->
     <ellipse cx="180" cy="200" rx="35" ry="25" fill="#ff0000"/>
     <ellipse cx="320" cy="200" rx="35" ry="25" fill="#ff0000"/>
     <circle cx="185" cy="200" r="10" fill="#ffffff"/>
     <circle cx="315" cy="200" r="10" fill="#ffffff"/>
-    <!-- Giant gaping maw with sharp teeth -->
     <path d="M 140 310 Q 250 420 360 310 Q 340 370 250 390 Q 160 370 140 310 Z" fill="#40000a"/>
     <polygon points="150,315 170,360 185,320" fill="#ffffff"/>
     <polygon points="185,320 205,370 220,325" fill="#ffffff"/>
@@ -1112,9 +1115,11 @@ let messages3D = [], mediaObjects = [], avatar3DObjects = {};
 let gestureAnimations = [], drawings3D = [];
 let sunMesh = null, skyMesh = null, weatherSnowGroup = null;
 let animationId, isPanelOpen = false, isMusicPanelOpen = false;
+let isChatHistoryOpen = false, isAttachMenuOpen = false;
 let currentAudio = null, currentTrack = null, audioVolume = 0.3;
 let userData = {}, partnerStatusListener = null;
 let drawCtx = null, drawColor = '#ff6b6b';
+let editingMessageId = null;
 
 // ===== 3D TV VARIABLES & SYNC =====
 let tvScreen, tvVideoElement, tvTexture;
@@ -1127,6 +1132,7 @@ let currentWeather = 'clear'; // 'clear', 'rain', 'snow', 'sunset'
 let unlockedAchievements = {};
 let roomLightsOn = true;
 let questObjects = {};
+let backgroundMusicStarted = false;
 
 // ===== FULLSCREEN =====
 function toggleFullscreen() {
@@ -1251,6 +1257,12 @@ auth.onAuthStateChanged(user=>{
       loadUsers();
       initDrawCanvas();
       document.getElementById('loading').classList.add('hidden');
+      
+      // АВТОМАТИЧЕСКИЙ ЗАПУСК ФОНОВОЙ МУЗЫКИ (GENSHIN) ПРИ ВХОДЕ В МИР
+      if (!backgroundMusicStarted) {
+        backgroundMusicStarted = true;
+        playTrack('genshin');
+      }
       
       let savedPartnerUid = localStorage.getItem('lastPartnerUid');
       let savedPartnerData = JSON.parse(localStorage.getItem('lastPartnerData') || 'null');
@@ -1575,7 +1587,7 @@ function triggerVideoFile() {
   toggleAttachMenu();
 }
 
-// ===== CHAT HISTORY =====
+// ===== CHAT HISTORY (2D CHAT) =====
 function toggleChatHistory() {
   isChatHistoryOpen = !isChatHistoryOpen;
   document.getElementById('chatHistoryPanel').classList.toggle('open', isChatHistoryOpen);
@@ -1749,25 +1761,45 @@ function triggerHorrorMode() {
   const horror = document.getElementById('horrorOverlay');
   horror.classList.add('active');
 
-  // Включение устрашающего крика / звука (Web Audio API бип-скример)
+  // УЛУЧШЕННЫЙ СКРИМЕР: Настоящий страшный крик + резкий индустриальный скрежет через Web Audio API
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 3);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 3);
+    
+    // Осциллятор 1: Низкий угрожающий гул
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(60, audioCtx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.2);
+    osc1.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 1.5);
+    
+    gain1.gain.setValueAtTime(0.8, audioCtx.currentTime);
+    gain1.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 3.2);
+
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start();
+    osc1.stop(audioCtx.currentTime + 3.2);
+
+    // Осциллятор 2: Пронзительный крик
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(2800, audioCtx.currentTime + 0.8);
+    
+    gain2.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain2.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 2.5);
+
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start();
+    osc2.stop(audioCtx.currentTime + 2.5);
   } catch(e) {}
 
   setTimeout(() => {
     horror.classList.remove('active');
-  }, 3000);
+  }, 3200);
 }
 
 function insertEmoji(emoji) {
@@ -2277,7 +2309,6 @@ function add3DTextBubble(text) {
   ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'center';
   
-  // FIXED XSS: sanitize text before rendering on 3D canvas
   const safeText = escapeHtmlXSS(text);
   ctx.fillText(safeText.substring(0,35), 256, 75);
 
@@ -2584,7 +2615,7 @@ function create3DMedia(url, type, isOwn) {
   }
 }
 
-// Raycasting (Клик на объекты, квесты и двойной тап на пузыри)
+// Raycasting
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let lastClickTime = 0;
@@ -2599,11 +2630,9 @@ document.getElementById('room-canvas').addEventListener('click',e=>{
   for(let hit of intersects){
     const obj = hit.object;
 
-    // Проверка двойного тапа на 3D пузыри (сообщения) -> реакции эмодзи
     if(obj.userData && obj.userData.isMessage) {
       const now = Date.now();
       if(lastClickedObject === obj && now - lastClickTime < 400) {
-        // Двойной клик! Отправляем эмодзи-реакцию
         sendGesture('love');
         addRelation(1);
         lastClickTime = 0;
@@ -2615,7 +2644,6 @@ document.getElementById('room-canvas').addEventListener('click',e=>{
       }
     }
 
-    // Проверка квестовых предметов
     if(obj.userData && obj.userData.isQuestItem) {
       const type = obj.userData.itemType;
       if(type === 'book') {
