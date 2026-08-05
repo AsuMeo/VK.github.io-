@@ -3,78 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Minecraft Mobile RTDB</title>
+    <title>Ultra 3D Minecraft RTDB</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-database-compat.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Press Start 2P', cursive; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #87ceeb; font-family: 'Press Start 2P', cursive; }
 
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        #ui-layer * { pointer-events: auto; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-        /* Auth Screen */
+        /* UI */
+        #ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: flex; flex-direction: column; }
+        #ui * { pointer-events: auto; }
+
+        /* Auth */
         #auth-screen {
-            position: fixed; inset: 0; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://p-v.advego.com/preview/800/8c0678082a7f53a8112e47e33842944b.jpg');
-            background-size: cover; display: flex; align-items: center; justify-content: center; z-index: 1000;
+            position: fixed; inset: 0; background: #4a2f13; 
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
-        .auth-container {
-            background: #313131; border: 4px solid #000; padding: 20px; width: 90%; max-width: 400px; text-align: center;
-            box-shadow: inset -4px -4px #1a1a1a, inset 4px 4px #5a5a5a;
+        .auth-box {
+            background: #313131; border: 4px solid #000; padding: 25px; width: 90%; max-width: 400px;
+            box-shadow: inset -4px -4px #1a1a1a, inset 4px 4px #5a5a5a; text-align: center;
         }
-        .auth-title { color: #fff; font-size: 14px; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+        .auth-box h2 { color: #fff; font-size: 14px; margin-bottom: 20px; text-shadow: 2px 2px #000; }
         input { 
-            width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 2px solid #555; 
-            color: #fff; font-family: 'Press Start 2P'; font-size: 10px; outline: none;
+            width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 2px solid #555; 
+            color: #55ff55; font-family: 'Press Start 2P'; font-size: 10px; outline: none;
         }
         button {
-            width: 100%; padding: 15px; margin-top: 10px; background: #666; border: 3px solid #000;
+            width: 100%; padding: 16px; margin-top: 10px; background: #666; border: 3px solid #000;
             color: #fff; font-family: 'Press Start 2P'; font-size: 10px; cursor: pointer;
             box-shadow: inset -3px -3px #333, inset 3px 3px #999;
         }
-        button:active { box-shadow: inset 3px 3px #333, inset -3px -3px #999; transform: translateY(2px); }
-        .btn-green { background: #3c8527; box-shadow: inset -3px -3px #1e4213, inset 3px 3px #5db33e; }
+        .btn-play { background: #3c8527; box-shadow: inset -3px -3px #1e4213, inset 3px 3px #5db33e; }
+        button:active { transform: translateY(2px); }
 
-        /* Mobile Controls */
-        #joystick-zone {
-            position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px;
-            background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
-        }
-        #joystick-stick {
-            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
-            background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%);
-        }
-
-        #action-buttons { position: absolute; bottom: 40px; right: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .action-btn {
-            width: 65px; height: 65px; background: rgba(0,0,0,0.5); border: 3px solid #fff;
-            border-radius: 10px; display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 10px;
-        }
-
-        /* Hotbar */
-        #hotbar {
-            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 4px; background: rgba(0,0,0,0.6); padding: 4px; border: 3px solid #333;
-        }
-        .slot {
-            width: 45px; height: 45px; border: 2px solid #888; background-size: cover; image-rendering: pixelated;
-        }
-        .slot.active { border-color: #fff; box-shadow: 0 0 10px #fff; }
-
-        /* Crosshair */
+        /* HUD */
         #crosshair {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 20px; height: 20px; color: #fff; display: flex; align-items: center; justify-content: center;
-            font-size: 20px; pointer-events: none;
+            width: 16px; height: 16px; border: 2px solid white; border-radius: 2px;
+            mix-blend-mode: difference; pointer-events: none;
         }
 
-        #loading-overlay {
-            position: fixed; inset: 0; background: #000; z-index: 2000;
+        #controls { position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; }
+        #joystick-base { width: 100%; height: 100%; background: rgba(0,0,0,0.3); border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); }
+        #joystick-knob { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; transform: translate(-50%, -50%); }
+
+        #actions { position: absolute; bottom: 30px; right: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .action-btn {
+            width: 70px; height: 70px; background: rgba(0,0,0,0.5); border: 4px solid #fff;
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 8px; text-align: center;
+        }
+
+        #hotbar {
+            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 5px; background: rgba(0,0,0,0.7); padding: 5px; border: 3px solid #111;
+        }
+        .slot { width: 45px; height: 45px; border: 2px solid #555; background-size: cover; image-rendering: pixelated; }
+        .slot.active { border-color: #fff; background-color: rgba(255,255,255,0.2); }
+
+        #loading {
+            position: fixed; inset: 0; background: #1a1a1a; z-index: 2000;
             display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff;
         }
         .hidden { display: none !important; }
@@ -82,48 +75,45 @@
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <div class="auth-title">ЗАГРУЗКА МИРА...</div>
-        <div id="load-status" style="font-size: 8px; margin-top: 10px;">Подключение к RTDB</div>
+<div id="loading">
+    <div style="font-size: 16px; margin-bottom: 20px;">ГЕНЕРАЦИЯ МИРА...</div>
+    <div id="load-info" style="font-size: 8px;">Инициализация 3D движка</div>
+</div>
+
+<div id="auth-screen">
+    <div class="auth-box">
+        <h2>MINECRAFT 3D MOBILE</h2>
+        <div id="auth-err" style="color: #ff5555; font-size: 8px; margin-bottom: 10px;"></div>
+        <input type="email" id="email" placeholder="EMAIL (example@mail.com)">
+        <input type="password" id="pass" placeholder="PASSWORD">
+        <button class="btn-play" onclick="authAction('login')">ВОЙТИ</button>
+        <button onclick="authAction('reg')">РЕГИСТРАЦИЯ</button>
     </div>
+</div>
 
-    <div id="auth-screen">
-        <div class="auth-container">
-            <div class="auth-title">MINECRAFT 3D MOBILE</div>
-            <div id="auth-error" style="color: #ff4444; font-size: 8px; margin-bottom: 10px;"></div>
-            <input type="email" id="email" placeholder="EMAIL">
-            <input type="password" id="password" placeholder="ПАРОЛЬ">
-            <button class="btn-green" onclick="handleAuth('login')">ВОЙТИ</button>
-            <button onclick="handleAuth('register')">РЕГИСТРАЦИЯ</button>
-        </div>
-    </div>
-
-    <div id="ui-layer" class="hidden">
-        <div id="crosshair">+</div>
-
-        <div id="joystick-zone">
-            <div id="joystick-stick"></div>
-        </div>
-
-        <div id="action-buttons">
-            <div class="action-btn" id="btn-jump">JUMP</div>
-            <div class="action-btn" id="btn-place" style="background: #3c8527;">PLACE</div>
-            <div class="action-btn" id="btn-break" style="background: #852727;">BREAK</div>
-        </div>
-
-        <div id="hotbar">
-            <div class="slot active" data-type="1" style="background-image: url('https://minecraft.wiki/images/Thumb_Grass_Block_Side.png');"></div>
-            <div class="slot" data-type="2" style="background-image: url('https://minecraft.wiki/images/Thumb_Oak_Log.png');"></div>
-            <div class="slot" data-type="3" style="background-image: url('https://minecraft.wiki/images/Thumb_Cobblestone.png');"></div>
-            <div class="slot" data-type="4" style="background-image: url('https://minecraft.wiki/images/Thumb_Oak_Planks.png');"></div>
-            <div class="slot" data-type="5" style="background-image: url('https://minecraft.wiki/images/Thumb_Brick_Block.png');"></div>
+<div id="ui" class="hidden">
+    <div id="crosshair"></div>
+    <div id="controls">
+        <div id="joystick-base">
+            <div id="joystick-knob"></div>
         </div>
     </div>
-
-    <canvas id="game-canvas"></canvas>
+    <div id="actions">
+        <div class="action-btn" id="jump-btn">JUMP</div>
+        <div class="action-btn" id="place-btn" style="background: #3c8527;">PLACE</div>
+        <div class="action-btn" id="break-btn" style="background: #852727;">BREAK</div>
+    </div>
+    <div id="hotbar" id="hotbar-slots">
+        <div class="slot active" data-id="1"></div>
+        <div class="slot" data-id="2"></div>
+        <div class="slot" data-id="3"></div>
+        <div class="slot" data-id="4"></div>
+        <div class="slot" data-id="5"></div>
+    </div>
+</div>
 
 <script>
-// --- CONFIG ---
+// --- FIREBASE CONFIG ---
 const firebaseConfig = {
     apiKey: "AIzaSyBm0mIvHVznIeF2PoFk6dtdaiT5r877wyA",
     authDomain: "meow-874ce.firebaseapp.com",
@@ -134,300 +124,258 @@ const firebaseConfig = {
     appId: "1:471541334599:web:567af3e7dbe70a37572762"
 };
 
-// --- INIT FIREBASE ---
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// --- GAME VARIABLES ---
-let scene, camera, renderer, clock, player;
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-let canJump = true, velocity = new THREE.Vector3(), direction = new THREE.Vector3();
+// --- 3D ENGINE VARIABLES ---
+let scene, camera, renderer, clock;
+let player, playerVelocity = new THREE.Vector3(), canJump = false;
+let moveDir = { f: 0, b: 0, l: 0, r: 0 };
 let blocks = {}, remotePlayers = {};
-let selectedBlockType = 1;
-let worldRef = db.ref('world_v3');
-let playersRef = db.ref('players_online');
+let selectedBlock = 1;
 let currentUser = null;
 
-const textures = {
-    1: 'https://minecraft.wiki/images/Thumb_Grass_Block_Side.png',
-    2: 'https://minecraft.wiki/images/Thumb_Oak_Log.png',
-    3: 'https://minecraft.wiki/images/Thumb_Cobblestone.png',
-    4: 'https://minecraft.wiki/images/Thumb_Oak_Planks.png',
-    5: 'https://minecraft.wiki/images/Thumb_Brick_Block.png'
-};
-
-const loader = new THREE.TextureLoader();
-const blockMaterials = {};
-Object.keys(textures).forEach(id => {
-    const tex = loader.load(textures[id]);
+// --- PROCEDURAL TEXTURES (МАЙНКРАФТ СТИЛЬ) ---
+function createPixelTexture(colors) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16; canvas.height = 16;
+    const ctx = canvas.getContext('2d');
+    for(let x=0; x<16; x++) {
+        for(let y=0; y<16; y++) {
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillRect(x, y, 1, 1);
+        }
+    }
+    const tex = new THREE.CanvasTexture(canvas);
     tex.magFilter = THREE.NearestFilter;
     tex.minFilter = THREE.NearestFilter;
-    blockMaterials[id] = new THREE.MeshLambertMaterial({ map: tex });
-});
+    return tex;
+}
 
-// --- AUTH LOGIC ---
-function handleAuth(mode) {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    const errDisp = document.getElementById('auth-error');
+const materials = {
+    1: new THREE.MeshLambertMaterial({ map: createPixelTexture(['#55aa33', '#449922', '#66bb44']) }), // Трава
+    2: new THREE.MeshLambertMaterial({ map: createPixelTexture(['#777777', '#888888', '#666666']) }), // Камень
+    3: new THREE.MeshLambertMaterial({ map: createPixelTexture(['#5c3a21', '#4d301c', '#6b4427']) }), // Дерево
+    4: new THREE.MeshLambertMaterial({ map: createPixelTexture(['#a52a2a', '#8b0000', '#9a2020']) }), // Кирпич
+    5: new THREE.MeshLambertMaterial({ map: createPixelTexture(['#228b22', '#006400', '#32cd32']) })  // Листва
+};
 
-    const action = mode === 'login' 
-        ? auth.signInWithEmailAndPassword(email, pass)
-        : auth.createUserWithEmailAndPassword(email, pass);
-
-    action.catch(err => {
-        errDisp.innerText = err.message;
+// Заполняем хотбар иконками
+window.onload = () => {
+    const slots = document.querySelectorAll('.slot');
+    slots.forEach(slot => {
+        const id = slot.dataset.id;
+        const canvas = materials[id].map.image;
+        slot.style.backgroundImage = `url(${canvas.toDataURL()})`;
+        slot.onclick = () => {
+            slots.forEach(s => s.classList.remove('active'));
+            slot.classList.add('active');
+            selectedBlock = id;
+        };
     });
+};
+
+// --- AUTH ---
+function authAction(mode) {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('pass').value;
+    const action = mode === 'login' ? auth.signInWithEmailAndPassword(email, pass) : auth.createUserWithEmailAndPassword(email, pass);
+    action.catch(e => document.getElementById('auth-err').innerText = e.message);
 }
 
 auth.onAuthStateChanged(user => {
-    if (user) {
+    if(user) {
         currentUser = user;
         document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('ui-layer').classList.remove('hidden');
+        document.getElementById('ui').classList.remove('hidden');
         initGame();
-    } else {
-        document.getElementById('auth-screen').classList.remove('hidden');
-        document.getElementById('loading-overlay').classList.add('hidden');
     }
 });
 
-// --- GAME CORE ---
+// --- GAME LOGIC ---
 function initGame() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.FogExp2(0x87ceeb, 0.02);
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.01);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true });
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-    const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    sunLight.position.set(50, 100, 50);
-    scene.add(sunLight);
+    // СВЕТ (Чтобы ничего не было черным)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+    scene.add(hemiLight);
+    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    sun.position.set(50, 100, 20);
+    scene.add(sun);
 
     player = new THREE.Group();
-    player.position.set(0, 10, 0);
+    player.position.set(0, 15, 0);
     scene.add(player);
-    player.add(camera);
+    player.add(camera); // Камера внутри игрока (вид от первого лица)
 
     clock = new THREE.Clock();
 
-    // Floor (Initial world generation if empty)
-    for(let x=-10; x<10; x++) {
-        for(let z=-10; z<10; z++) {
-            addBlockLocal(x, 0, z, 1);
-        }
-    }
-
-    // Sync from RTDB
-    worldRef.on('child_added', snap => {
-        const data = snap.val();
-        addBlockLocal(data.x, data.y, data.z, data.type, snap.key);
+    // Синхронизация мира из Firebase
+    db.ref('world_data').on('child_added', snap => {
+        const d = snap.val();
+        addBlockLocal(d.x, d.y, d.z, d.type, snap.key);
     });
 
-    worldRef.on('child_removed', snap => {
-        const key = snap.key;
-        if(blocks[key]) {
-            scene.remove(blocks[key]);
-            delete blocks[key];
+    db.ref('world_data').on('child_removed', snap => {
+        if(blocks[snap.key]) {
+            scene.remove(blocks[snap.key]);
+            delete blocks[snap.key];
         }
     });
 
-    // Multiplayer Players
-    playersRef.on('child_added', snap => {
-        if(snap.key === currentUser.uid) return;
-        createRemotePlayer(snap.key, snap.val());
+    // Синхронизация игроков
+    db.ref('players').on('child_added', snap => {
+        if(snap.key !== currentUser.uid) createOtherPlayer(snap.key);
     });
-    playersRef.on('child_changed', snap => {
-        if(snap.key === currentUser.uid) return;
-        updateRemotePlayer(snap.key, snap.val());
+    db.ref('players').on('child_changed', snap => {
+        if(snap.key !== currentUser.uid && remotePlayers[snap.key]) {
+            const d = snap.val();
+            remotePlayers[snap.key].position.set(d.x, d.y, d.z);
+            remotePlayers[snap.key].rotation.y = d.ry;
+        }
     });
-    playersRef.on('child_removed', snap => {
+    db.ref('players').on('child_removed', snap => {
         if(remotePlayers[snap.key]) {
             scene.remove(remotePlayers[snap.key]);
             delete remotePlayers[snap.key];
         }
     });
 
-    setupControls();
-    document.getElementById('loading-overlay').classList.add('hidden');
+    setupMobileControls();
+    document.getElementById('loading').classList.add('hidden');
     animate();
+
+    // Начальный пол (только если пусто)
+    db.ref('world_data').once('value', s => {
+        if(!s.exists()) {
+            for(let x=-5; x<=5; x++) for(let z=-5; z<=5; z++) {
+                db.ref('world_data').push({x, y:0, z, type:1});
+            }
+        }
+    });
 }
 
 function addBlockLocal(x, y, z, type, key) {
-    const geo = new THREE.BoxGeometry(1, 1, 1);
-    const mesh = new THREE.Mesh(geo, blockMaterials[type]);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials[type]);
     mesh.position.set(x, y, z);
     scene.add(mesh);
-    if(key) blocks[key] = mesh;
-    else {
-        // Only if it's local pre-gen, we don't save to db here to avoid loops
-    }
+    blocks[key] = mesh;
 }
 
-function placeBlock() {
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-    const intersects = raycaster.intersectObjects(Object.values(blocks));
-    
-    if (intersects.length > 0) {
-        const p = intersects[0].point.add(intersects[0].face.normal.multiplyScalar(0.5));
-        const bx = Math.round(p.x);
-        const by = Math.round(p.y);
-        const bz = Math.round(p.z);
-        
-        worldRef.push({ x: bx, y: by, z: bz, type: selectedBlockType });
-    } else {
-        // Place under feet if looking at sky
-        const p = player.position.clone().add(direction.clone().multiplyScalar(3));
-        worldRef.push({ x: Math.round(p.x), y: Math.round(p.y), z: Math.round(p.z), type: selectedBlockType });
-    }
-}
-
-function breakBlock() {
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-    const intersects = raycaster.intersectObjects(Object.values(blocks));
-    
-    if (intersects.length > 0) {
-        const obj = intersects[0].object;
-        for(let key in blocks) {
-            if(blocks[key] === obj) {
-                worldRef.child(key).remove();
-                break;
-            }
-        }
-    }
-}
-
-// --- REMOTE PLAYERS ---
-function createRemotePlayer(id, data) {
-    const geo = new THREE.BoxGeometry(0.6, 1.8, 0.6);
-    const mat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
-    const mesh = new THREE.Mesh(geo, mat);
+function createOtherPlayer(id) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.8, 0.6), new THREE.MeshLambertMaterial({color: 0xff0000}));
     scene.add(mesh);
     remotePlayers[id] = mesh;
 }
 
-function updateRemotePlayer(id, data) {
-    if(remotePlayers[id]) {
-        remotePlayers[id].position.set(data.x, data.y, data.z);
-        remotePlayers[id].rotation.y = data.ry;
+// --- УПРАВЛЕНИЕ ---
+function setupMobileControls() {
+    const knob = document.getElementById('joystick-knob');
+    const base = document.getElementById('joystick-base');
+    
+    base.addEventListener('touchmove', e => {
+        const r = base.getBoundingClientRect();
+        const t = e.touches[0];
+        const x = t.clientX - r.left - r.width/2;
+        const y = t.clientY - r.top - r.height/2;
+        const dist = Math.min(50, Math.sqrt(x*x + y*y));
+        const angle = Math.atan2(y, x);
+        knob.style.transform = `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`;
+        
+        moveDir.f = y < -10 ? -y/50 : 0;
+        moveDir.b = y > 10 ? y/50 : 0;
+        moveDir.l = x < -10 ? -x/50 : 0;
+        moveDir.r = x > 10 ? x/50 : 0;
+    });
+
+    base.addEventListener('touchend', () => {
+        knob.style.transform = 'translate(-50%, -50%)';
+        moveDir = { f:0, b:0, l:0, r:0 };
+    });
+
+    // Вращение камеры
+    let lastX, lastY;
+    renderer.domElement.addEventListener('touchmove', e => {
+        const t = e.touches[0];
+        if(lastX) {
+            player.rotation.y -= (t.clientX - lastX) * 0.007;
+            camera.rotation.x -= (t.clientY - lastY) * 0.007;
+            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+        }
+        lastX = t.clientX; lastY = t.clientY;
+    });
+    renderer.domElement.addEventListener('touchend', () => { lastX = null; lastY = null; });
+
+    document.getElementById('jump-btn').onclick = () => { if(canJump) { playerVelocity.y = 6; canJump = false; } };
+    document.getElementById('place-btn').onclick = doPlace;
+    document.getElementById('break-btn').onclick = doBreak;
+}
+
+function doPlace() {
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera({x:0, y:0}, camera);
+    const hits = ray.intersectObjects(Object.values(blocks));
+    if(hits.length > 0) {
+        const p = hits[0].point.add(hits[0].face.normal.multiplyScalar(0.5));
+        db.ref('world_data').push({x:Math.round(p.x), y:Math.round(p.y), z:Math.round(p.z), type:selectedBlock});
     }
 }
 
-// --- MOBILE CONTROLS ---
-function setupControls() {
-    const joyStick = document.getElementById('joystick-stick');
-    const joyZone = document.getElementById('joystick-zone');
-    let joyActive = false;
-
-    joyZone.addEventListener('touchstart', e => { joyActive = true; });
-    joyZone.addEventListener('touchmove', e => {
-        if(!joyActive) return;
-        const rect = joyZone.getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left - rect.width/2;
-        const y = touch.clientY - rect.top - rect.height/2;
-        const dist = Math.min(60, Math.sqrt(x*x + y*y));
-        const angle = Math.atan2(y, x);
-        
-        joyStick.style.left = `calc(50% + ${Math.cos(angle)*dist}px)`;
-        joyStick.style.top = `calc(50% + ${Math.sin(angle)*dist}px)`;
-
-        moveForward = y < -20;
-        moveBackward = y > 20;
-        moveLeft = x < -20;
-        moveRight = x > 20;
-    });
-    joyZone.addEventListener('touchend', () => {
-        joyActive = false;
-        moveForward = moveBackward = moveLeft = moveRight = false;
-        joyStick.style.left = '50%';
-        joyStick.style.top = '50%';
-    });
-
-    // Touch look
-    let lastTouchX, lastTouchY;
-    window.addEventListener('touchmove', e => {
-        if(e.target.id === 'game-canvas') {
-            const touch = e.touches[0];
-            if(lastTouchX) {
-                const dx = touch.clientX - lastTouchX;
-                const dy = touch.clientY - lastTouchY;
-                player.rotation.y -= dx * 0.005;
-                camera.rotation.x -= dy * 0.005;
-                camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            }
-            lastTouchX = touch.clientX;
-            lastTouchY = touch.clientY;
-        }
-    });
-    window.addEventListener('touchend', () => { lastTouchX = lastTouchY = null; });
-
-    document.getElementById('btn-jump').addEventListener('touchstart', () => { if(canJump) velocity.y += 5; canJump = false; });
-    document.getElementById('btn-place').addEventListener('touchstart', placeBlock);
-    document.getElementById('btn-break').addEventListener('touchstart', breakBlock);
-
-    document.querySelectorAll('.slot').forEach(slot => {
-        slot.addEventListener('touchstart', () => {
-            document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
-            slot.classList.add('active');
-            selectedBlockType = slot.dataset.type;
-        });
-    });
+function doBreak() {
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera({x:0, y:0}, camera);
+    const hits = ray.intersectObjects(Object.values(blocks));
+    if(hits.length > 0) {
+        const obj = hits[0].object;
+        for(let k in blocks) if(blocks[k] === obj) { db.ref('world_data').child(k).remove(); break; }
+    }
 }
 
-// --- ANIMATION ---
 function animate() {
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
+    const d = clock.getDelta();
 
-    // Gravity
-    velocity.y -= 9.8 * delta;
+    // Физика и гравитация
+    playerVelocity.y -= 15 * d;
+    player.position.y += playerVelocity.y * d;
 
-    // Movement
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
-    direction.normalize();
-
-    if (moveForward || moveBackward) velocity.z = direction.z * 5; else velocity.z = 0;
-    if (moveLeft || moveRight) velocity.x = direction.x * 5; else velocity.x = 0;
-
-    player.translateX(velocity.x * delta);
-    player.translateZ(velocity.z * delta);
-    player.position.y += velocity.y * delta;
-
-    if (player.position.y < 1.8) {
-        velocity.y = 0;
+    if(player.position.y < 1.8) {
         player.position.y = 1.8;
+        playerVelocity.y = 0;
         canJump = true;
     }
 
-    // Sync position to RTDB
+    // Движение
+    const speed = 6;
+    if(moveDir.f) player.translateZ(-moveDir.f * speed * d);
+    if(moveDir.b) player.translateZ(moveDir.b * speed * d);
+    if(moveDir.l) player.translateX(-moveDir.l * speed * d);
+    if(moveDir.r) player.translateX(moveDir.r * speed * d);
+
+    // Синхронизация позиции
     if(currentUser) {
-        playersRef.child(currentUser.uid).set({
-            x: player.position.x,
-            y: player.position.y,
-            z: player.position.z,
-            ry: player.rotation.y
+        db.ref('players/' + currentUser.uid).set({
+            x: player.position.x, y: player.position.y, z: player.position.z, ry: player.rotation.y
         });
     }
 
     renderer.render(scene, camera);
 }
 
-window.addEventListener('resize', () => {
+window.onresize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
+};
 </script>
 </body>
 </html>
