@@ -55,8 +55,8 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         :root {
             --bg-dark: #000000;
             --bg-bar: #0A0A0C;
-            --msg-out: #FF2C2C2E;
-            --msg-in: #FF1C1C1E;
+            --msg-out: #2C2C2E;
+            --msg-in: #1C1C1E;
             --accent: #1F80E0;
             --second: #161618;
             --text-muted: #8E8E93;
@@ -2122,7 +2122,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
         </style>
 </head>
 <body>
-<div id="global-audio-player" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161618;border-top:1px solid #2C2C2E;z-index:100;align-items:center;padding:0 16px;gap:12px;">
+<div id="global-audio-player" style="display:none;position:fixed;top:0;left:0;right:0;height:56px;background:#161618;border-bottom:1px solid #2C2C2E;z-index:100;align-items:center;padding:0 16px;gap:12px;">
     <button id="global-play-btn" style="width:36px;height:36px;border-radius:50%;background:var(--accent);border:none;color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;"><svg id="global-play-icon" viewBox="0 0 24 24" width="18" height="18" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
     <div style="flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;">
         <div style="font-size:13px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="global-audio-title">Аудио</div>
