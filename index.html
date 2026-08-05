@@ -965,6 +965,35 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             cursor: pointer;
             margin-bottom: 6px;
             background: rgba(255, 255, 255, 0.02);
+        
+
+@keyframes burn-disappear {
+            0% { opacity: 1; transform: scale(1); filter: blur(0px); }
+            30% { opacity: 0.8; transform: scale(1.02); filter: blur(1px); box-shadow: 0 0 20px rgba(255,149,0,0.5); }
+            60% { opacity: 0.3; transform: scale(0.95); filter: blur(3px); }
+            100% { opacity: 0; transform: scale(0.8) translateY(-20px); filter: blur(8px); height: 0; margin: 0; padding: 0; }
+        }
+
+        .msg-container.burning-out {
+            animation: burn-disappear 0.8s ease-in forwards;
+            pointer-events: none;
+        }
+
+        .burn-flash {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(255,149,0,0.4) 0%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+            border-radius: 16px;
+            animation: burn-flash-anim 0.6s ease-out;
+        }
+
+        @keyframes burn-flash-anim {
+            0% { opacity: 1; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(2); }
+        }
+
         }
 
         .forward-list-item:hover {
@@ -2118,6 +2147,12 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             white-space: nowrap;
             flex-shrink: 0;
         }
+
+        
+        .msg-hashtag { color: var(--accent); cursor: pointer; font-weight: 600; transition: opacity 0.1s; }
+        .msg-hashtag:active { opacity: 0.6; }
+        .msg-mention { color: var(--secure); cursor: pointer; font-weight: 600; transition: opacity 0.1s; }
+        .msg-mention:active { opacity: 0.6; }
 
         </style>
 </head>
@@ -4956,6 +4991,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             updateCallButtonsVisibility();
             evaluateActiveChatProtection();
             enforceChatAutoDelete();
+            startBurnChecker();
             
             clearManualUnreadFlag(peerId);
         }
@@ -5329,29 +5365,81 @@ const messageDateStr = new Date(m.time).toDateString();
         window._safeSetTimeout = (fn, ms) => window._meowCleanup.addTimer(setTimeout(fn, ms));
         window._safeSetInterval = (fn, ms) => window._meowCleanup.addInterval(setInterval(fn, ms));
         window._debounce = (fn, wait) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; };
-
-        // Visibility pause + cleanup
-        document.addEventListener('visibilitychange', () => {
-            window._pageVisible = !document.hidden;
-            if (document.hidden && window._meowCleanup) window._meowCleanup.clearAll();
-        });
-
-        // Global error handler
+        document.addEventListener('visibilitychange', () => { window._pageVisible = !document.hidden; if(document.hidden && window._meowCleanup) window._meowCleanup.clearAll(); });
         window.addEventListener('error', (e) => { console.error('MEOW ERROR:', e.message, e.filename, e.lineno); });
         window.addEventListener('unhandledrejection', (e) => { console.error('MEOW REJECTION:', e.reason); e.preventDefault(); });
-
-        // Cleanup on page hide
         window.addEventListener('pagehide', () => { if(window._meowCleanup) window._meowCleanup.clearAll(); });
-
-        // Debounced resize
         let _resizeTimer = null;
         window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(() => { if(window.onResizeDebounced) window.onResizeDebounced(); }, 250); });
-
-        // Memory pressure handler
         if ('storage' in navigator && navigator.storage && navigator.storage.estimate) {
-            setInterval(async () => {
-                try { const est = await navigator.storage.estimate(); if(est.usage && est.quota && est.usage / est.quota > 0.85) { console.warn('Memory pressure'); if(window._meowCleanup) window._meowCleanup.clearAll(); } } catch(e){}
-            }, 30000);
+            setInterval(async () => { try { const est = await navigator.storage.estimate(); if(est.usage && est.quota && est.usage / est.quota > 0.85) { console.warn('Memory pressure'); if(window._meowCleanup) window._meowCleanup.clearAll(); } } catch(e){}
+        // ===== BURN MESSAGE CHECKER =====
+        let burnCheckerInterval = null;
+        function startBurnChecker() {
+            stopBurnChecker();
+            burnCheckerInterval = setInterval(() => {
+                if (!currentRoomId) return;
+                const now = Date.now();
+                const badges = document.querySelectorAll('.burn-timer-badge');
+                badges.forEach(badge => {
+                    const target = parseInt(badge.dataset.target);
+                    const msgId = badge.dataset.msgid;
+                    const roomId = badge.dataset.roomid;
+                    const secs = Math.max(0, Math.round((target - now) / 1000));
+                    const span = badge.querySelector('span');
+                    if (span) span.textContent = secs + 'с';
+                    if (secs <= 0 && msgId && roomId) {
+                        const container = document.getElementById('msg-' + msgId);
+                        if (container && !container.classList.contains('burning-out')) {
+                            container.classList.add('burning-out');
+                            const flash = document.createElement('div');
+                            flash.className = 'burn-flash';
+                            container.querySelector('.msg-bubble')?.appendChild(flash);
+                            setTimeout(() => {
+                                window.fb.remove(window.fb.ref(window.fb.db, `messages/${roomId}/list/${msgId}`));
+                            }, 800);
+                        }
+                    }
+                });
+            }, 1000);
+            if(window._meowCleanup) window._meowCleanup.addInterval(burnCheckerInterval);
+        }
+        function stopBurnChecker() {
+            if (burnCheckerInterval) { clearInterval(burnCheckerInterval); burnCheckerInterval = null; }
+        
+        // ===== HASHTAG & MENTION HANDLERS =====
+        window.searchHashtag = (tag) => {
+            const input = document.getElementById('global-search-input');
+            if (input) { input.value = '#' + tag; performGlobalSearch(); }
+        };
+        window.openProfileByUsername = async (username) => {
+            if (!myContacts) return;
+            const entries = Object.entries(myContacts);
+            for (const [uid, contact] of entries) {
+                if (contact.username === username || contact.username === '@' + username) {
+                    showPeerProfile(uid);
+                    return;
+                }
+            }
+            // Try searching in users
+            try {
+                const snap = await window.fb.get(window.fb.ref(window.fb.db, 'users'));
+                if (snap.exists()) {
+                    const users = snap.val();
+                    for (const [uid, user] of Object.entries(users)) {
+                        if (user.profile && (user.profile.username === username || user.profile.username === '@' + username)) {
+                            showPeerProfile(uid);
+                            return;
+                        }
+                    }
+                }
+            } catch(e) {}
+            alert('Пользователь @' + username + ' не найден');
+        };
+
+        }
+
+         }, 30000);
         }
 
                 function getReactionsHtmlInline(msgId, reactionsObj) {
@@ -5566,6 +5654,7 @@ const messageDateStr = new Date(m.time).toDateString();
 
         function closeChat() {
             if(window._meowCleanup) window._meowCleanup.clearAll();
+            stopBurnChecker();
             if (unsubChatMessages) { unsubChatMessages(); unsubChatMessages = null; }
             if (unsubHeaderPresence) { unsubHeaderPresence(); unsubHeaderPresence = null; }
             if (unsubPinnedMessage) { unsubPinnedMessage(); unsubPinnedMessage = null; }
@@ -6971,6 +7060,8 @@ const messageDateStr = new Date(m.time).toDateString();
             quotes.forEach(function(q, i) {
                 t = t.replace('\x00QUOTE_' + i + '\x00', '<blockquote>' + q + '</blockquote>');
             });
+            t = t.replace(/#([a-zA-Z0-9_Ѐ-ӿ]+)/g, '<span class="msg-hashtag" onclick="event.stopPropagation();searchHashtag('$1')">#$1</span>');
+            t = t.replace(/@([a-zA-Z0-9_]+)/g, '<span class="msg-mention" onclick="event.stopPropagation();openProfileByUsername('$1')">@$1</span>');
             return t;
         }
 
