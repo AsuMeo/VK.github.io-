@@ -4991,8 +4991,7 @@ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='SEND_
             updateCallButtonsVisibility();
             evaluateActiveChatProtection();
             enforceChatAutoDelete();
-            startBurnChecker();
-            
+                        
             clearManualUnreadFlag(peerId);
         }
 
@@ -7762,6 +7761,7 @@ const messageDateStr = new Date(m.time).toDateString();
 
         function openChatFromGlobalSearch(peerId, roomId, msgId) {
             openChatWindow(peerId, roomId);
+            if(typeof startBurnChecker === 'function') startBurnChecker();
             setTimeout(() => scrollToMessage(msgId), 850);
         }
 
