@@ -17,12 +17,17 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
 
+/* SVG Icon Helper */
+.svg-icon { width: 20px; height: 20px; fill: currentColor; display: inline-block; vertical-align: middle; flex-shrink: 0; }
+.svg-icon-lg { width: 26px; height: 26px; fill: currentColor; display: inline-block; vertical-align: middle; flex-shrink: 0; }
+
 /* ===== AUTH SCREEN ===== */
 .auth-screen {
   position:fixed; inset:0; z-index:1000;
   background:radial-gradient(ellipse at 30% 20%, #ffccd5 0%, #ffb6c1 60%, #ff8da1 100%);
   display:flex; align-items:center; justify-content:center; flex-direction:column;
   transition:opacity 0.8s ease; padding:16px;
+  overflow-y:auto;
 }
 .auth-screen.hidden { opacity:0; pointer-events:none; }
 .auth-container {
@@ -63,8 +68,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .auth-mode { display:none; }
 .auth-mode.active { display:block; }
 
-/* ===== MAIN UI ===== */
-.main-ui { display:none; width:100%; height:100%; position:relative; }
+/* ===== MAIN UI & MOBILE ADAPTATION ===== */
+.main-ui { display:none; width:100%; height:100%; position:relative; overflow:hidden; }
 .main-ui.active { display:block; }
 
 /* Top Bar */
@@ -76,10 +81,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   backdrop-filter:blur(12px);
 }
 .top-bar .logo-text {
-  font-family:'Orbitron',sans-serif; font-size:16px;
+  font-family:'Orbitron',sans-serif; font-size:15px;
   font-weight:900; color:#ff3366; letter-spacing:1px;
 }
-.top-bar .user-info { display:flex; align-items:center; gap:10px; }
+.top-bar .user-info { display:flex; align-items:center; gap:8px; }
 .top-bar .avatar {
   width:34px; height:34px; border-radius:50%;
   background:linear-gradient(135deg,#ff477e,#ff7096);
@@ -90,14 +95,14 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 }
 .top-bar .avatar img { width:100%; height:100%; object-fit:cover; }
 .top-bar .logout-btn {
-  padding:6px 12px; border:1px solid rgba(255,50,100,0.25);
+  padding:6px 10px; border:1px solid rgba(255,50,100,0.25);
   background:rgba(255,255,255,0.5); color:#ff3366;
-  border-radius:8px; font-size:12px; cursor:pointer; font-weight: 600;
+  border-radius:8px; font-size:11px; cursor:pointer; font-weight: 600;
 }
 
 /* Fullscreen btn */
 .fullscreen-btn {
-  position:fixed; top:60px; right:10px; z-index:70;
+  position:fixed; top:58px; right:10px; z-index:70;
   width:36px; height:36px; border-radius:10px;
   background:rgba(255,255,255,0.7); border:1px solid rgba(255,100,130,0.2);
   color:#ff3366; font-size:16px; cursor:pointer;
@@ -109,12 +114,12 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 
 /* HUD Badges: Stats & Weather */
 .hud-badges {
-  position:fixed; top:60px; left:12px; z-index:70;
+  position:fixed; top:58px; left:10px; z-index:70;
   display:flex; flex-direction:column; gap:6px; pointer-events:auto;
 }
 .hud-badge {
   background:rgba(255,255,255,0.75); border:1px solid rgba(255,100,130,0.25);
-  padding:5px 10px; border-radius:10px; font-size:11px; color:#ff3366; font-weight:700;
+  padding:5px 9px; border-radius:10px; font-size:11px; color:#ff3366; font-weight:700;
   backdrop-filter:blur(8px); display:flex; align-items:center; gap:6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:transform 0.2s;
 }
@@ -123,7 +128,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 /* Side Panel */
 .side-panel {
   position:fixed; top:52px; left:0; bottom:0; z-index:90;
-  width:80vw; max-width:320px;
+  width:85vw; max-width:320px;
   background:rgba(255,240,243,0.95); backdrop-filter:blur(20px);
   border-right:1px solid rgba(255,100,130,0.15);
   transform:translateX(-100%); transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
@@ -131,11 +136,11 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 }
 .side-panel.open { transform:translateX(0); }
 .panel-header {
-  padding:16px; border-bottom:1px solid rgba(255,100,130,0.1);
+  padding:14px; border-bottom:1px solid rgba(255,100,130,0.1);
 }
 .panel-header h3 {
-  font-family:'Orbitron',sans-serif; font-size:15px;
-  color:#ff3366; margin-bottom:10px;
+  font-family:'Orbitron',sans-serif; font-size:14px;
+  color:#ff3366; margin-bottom:8px;
 }
 .search-box {
   width:100%; padding:10px 14px;
@@ -179,49 +184,49 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .panel-toggle {
   position:fixed; top:50%; left:0; z-index:95;
   transform:translateY(-50%);
-  width:32px; height:60px;
+  width:30px; height:56px;
   background:rgba(255,182,193,0.6); border:1px solid rgba(255,100,130,0.3);
   border-radius:0 10px 10px 0; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   color:#ff3366; font-size:16px; font-weight:bold;
   backdrop-filter:blur(10px);
 }
-.panel-toggle.open { left:80vw; }
+.panel-toggle.open { left:85vw; }
 
 /* 3D Room Canvas */
 #room-canvas { position:fixed; inset:0; z-index:1; width:100%; height:100%; touch-action:none; }
 
 /* Chat Partner */
 .chat-partner {
-  position:fixed; bottom:76px; left:50%; transform:translateX(-50%);
-  z-index:80; text-align:center; pointer-events:none; width:90%;
+  position:fixed; bottom:70px; left:50%; transform:translateX(-50%);
+  z-index:80; text-align:center; pointer-events:none; width:92%;
 }
 .chat-partner .partner-name {
-  font-family:'Orbitron',sans-serif; font-size:15px;
+  font-family:'Orbitron',sans-serif; font-size:14px;
   color:#ff3366; text-shadow:0 0 15px rgba(255,255,255,1);
   letter-spacing:1px; font-weight:bold;
 }
 .chat-partner .partner-hint {
-  color:rgba(100,20,40,0.5); font-size:11px; margin-top:3px; font-weight:600;
+  color:rgba(100,20,40,0.5); font-size:10px; margin-top:2px; font-weight:600;
 }
 .chat-partner .partner-status {
   display:flex; align-items:center; justify-content:center; gap:5px;
-  margin-top:4px;
+  margin-top:3px;
 }
 .chat-partner .partner-status-dot {
-  width:7px; height:7px; border-radius:50%;
+  width:6px; height:6px; border-radius:50%;
 }
 .chat-partner .partner-status-dot.online { background:#22c55e; box-shadow:0 0 6px #22c55e; }
 .chat-partner .partner-status-dot.offline { background:#9ca3af; }
 .chat-partner .partner-status-text {
-  color:rgba(100,20,40,0.5); font-size:11px; font-weight:600;
+  color:rgba(100,20,40,0.5); font-size:10px; font-weight:600;
 }
 
 /* Typing */
 .typing-indicator {
-  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  position:fixed; bottom:94px; left:50%; transform:translateX(-50%);
   z-index:80; display:none; align-items:center; gap:5px;
-  background:rgba(255,255,255,0.8); padding:6px 14px; border-radius:16px;
+  background:rgba(255,255,255,0.8); padding:5px 12px; border-radius:16px;
   box-shadow: 0 4px 10px rgba(255,100,130,0.15);
 }
 .typing-indicator.active { display:flex; }
@@ -236,54 +241,55 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   40% { transform:scale(1); }
 }
 
-/* ===== BOTTOM INPUT BAR ===== */
+/* ===== BOTTOM INPUT BAR (FULLY OPTIMIZED FOR ALL SCREENS) ===== */
 .input-bar {
   position:fixed; bottom:0; left:0; right:0; z-index:100;
-  padding:8px 10px calc(8px + env(safe-area-inset-bottom)) 10px;
-  background:linear-gradient(0deg,rgba(255,240,243,0.98) 0%,rgba(255,240,243,0.85) 60%,transparent 100%);
-  display:flex; align-items:center; gap:6px;
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom)) 8px;
+  background:linear-gradient(0deg,rgba(255,240,243,0.98) 0%,rgba(255,240,243,0.88) 70%,transparent 100%);
+  display:flex; align-items:center; gap:5px;
   backdrop-filter:blur(12px);
 }
 .input-bar .msg-input {
-  flex:1; padding:12px 16px;
-  background:rgba(255,255,255,0.9); border:1px solid rgba(255,100,130,0.2);
-  border-radius:14px; color:#333; font-size:15px; outline:none;
+  flex:1; padding:10px 14px;
+  background:rgba(255,255,255,0.95); border:1px solid rgba(255,100,130,0.25);
+  border-radius:14px; color:#333; font-size:14px; outline:none;
   font-family:'Inter',sans-serif; min-width:0;
   -webkit-appearance:none;
 }
 .input-bar .msg-input:focus { border-color:rgba(255,71,126,0.5); }
-.input-bar .msg-input::placeholder { color:rgba(0,0,0,0.3); }
+.input-bar .msg-input::placeholder { color:rgba(0,0,0,0.35); }
+
 .input-bar .action-btn {
-  width:40px; height:40px; border-radius:50%;
+  width:38px; height:38px; border-radius:50%;
   border:none; cursor:pointer; display:flex;
   align-items:center; justify-content:center;
-  font-size:18px; flex-shrink:0;
-  -webkit-appearance:none;
+  flex-shrink:0; -webkit-appearance:none;
+  transition: transform 0.15s;
 }
 .input-bar .send-btn {
   background:linear-gradient(135deg,#ff477e,#ff7096);
-  color:#fff; box-shadow:0 2px 12px rgba(255,71,126,0.3);
+  color:#fff; box-shadow:0 2px 10px rgba(255,71,126,0.3);
 }
-.input-bar .send-btn:active { transform:scale(0.92); }
+.input-bar .send-btn:active { transform:scale(0.9); }
 .input-bar .icon-btn {
-  background:rgba(255,255,255,0.8);
+  background:rgba(255,255,255,0.85);
   color:#ff3366;
-  border:1px solid rgba(255,100,130,0.2);
+  border:1px solid rgba(255,100,130,0.25);
 }
-.input-bar .icon-btn:active { transform:scale(0.92); background:rgba(255,255,255,1); }
+.input-bar .icon-btn:active { transform:scale(0.9); background:rgba(255,255,255,1); }
 .input-bar .music-btn.playing {
-  background:rgba(255,71,126,0.15); color:#ff3366;
-  border-color:rgba(255,71,126,0.4);
+  background:rgba(255,71,126,0.18); color:#ff3366;
+  border-color:rgba(255,71,126,0.5);
   animation:pulseMusic 1.2s infinite;
 }
 @keyframes pulseMusic {
   0%,100% { box-shadow:0 0 5px rgba(255,71,126,0.2); }
-  50% { box-shadow:0 0 15px rgba(255,71,126,0.5); }
+  50% { box-shadow:0 0 15px rgba(255,71,126,0.6); }
 }
 
 /* ===== ATTACHMENT MENU ===== */
 .attach-menu {
-  position:fixed; bottom:68px; left:50%; transform:translateX(-50%) translateY(20px);
+  position:fixed; bottom:62px; left:50%; transform:translateX(-50%) translateY(15px);
   z-index:120; background:rgba(255,240,243,0.95); backdrop-filter:blur(20px);
   border:1px solid rgba(255,100,130,0.2); border-radius:16px;
   padding:12px; display:none; opacity:0;
@@ -293,21 +299,21 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .attach-menu.active { display:block; opacity:1; transform:translateX(-50%) translateY(0); }
 .attach-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 .attach-item {
-  padding:14px 4px; border-radius:12px;
-  background:rgba(255,255,255,0.6);
-  text-align:center; cursor:pointer;
+  padding:12px 4px; border-radius:12px;
+  background:rgba(255,255,255,0.7);
+  text-align:center; cursor:pointer; color:#ff3366;
   transition:all 0.2s; border:1px solid transparent;
 }
 .attach-item:active { background:rgba(255,182,193,0.3); border-color:rgba(255,100,130,0.3); transform:scale(0.95); }
-.attach-item .attach-icon { font-size:24px; display:block; margin-bottom:4px; }
-.attach-item .attach-name { font-size:10px; color:#ff3366; font-weight: 500; }
+.attach-item .attach-icon { display:flex; justify-content:center; align-items:center; margin-bottom:4px; }
+.attach-item .attach-name { font-size:10px; color:#ff3366; font-weight: 600; }
 
 /* ===== GESTURE PANEL ===== */
 .gesture-panel {
-  position:fixed; bottom:68px; left:50%; transform:translateX(-50%) translateY(20px);
+  position:fixed; bottom:62px; left:50%; transform:translateX(-50%) translateY(15px);
   z-index:120; background:rgba(255,240,243,0.95); backdrop-filter:blur(20px);
   border:1px solid rgba(255,100,130,0.2); border-radius:16px;
-  padding:14px; display:none; opacity:0;
+  padding:12px; display:none; opacity:0;
   transition:all 0.3s; max-width:340px; width:90vw;
   box-shadow: 0 8px 24px rgba(255,100,130,0.15);
 }
@@ -315,20 +321,20 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .gesture-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
 .gesture-item {
   padding:10px 4px; border-radius:12px;
-  background:rgba(255,255,255,0.6);
-  text-align:center; cursor:pointer;
+  background:rgba(255,255,255,0.7);
+  text-align:center; cursor:pointer; color:#ff3366;
   transition:all 0.2s; border:1px solid transparent;
 }
 .gesture-item:active { background:rgba(255,182,193,0.3); border-color:rgba(255,100,130,0.3); transform:scale(0.95); }
 .gesture-item .gesture-emoji { font-size:24px; display:block; margin-bottom:3px; }
-.gesture-item .gesture-name { font-size:10px; color:#ff3366; font-weight:500; }
+.gesture-item .gesture-name { font-size:10px; color:#ff3366; font-weight:600; }
 
 .gesture-emoji-section {
-  margin-top:12px; padding-top:12px;
+  margin-top:10px; padding-top:10px;
   border-top:1px solid rgba(255,100,130,0.15);
 }
 .gesture-emoji-section-title {
-  color:rgba(100,20,40,0.5); font-size:11px; text-align:center; margin-bottom:8px; font-weight: 600;
+  color:rgba(100,20,40,0.5); font-size:11px; text-align:center; margin-bottom:6px; font-weight: 600;
 }
 .gesture-emoji-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; }
 .gesture-emoji-grid span { font-size:20px; text-align:center; padding:4px; border-radius:6px; cursor:pointer; transition:all 0.15s; }
@@ -346,7 +352,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .draw-panel.active { display:block; opacity:1; transform:translate(-50%,-50%) scale(1); }
 .draw-panel h3 { color:#ff3366; font-family:'Orbitron',sans-serif; font-size:14px; margin-bottom:10px; text-align:center; }
 .draw-canvas-wrap {
-  width:100%; height:240px; background:#fff;
+  width:100%; height:220px; background:#fff;
   border-radius:10px; border:1px solid rgba(255,100,130,0.2);
   position:relative; overflow:hidden; touch-action:none;
 }
@@ -372,11 +378,11 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   border:1px solid rgba(255,100,130,0.2); color:#ff3366;
 }
 
-/* ===== MUSIC PANEL ===== */
+/* ===== MUSIC PANEL (WITH TELEGRAM-STYLE AUDIO PLAYER) ===== */
 .music-panel {
   position:fixed; top:50%; right:0; transform:translateY(-50%) translateX(100%);
-  z-index:150; width:min(85vw,300px);
-  background:rgba(255,240,243,0.95); backdrop-filter:blur(20px);
+  z-index:150; width:min(90vw,320px);
+  background:rgba(255,240,243,0.96); backdrop-filter:blur(20px);
   border-left:1px solid rgba(255,100,130,0.2);
   border-radius:16px 0 0 16px;
   padding:16px;
@@ -386,33 +392,34 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .music-panel.open { transform:translateY(-50%) translateX(0); }
 .music-panel h3 {
   font-family:'Orbitron',sans-serif; font-size:14px; color:#ff3366;
-  margin-bottom:14px; text-align:center;
+  margin-bottom:12px; text-align:center;
 }
 .music-track {
   display:flex; align-items:center; gap:10px;
-  padding:10px; border-radius:10px;
-  background:rgba(255,255,255,0.6);
-  margin-bottom:6px; cursor:pointer;
+  padding:10px; border-radius:12px;
+  background:rgba(255,255,255,0.75);
+  margin-bottom:8px; cursor:pointer;
   transition:all 0.3s; border:1px solid transparent;
 }
 .music-track:active { background:rgba(255,182,193,0.3); border-color:rgba(255,100,130,0.3); }
-.music-track.active { background:rgba(255,182,193,0.4); border-color:rgba(255,71,126,0.4); }
-.music-track .track-icon { font-size:22px; }
-.music-track .track-info { flex:1; }
-.music-track .track-name { color:#4a0e17; font-size:12px; font-weight:600; }
+.music-track.active { background:rgba(255,182,193,0.45); border-color:rgba(255,71,126,0.5); }
+.music-track .track-icon { color:#ff3366; display:flex; align-items:center; }
+.music-track .track-info { flex:1; min-width:0; }
+.music-track .track-name { color:#4a0e17; font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .music-track .track-desc { color:rgba(100,20,40,0.5); font-size:10px; }
-.music-track .track-play { color:#ff3366; font-size:16px; }
+.music-track .track-play { color:#ff3366; font-size:18px; display:flex; align-items:center; }
 .music-close {
   position:absolute; top:8px; right:8px;
   width:28px; height:28px; border-radius:50%;
   background:rgba(255,255,255,0.8); border:none;
   color:#ff3366; font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
 }
 .music-download {
   margin-left:auto; padding:4px 8px; border-radius:6px;
   background:rgba(255,71,126,0.1); color:#ff3366;
   border:1px solid rgba(255,71,126,0.2); font-size:10px;
-  cursor:pointer; text-decoration:none;
+  cursor:pointer; text-decoration:none; display:flex; align-items:center;
 }
 .music-volume { margin-top:12px; }
 .music-volume label { color:rgba(100,20,40,0.5); font-size:11px; display:block; margin-bottom:6px; font-weight:600; }
@@ -425,12 +432,26 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   background:#ff3366; cursor:pointer;
 }
 
+/* Telegram-style 3D / Audio Bubble inside chat history */
+.tg-audio-player {
+  display:flex; align-items:center; gap:10px; background:rgba(255,71,126,0.08);
+  padding:8px 12px; border-radius:12px; border:1px solid rgba(255,71,126,0.2);
+  margin-top:4px; min-width:200px;
+}
+.tg-audio-btn {
+  width:32px; height:32px; border-radius:50%; background:#ff477e; color:#fff;
+  border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+}
+.tg-audio-info { flex:1; min-width:0; }
+.tg-audio-title { font-size:12px; font-weight:600; color:#4a0e17; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tg-audio-progress { font-size:10px; color:rgba(100,20,40,0.6); margin-top:2px; }
+
 /* ===== PROFILE MODAL ===== */
 .profile-modal {
   position:fixed; inset:0; z-index:300;
   background:rgba(255,182,193,0.4); backdrop-filter:blur(20px);
   display:none; align-items:center; justify-content:center;
-  padding:16px;
+  padding:16px; overflow-y:auto;
 }
 .profile-modal.active { display:flex; }
 .profile-card {
@@ -474,16 +495,18 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   width:32px; height:32px; border-radius:50%;
   background:rgba(255,255,255,0.8); border:none;
   color:#ff3366; font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
 }
 
 /* ===== MISIDE TEXT ===== */
 .miside-text-container {
   position:fixed; top:45%; left:50%; transform:translate(-50%,-50%);
   z-index:50; pointer-events:none; text-align:center;
+  width:100%; padding:0 16px;
 }
 .miside-letter {
   display:inline-block; font-family:'Orbitron',sans-serif;
-  font-size:clamp(36px,12vw,80px); font-weight:900;
+  font-size:clamp(32px,10vw,70px); font-weight:900;
   color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.8), 0 0 40px rgba(255,71,126,0.6);
   opacity:0; transform:scale(0.5) translateY(30px);
 }
@@ -516,6 +539,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   position:fixed; inset:0; z-index:400;
   background:rgba(0,0,0,0.5); backdrop-filter:blur(15px);
   display:none; align-items:center; justify-content:center; padding:16px;
+  overflow-y:auto;
 }
 .popup-modal.active { display:flex; }
 .popup-card {
@@ -543,7 +567,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .ach-toast-info .ach-title { font-family:'Orbitron',sans-serif; font-size:12px; color:#ff3366; font-weight:900; }
 .ach-toast-info .ach-desc { font-size:11px; color:#666; font-weight:600; }
 
-/* ===== 3D MEDIA VIEWER ===== */
+/* ===== 3D MEDIA VIEWER (FIXED ASPECT RATIO) ===== */
 .media-viewer {
   position:fixed; inset:0; z-index:200;
   background:rgba(20,10,15,0.95);
@@ -567,12 +591,14 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   background:rgba(255,255,255,0.2); border:none;
   color:#fff; font-size:20px; cursor:pointer;
   z-index:10; backdrop-filter: blur(5px);
+  display:flex; align-items:center; justify-content:center;
 }
 .media-viewer .media-info {
   position:absolute; top:16px; left:50%; transform:translateX(-50%);
   color:rgba(255,255,255,0.8); font-size:12px;
   background:rgba(0,0,0,0.5); padding:6px 14px; border-radius:10px;
-  z-index:10; font-weight: 500;
+  z-index:10; font-weight: 500; text-align:center;
+  max-width: 80%;
 }
 
 /* ===== TV CONTROL PANEL ===== */
@@ -610,44 +636,44 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   background:#ff3366; cursor:pointer;
 }
 
-/* ===== AVATAR VIEWER ===== */
+/* ===== AVATAR 3D VIEWER (ROTATABLE) ===== */
 .avatar-viewer {
   position:fixed; inset:0; z-index:210;
-  background:#000;
-  display:none; align-items:center; justify-content:center;
+  background:rgba(10,5,8,0.95);
+  display:none; flex-direction:column;
 }
 .avatar-viewer.active { display:flex; }
-.avatar-viewer .avatar-3d {
-  width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center;
-  overflow:hidden;
-}
-.avatar-viewer .avatar-3d img {
-  max-width:100%; max-height:100%;
-  object-fit:contain;
-  transition:transform 0.1s ease-out;
+.avatar-viewer .avatar-3d-canvas {
+  width:100%; flex:1; position:relative; touch-action:none;
 }
 .avatar-viewer .close-avatar {
   position:absolute; top:16px; right:16px;
   width:44px; height:44px; border-radius:50%;
-  background:rgba(0,0,0,0.5); border:none;
+  background:rgba(255,255,255,0.2); border:none;
   color:#fff; font-size:20px; cursor:pointer;
-  z-index:10;
+  z-index:10; backdrop-filter:blur(5px);
+  display:flex; align-items:center; justify-content:center;
+}
+.avatar-viewer .avatar-info {
+  position:absolute; top:16px; left:50%; transform:translateX(-50%);
+  color:rgba(255,255,255,0.8); font-size:12px;
+  background:rgba(0,0,0,0.5); padding:6px 14px; border-radius:10px;
+  z-index:10; font-weight:500;
 }
 
-/* ===== CHAT HISTORY PANEL ===== */
+/* ===== CHAT HISTORY PANEL (2D CHAT - FULLY ADAPTIVE HORIZONTAL/VERTICAL) ===== */
 .chat-history-panel {
   position:fixed; top:52px; left:0; bottom:0; z-index:85;
-  width:100%; max-width:420px;
-  background:rgba(255,240,243,0.95); backdrop-filter:blur(20px);
+  width:100%; max-width:440px;
+  background:rgba(255,240,243,0.96); backdrop-filter:blur(20px);
   transform:translateX(-100%); transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
   display:flex; flex-direction:column;
   border-right:1px solid rgba(255,100,130,0.15);
 }
 .chat-history-panel.open { transform:translateX(0); }
 .chat-history-header {
-  padding:14px 16px; border-bottom:1px solid rgba(255,100,130,0.1);
-  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border-bottom:1px solid rgba(255,100,130,0.1);
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
 }
 .chat-history-header h3 {
   font-family:'Orbitron',sans-serif; font-size:14px; color:#ff3366;
@@ -656,23 +682,23 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   width:32px; height:32px; border-radius:50%;
   background:rgba(255,255,255,0.8); border:none;
   color:#ff3366; font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
 }
 .chat-history-clear {
-  padding:8px 16px;
+  padding:6px 16px;
   background:rgba(255,50,50,0.05); border-bottom:1px solid rgba(255,50,50,0.08);
-  text-align:center;
+  text-align:center; flex-shrink:0;
 }
 .chat-history-clear button {
-  background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;
+  background:none; border:none; color:#ff4444; font-size:11px; cursor:pointer;
   padding:4px 12px; border-radius:8px; font-weight: 600;
 }
-.chat-history-clear button:active { background:rgba(255,50,50,0.1); }
 .chat-history-list {
   flex:1; overflow-y:auto; padding:12px; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:8px;
 }
 .chat-msg-item {
-  display:flex; gap:8px; margin-bottom:10px;
-  animation:msgAppear 0.3s ease;
+  display:flex; gap:8px; animation:msgAppear 0.3s ease;
 }
 @keyframes msgAppear {
   from { opacity:0; transform:translateY(10px); }
@@ -680,31 +706,27 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 }
 .chat-msg-item.own { flex-direction:row-reverse; }
 .chat-msg-item .msg-avatar {
-  width:32px; height:32px; border-radius:50%;
+  width:30px; height:30px; border-radius:50%;
   background:linear-gradient(135deg,#ff477e,#ff7096);
   display:flex; align-items:center; justify-content:center;
-  font-size:12px; color:#fff; flex-shrink:0; overflow:hidden;
+  font-size:11px; color:#fff; flex-shrink:0; overflow:hidden; cursor:pointer;
 }
 .chat-msg-item .msg-avatar img { width:100%; height:100%; object-fit:cover; }
 .chat-msg-item .msg-bubble {
-  max-width:70%; padding:10px 14px; border-radius:14px;
+  max-width:75%; padding:10px 14px; border-radius:14px;
   background:#fff; border:1px solid rgba(255,100,130,0.1);
-  color:#333; font-size:14px; word-break:break-word;
-  position:relative;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  color:#333; font-size:13px; word-break:break-word;
+  position:relative; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
 }
 .chat-msg-item.own .msg-bubble {
-  background:linear-gradient(135deg,rgba(255,182,193,0.3),rgba(255,112,150,0.15));
+  background:linear-gradient(135deg,rgba(255,182,193,0.35),rgba(255,112,150,0.18));
   border-color:rgba(255,100,130,0.25);
 }
-.chat-msg-item .msg-bubble img {
-  max-width:100%; border-radius:8px; display:block; margin-top:4px;
-}
-.chat-msg-item .msg-bubble video {
-  max-width:100%; border-radius:8px; display:block; margin-top:4px;
+.chat-msg-item .msg-bubble img, .chat-msg-item .msg-bubble video {
+  max-width:100%; border-radius:8px; display:block; margin-top:4px; cursor:pointer;
 }
 .chat-msg-item .msg-bubble .msg-time {
-  font-size:10px; color:rgba(100,20,40,0.4); margin-top:4px; text-align:right;
+  font-size:9px; color:rgba(100,20,40,0.4); margin-top:3px; text-align:right;
 }
 .chat-msg-item .msg-actions {
   display:flex; gap:4px; align-items:flex-start; opacity:0;
@@ -713,10 +735,27 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .chat-msg-item:hover .msg-actions, .chat-msg-item:active .msg-actions { opacity:1; }
 .chat-msg-item .msg-actions button {
   width:24px; height:24px; border-radius:50%;
-  background:rgba(255,255,255,0.8); border:none;
+  background:rgba(255,255,255,0.85); border:none;
   color:#ff3366; font-size:11px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+/* 2D Chat Bottom Input Bar (Ensuring it is always visible in portrait/landscape) */
+.chat-2d-input-bar {
+  padding:8px 12px calc(8px + env(safe-area-inset-bottom)) 12px;
+  background:rgba(255,240,243,0.98); border-top:1px solid rgba(255,100,130,0.15);
+  display:flex; align-items:center; gap:6px; flex-shrink:0; backdrop-filter:blur(10px);
+}
+.chat-2d-input-bar input {
+  flex:1; padding:10px 14px; background:#fff; border:1px solid rgba(255,100,130,0.2);
+  border-radius:12px; font-size:13px; color:#333; outline:none; font-family:'Inter',sans-serif;
+  min-width:0; -webkit-appearance:none;
+}
+.chat-2d-input-bar button {
+  width:36px; height:36px; border-radius:50%; border:none;
+  background:linear-gradient(135deg,#ff477e,#ff7096); color:#fff;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
 }
 
 /* ===== EDIT MODAL ===== */
@@ -724,7 +763,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   position:fixed; inset:0; z-index:350;
   background:rgba(255,182,193,0.4); backdrop-filter:blur(20px);
   display:none; align-items:center; justify-content:center;
-  padding:16px;
+  padding:16px; overflow-y:auto;
 }
 .edit-modal.active { display:flex; }
 .edit-card {
@@ -770,7 +809,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 .loading-overlay p { color:#ff3366; margin-top:12px; font-size:14px; font-weight: 600; }
 
 /* Scrollbar */
-::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar { width:3px; height:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,100,130,0.2); border-radius:3px; }
 </style>
@@ -810,7 +849,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
     </div>
   </div>
 
-  <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Полный экран">⛶</button>
+  <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Полный экран">
+    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+  </button>
 
   <div class="hud-badges">
     <div class="hud-badge" onclick="showRelationModal()">💖 Близость: <span id="hudRelation">0</span>%</div>
@@ -821,7 +862,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 
   <div class="side-panel" id="sidePanel">
     <div class="panel-header">
-      <h3>👥 Пользователи</h3>
+      <h3>👥 Диалоги</h3>
       <input type="text" class="search-box" id="userSearch" placeholder="Поиск по username..." oninput="searchUsers()">
     </div>
     <div class="users-list" id="usersList"></div>
@@ -841,50 +882,66 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
 
   <div class="input-bar">
-    <button class="action-btn icon-btn music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">🎵</button>
-    <button class="action-btn icon-btn" onclick="toggleGesturePanel()" title="Жесты и эмодзи">🎭</button>
-    <button class="action-btn icon-btn" onclick="toggleAttachMenu()" title="Прикрепить">📎</button>
-    <button class="action-btn icon-btn" onclick="toggleChatHistory()" title="2D Чат (История)">💬</button>
+    <button class="action-btn icon-btn music-btn" id="musicBtn" onclick="toggleMusicPanel()" title="Музыка">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+    </button>
+    <button class="action-btn icon-btn" onclick="toggleGesturePanel()" title="Жесты и эмодзи">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+    </button>
+    <button class="action-btn icon-btn" onclick="toggleAttachMenu()" title="Прикрепить">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.1.9 2 2 2s2-.9 2-2V5c0-2.21-1.79-4-4-4S6 2.79 6 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+    </button>
+    <button class="action-btn icon-btn" onclick="toggleChatHistory()" title="2D Чат">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+    </button>
     <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this)">
     <input type="file" id="tvFileInput" accept="video/*" style="display:none" onchange="handleTvFile(this)">
     <input type="text" class="msg-input" id="msgInput" placeholder="Сообщение... (введите 'miside')" onkeydown="if(event.key==='Enter')sendMessage()" oninput="onTyping()">
-    <button class="action-btn send-btn" onclick="sendMessage()">➤</button>
+    <button class="action-btn send-btn" onclick="sendMessage()" title="Отправить">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
   </div>
 </div>
 
 <!-- Music Panel -->
 <div class="music-panel" id="musicPanel">
-  <button class="music-close" onclick="toggleMusicPanel()">✕</button>
-  <h3>🎵 Музыка</h3>
+  <button class="music-close" onclick="toggleMusicPanel()">
+    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+  <h3>🎵 3D Музыка</h3>
   <div class="music-track" data-src="genshin" onclick="playTrack('genshin')">
-    <div class="track-icon">🌸</div>
-    <div class="track-info"><div class="track-name">Genshin Impact (Фон)</div><div class="track-desc">Постоянная фоновая музыка</div></div>
+    <div class="track-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
+    <div class="track-info"><div class="track-name">Genshin Impact</div><div class="track-desc">Фоновая мелодия мира</div></div>
     <div class="track-play" id="play-genshin">▶</div>
     <a class="music-download" id="dl-genshin" href="" download="genshin.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
   <div class="music-track" data-src="dance" onclick="playTrack('dance')">
-    <div class="track-icon">💃</div>
+    <div class="track-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
     <div class="track-info"><div class="track-name">Dance Floor</div><div class="track-desc">Энергичный танец</div></div>
     <div class="track-play" id="play-dance">▶</div>
     <a class="music-download" id="dl-dance" href="" download="dance.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
   <div class="music-track" data-src="party" onclick="playTrack('party')">
-    <div class="track-icon">🎉</div>
+    <div class="track-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
     <div class="track-info"><div class="track-name">Party Time</div><div class="track-desc">Вечеринка</div></div>
     <div class="track-play" id="play-party">▶</div>
     <a class="music-download" id="dl-party" href="" download="party.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
   <div class="music-track" data-src="electro" onclick="playTrack('electro')">
-    <div class="track-icon">⚡</div>
+    <div class="track-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
     <div class="track-info"><div class="track-name">Electro Vibe</div><div class="track-desc">Электро вайб</div></div>
     <div class="track-play" id="play-electro">▶</div>
     <a class="music-download" id="dl-electro" href="" download="electro.mp3" onclick="event.stopPropagation()">⬇</a>
   </div>
   <div class="music-track" data-src="happy" onclick="playTrack('happy')">
-    <div class="track-icon">😄</div>
+    <div class="track-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
     <div class="track-info"><div class="track-name">Happy Vibes</div><div class="track-desc">Весёлая мелодия</div></div>
     <div class="track-play" id="play-happy">▶</div>
     <a class="music-download" id="dl-happy" href="" download="happy.mp3" onclick="event.stopPropagation()">⬇</a>
+  </div>
+  <div class="music-track" onclick="sendMusicMessage('genshin', 'Genshin Impact (Фон)')" style="background:rgba(255,71,126,0.12); border:1px solid rgba(255,71,126,0.3);">
+    <div class="track-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
+    <div class="track-info"><div class="track-name" style="color:#ff3366;">Отправить музыку в чат 🎵</div><div class="track-desc">Как в Telegram (аудио-сообщение)</div></div>
   </div>
   <div class="music-volume">
     <label>Громкость</label>
@@ -896,19 +953,27 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 <div class="attach-menu" id="attachMenu">
   <div class="attach-grid">
     <div class="attach-item" onclick="triggerFile()">
-      <span class="attach-icon">📷</span>
+      <span class="attach-icon">
+        <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+      </span>
       <span class="attach-name">Фото</span>
     </div>
     <div class="attach-item" onclick="triggerVideoFile()">
-      <span class="attach-icon">🎬</span>
+      <span class="attach-icon">
+        <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+      </span>
       <span class="attach-name">Видео</span>
     </div>
     <div class="attach-item" onclick="toggleDrawPanel(); toggleAttachMenu();">
-      <span class="attach-icon">✏️</span>
+      <span class="attach-icon">
+        <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      </span>
       <span class="attach-name">Рисовать</span>
     </div>
     <div class="attach-item" onclick="toggleAttachMenu()">
-      <span class="attach-icon">📁</span>
+      <span class="attach-icon">
+        <svg class="svg-icon-lg" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      </span>
       <span class="attach-name">Файл</span>
     </div>
   </div>
@@ -961,13 +1026,13 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   </div>
 </div>
 
-<!-- TRUE 3D Media Viewer -->
+<!-- TRUE 3D Media Viewer (Correct Aspect Ratio & Russian Play/Pause) -->
 <div class="media-viewer" id="mediaViewer">
   <button class="close-media" onclick="closeMedia()">✕</button>
   <div class="media-info" id="mediaInfo">Зажмите и тяните для вращения в 3D · Колесо мыши / щипок для зума</div>
   <div class="media-3d" id="media3d"></div>
   <div class="media-controls" id="mediaVideoControls" style="display:none;">
-    <button class="auth-btn" style="width:auto; padding:10px 20px;" onclick="toggleMedia3dVideoPlay()">Play / Pause 🎬</button>
+    <button class="auth-btn" style="width:auto; padding:10px 20px;" onclick="toggleMedia3dVideoPlay()" id="mediaPlayBtnText">Воспроизведение / Пауза 🎬</button>
   </div>
 </div>
 
@@ -981,8 +1046,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
     <button class="secondary" onclick="triggerTvUpload()">Выбрать файл 🎬</button>
   </div>
   <div class="tv-control-row">
-    <button onclick="sendTvCommand('play')">Play ▶</button>
-    <button onclick="sendTvCommand('pause')">Pause ⏸</button>
+    <button onclick="sendTvCommand('play')">Воспроизведение ▶</button>
+    <button onclick="sendTvCommand('pause')">Пауза ⏸</button>
   </div>
   <div class="tv-slider-container">
     <label id="tvTimeLabel">Время: 0:00</label>
@@ -990,22 +1055,31 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
   </div>
 </div>
 
-<!-- Avatar Viewer -->
+<!-- Avatar 3D Rotatable Viewer -->
 <div class="avatar-viewer" id="avatarViewer">
   <button class="close-avatar" onclick="closeAvatarViewer()">✕</button>
-  <div class="avatar-3d" id="avatar3d"></div>
+  <div class="avatar-info">Вращайте аватар в 3D пространстве</div>
+  <div class="avatar-3d-canvas" id="avatar3d"></div>
 </div>
 
-<!-- Chat History Panel (2D Chat) -->
+<!-- Chat History Panel (2D Chat - Fully Adaptive Portrait & Landscape) -->
 <div class="chat-history-panel" id="chatHistoryPanel">
   <div class="chat-history-header">
     <h3>💬 2D Чат (История)</h3>
-    <button class="close-btn" onclick="toggleChatHistory()">✕</button>
+    <button class="close-btn" onclick="toggleChatHistory()">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
   </div>
   <div class="chat-history-clear">
-    <button onclick="clearAllChatHistory()">🗑️ Очистить всю историю</button>
+    <button onclick="clearAllChatHistory()">🗑️ Очистить всю историю у обоих</button>
   </div>
   <div class="chat-history-list" id="chatHistoryList"></div>
+  <div class="chat-2d-input-bar">
+    <input type="text" id="chat2dInput" placeholder="Сообщение в 2D чате..." onkeydown="if(event.key==='Enter')send2DMessage()">
+    <button onclick="send2DMessage()" title="Отправить">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
 </div>
 
 <!-- Edit Modal -->
@@ -1066,11 +1140,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#ffccd5; font-
 
 <!-- Horror Jumpscare Overlay with Miside image support -->
 <div class="horror-overlay" id="horrorOverlay">
-  <!-- 
-    Используется картинка miside.png. 
-    Вы можете положить в одну папку с проектом файл miside.png, 
-    либо заменить путь в теге <img> ниже на свой.
-  -->
   <img src="miside.png" class="horror-face" id="horrorImg" alt="Miside Screamer" onerror="this.onerror=null; this.style.display='none'; document.getElementById('horrorSvgFallback').style.display='block';">
   <svg class="horror-face" id="horrorSvgFallback" style="display:none;" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="#110002"/>
@@ -1144,13 +1213,11 @@ function toggleFullscreen() {
     else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     else if(el.mozRequestFullScreen) el.mozRequestFullScreen();
     else if(el.msRequestFullscreen) el.msRequestFullscreen();
-    btn.textContent = '⛶';
   } else {
     if(doc.exitFullscreen) doc.exitFullscreen();
     else if(doc.webkitExitFullscreen) doc.webkitExitFullscreen();
     else if(doc.mozCancelFullScreen) doc.mozCancelFullScreen();
     else if(doc.msExitFullscreen) doc.msExitFullscreen();
-    btn.textContent = '⛶';
   }
 }
 
@@ -1258,7 +1325,7 @@ auth.onAuthStateChanged(user=>{
       initDrawCanvas();
       document.getElementById('loading').classList.add('hidden');
       
-      // АВТОМАТИЧЕСКИЙ ЗАПУСК ФОНОВОЙ МУЗЫКИ (GENSHIN) ПРИ ВХОДЕ В МИР
+      // Автоматический запуск фоновой музыки Genshin при входе
       if (!backgroundMusicStarted) {
         backgroundMusicStarted = true;
         playTrack('genshin');
@@ -1319,9 +1386,6 @@ function addRelation(points) {
   if(currentUser) {
     db.ref(`users/${currentUser.uid}/relation`).set(relationScore);
   }
-  if(relationScore >= 50) {
-    unlockAchievement('artist', 'Художник / Романтик', 'Достигнут высокий уровень близости!', '🎨');
-  }
 }
 
 function updateRelationUI() {
@@ -1329,7 +1393,7 @@ function updateRelationUI() {
 }
 
 function showRelationModal() {
-  alert(`💖 Уровень близости с миром: ${relationScore}%\nОтправляйте сообщения и взаимодействуйте с предметами комнаты, чтобы повышать близость и разблокировать новые секреты!`);
+  alert(`💖 Уровень близости с миром: ${relationScore}%\nОтправляйте сообщения и взаимодействуйте с предметами комнаты, чтобы повышать близость!`);
 }
 
 // ===== WEATHER SYSTEM =====
@@ -1409,7 +1473,7 @@ const mirrorQuotes = [
 function changeMirrorQuote() {
   const q = mirrorQuotes[Math.floor(Math.random() * mirrorQuotes.length)];
   document.getElementById('mirrorQuoteText').textContent = q;
-  unlockAchievement('cinephile', 'Киноман / Эстет', 'Вы заглянули в зеркало и услышали шёпот', '🪞');
+  unlockAchievement('cinephile', 'Киноман / Эстет', 'Вы заглянули в зеркало', '🪞');
 }
 
 function toggleRoomLights() {
@@ -1419,7 +1483,7 @@ function toggleRoomLights() {
       if(obj.isAmbientLight) obj.intensity = roomLightsOn ? 1.3 : 0.2;
     });
   }
-  alert(roomLightsOn ? '💡 Свет включен!' : '🌙 Свет выключен. Стало темно и уютно...');
+  alert(roomLightsOn ? '💡 Свет включен!' : '🌙 Свет выключен...');
 }
 
 // ===== PROFILE =====
@@ -1530,6 +1594,7 @@ function selectUser(uid,data) {
   db.ref('users/'+uid).on('value', partnerStatusListener);
   const ids = [currentUser.uid,uid].sort();
   chatId = ids.join('_');
+  
   messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
   mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
   gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.remove(g.mesh); }); gestureAnimations = [];
@@ -1537,7 +1602,7 @@ function selectUser(uid,data) {
   if(avatar3DObjects[uid]) { if(avatar3DObjects[uid].mesh && roomGroup) roomGroup.remove(avatar3DObjects[uid].mesh); delete avatar3DObjects[uid]; }
   
   db.ref('chats/'+chatId).off();
-  db.ref('chats/'+chatId).limitToLast(30).on('child_added',snap=>{
+  db.ref('chats/'+chatId).limitToLast(40).on('child_added',snap=>{
     const msg = snap.val();
     if(msg.sender!==currentUser.uid) {
       if(msg.text) {
@@ -1620,29 +1685,40 @@ function renderChatHistory(chatHistoryData) {
     const div = document.createElement('div');
     div.className = 'chat-msg-item ' + (isOwn ? 'own' : '');
 
-    let avatarHTML = '<div class="msg-avatar">' + (senderData.displayName||senderData.username||'U').charAt(0).toUpperCase() + '</div>';
+    let avatarHTML = '<div class="msg-avatar" onclick="openAvatarViewer(\''+(senderData.avatar||'')+'\')">' + (senderData.displayName||senderData.username||'U').charAt(0).toUpperCase() + '</div>';
     if(senderData.avatar) {
-      avatarHTML = '<div class="msg-avatar"><img src="' + senderData.avatar + '" onerror="this.style.display=\'none\';this.parentNode.textContent=\''+(senderData.displayName||senderData.username||'U').charAt(0).toUpperCase()+'\'"></div>';
+      avatarHTML = '<div class="msg-avatar" onclick="openAvatarViewer(\''+senderData.avatar+'\')"><img src="' + senderData.avatar + '" onerror="this.style.display=\'none\';this.parentNode.textContent=\''+(senderData.displayName||senderData.username||'U').charAt(0).toUpperCase()+'\'"></div>';
     }
 
     let contentHTML = '';
     if(msg.text) contentHTML += '<div>' + escapeHtml(msg.text) + '</div>';
     if(msg.mediaData) {
       if(msg.mediaType === 'video') {
-        contentHTML += '<video src="' + msg.mediaData + '" controls style="max-width:100%;border-radius:8px;margin-top:4px;"></video>';
+        contentHTML += '<video src="' + msg.mediaData + '" controls style="max-width:100%;border-radius:8px;margin-top:4px;" onclick="openMedia(\''+msg.mediaData+'\', \'video\')"></video>';
       } else {
-        contentHTML += '<img src="' + msg.mediaData + '" style="max-width:100%;border-radius:8px;margin-top:4px;">';  
+        contentHTML += '<img src="' + msg.mediaData + '" style="max-width:100%;border-radius:8px;margin-top:4px;" onclick="openMedia(\''+msg.mediaData+'\', \'image\')">';  
       }
     }
     if(msg.drawingData) {
-      contentHTML += '<img src="' + msg.drawingData + '" style="max-width:100%;border-radius:8px;margin-top:4px;">';
+      contentHTML += '<img src="' + msg.drawingData + '" style="max-width:100%;border-radius:8px;margin-top:4px;" onclick="openMedia(\''+msg.drawingData+'\', \'image\')">';
     }
     if(msg.gestureType) {
       contentHTML += '<div style="font-size:24px;">' + getGestureEmoji(msg.gestureType) + '</div>';
     }
+    if(msg.audioTrack) {
+      contentHTML += `
+        <div class="tg-audio-player">
+          <button class="tg-audio-btn" onclick="playTrack('${msg.audioTrack}')">▶</button>
+          <div class="tg-audio-info">
+            <div class="tg-audio-title">🎵 ${msg.audioName || 'Аудио'}</div>
+            <div class="tg-audio-progress">Нажмите для прослушивания</div>
+          </div>
+        </div>
+      `;
+    }
 
     const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-    const editedMark = msg.edited ? ' <span style="color:rgba(0,0,0,0.35);font-size:10px;">(изм.)</span>' : '';
+    const editedMark = msg.edited ? ' <span style="color:rgba(0,0,0,0.35);font-size:9px;">(изм.)</span>' : '';
 
     let actionsHTML = '';
     if(isOwn) {
@@ -1686,14 +1762,14 @@ function deleteMessage(msgId) {
 
 function clearAllChatHistory() {
   if(!chatId) return;
-  if(!confirm('⚠️ ВНИМАНИЕ! Это удалит ВСЮ историю переписки навсегда. Продолжить?')) return;
+  if(!confirm('⚠️ ВНИМАНИЕ! Это удалит ВСЮ историю переписки у обоих участников навсегда. Продолжить?')) return;
   db.ref('chats/'+chatId).remove().then(()=>{
     messages3D.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); messages3D = [];
     mediaObjects.forEach(m=>{ if(m.mesh && roomGroup) roomGroup.remove(m.mesh); }); mediaObjects = [];
     gestureAnimations.forEach(g=>{ if(g.mesh && roomGroup) roomGroup.remove(g.mesh); }); gestureAnimations = [];
     drawings3D.forEach(d=>{ if(d.mesh && roomGroup) roomGroup.remove(d.mesh); }); drawings3D = [];
     loadChatHistory();
-    alert('История очищена!');
+    alert('История очищена у обоих!');
   });
 }
 
@@ -1724,6 +1800,30 @@ function saveEditMessage() {
     closeEditModal();
     loadChatHistory();
   });
+}
+
+function send2DMessage() {
+  const input = document.getElementById('chat2dInput');
+  const text = input.value.trim();
+  if(!text || !chatId) return;
+  db.ref('chats/'+chatId).push({ text: text, sender: currentUser.uid, timestamp: Date.now() });
+  input.value = '';
+  addRelation(2);
+  showMisideText(text);
+  loadChatHistory();
+}
+
+function sendMusicMessage(trackKey, trackName) {
+  if(!chatId) { alert('Выберите собеседника!'); return; }
+  db.ref('chats/'+chatId).push({
+    audioTrack: trackKey,
+    audioName: trackName,
+    sender: currentUser.uid,
+    timestamp: Date.now()
+  });
+  playTrack(trackKey);
+  loadChatHistory();
+  if(isMusicPanelOpen) toggleMusicPanel();
 }
 
 // ===== MESSAGING & MISIDE EASTER EGG =====
@@ -1761,11 +1861,8 @@ function triggerHorrorMode() {
   const horror = document.getElementById('horrorOverlay');
   horror.classList.add('active');
 
-  // УЛУЧШЕННЫЙ СКРИМЕР: Настоящий страшный крик + резкий индустриальный скрежет через Web Audio API
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // Осциллятор 1: Низкий угрожающий гул
     const osc1 = audioCtx.createOscillator();
     const gain1 = audioCtx.createGain();
     osc1.type = 'sawtooth';
@@ -1780,21 +1877,6 @@ function triggerHorrorMode() {
     gain1.connect(audioCtx.destination);
     osc1.start();
     osc1.stop(audioCtx.currentTime + 3.2);
-
-    // Осциллятор 2: Пронзительный крик
-    const osc2 = audioCtx.createOscillator();
-    const gain2 = audioCtx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1200, audioCtx.currentTime);
-    osc2.frequency.exponentialRampToValueAtTime(2800, audioCtx.currentTime + 0.8);
-    
-    gain2.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gain2.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 2.5);
-
-    osc2.connect(gain2);
-    gain2.connect(audioCtx.destination);
-    osc2.start();
-    osc2.stop(audioCtx.currentTime + 2.5);
   } catch(e) {}
 
   setTimeout(() => {
@@ -1827,14 +1909,9 @@ function sendGesture(type) {
 function create3DGesture(type, isOwn) {
   if(!roomGroup) return;
   const gestureConfig = {
-    wave: { emoji: '👋', color: 0xffff00 },
-    dance: { emoji: '💃', color: 0xff00ff },
-    bow: { emoji: '🙇', color: 0x00ff00 },
-    clap: { emoji: '👏', color: 0xffaa00 },
-    think: { emoji: '🤔', color: 0x8888ff },
-    sleep: { emoji: '😴', color: 0xaaaaff },
-    angry: { emoji: '😤', color: 0xff4444 },
-    love: { emoji: '😍', color: 0xff66aa }
+    wave: { emoji: '👋' }, dance: { emoji: '💃' }, bow: { emoji: '🙇' },
+    clap: { emoji: '👏' }, think: { emoji: '🤔' }, sleep: { emoji: '😴' },
+    angry: { emoji: '😤' }, love: { emoji: '😍' }
   };
   const config = gestureConfig[type]; if(!config) return;
 
@@ -1971,13 +2048,16 @@ function create3DDrawing(dataURL, isOwn) {
   if(!roomGroup) return;
   const loader = new THREE.TextureLoader();
   loader.load(dataURL, texture=>{
-    const geo = new THREE.PlaneGeometry(2.5, 2.5);
+    const aspect = texture.image.width / texture.image.height;
+    let w = 2.5, h = 2.5 / aspect;
+    const geo = new THREE.PlaneGeometry(w, h);
     const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, opacity: 0.9 });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
-    mesh.userData = { isDrawing: true };
+    mesh.userData = { isDrawing: true, url: dataURL, type: 'image' };
     roomGroup.add(mesh);
     drawings3D.push({ mesh, baseY: mesh.position.y, createdAt: Date.now() });
+    mediaObjects.push({ mesh, baseY: mesh.position.y, url: dataURL, type: 'image' });
   });
 }
 
@@ -2001,11 +2081,14 @@ function playTrack(trackId) {
   audio.play().catch(e=>console.log('Audio play failed:', e));
   currentAudio = audio; currentTrack = trackId;
   document.querySelectorAll('.music-track').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`.music-track[data-src="${trackId}"]`).classList.add('active');
+  const trackEl = document.querySelector(`.music-track[data-src="${trackId}"]`);
+  if(trackEl) trackEl.classList.add('active');
   document.querySelectorAll('.track-play').forEach(p=>p.textContent='▶');
-  document.getElementById('play-'+trackId).textContent='⏸';
+  const playEl = document.getElementById('play-'+trackId);
+  if(playEl) playEl.textContent='⏸';
   document.getElementById('musicBtn').classList.add('playing');
-  document.getElementById('dl-'+trackId).href = MUSIC_TRACKS[trackId];
+  const dlEl = document.getElementById('dl-'+trackId);
+  if(dlEl) dlEl.href = MUSIC_TRACKS[trackId];
 }
 
 function setVolume(val) {
@@ -2013,11 +2096,12 @@ function setVolume(val) {
   if(currentAudio) currentAudio.volume = audioVolume;
 }
 
-// ===== 3D APARTMENT ROOM WITH INTERACTIVE QUEST PROPS =====
+// ===== 3D APARTMENT ROOM WITH REAL OUTSIDE WORLD (TREES, HOUSES, SUNSET) =====
 function init3DRoom() {
   const canvas = document.getElementById('room-canvas');
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xffe3e8, 0.015);
+  scene.background = new THREE.Color(0xddeeff);
+  scene.fog = new THREE.FogExp2(0xddeeff, 0.012);
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
   camera.position.set(0, 2.5, 6);
@@ -2071,29 +2155,63 @@ function init3DRoom() {
   ceiling.rotation.x = Math.PI/2;
   roomGroup.add(ceiling);
 
-  // WINDOW & SUN
+  // WINDOW & OUTSIDE REAL WORLD (TREES, HOUSES, HORIZON)
   const windowFrame = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 3, 0.1),
+    new THREE.BoxGeometry(4.4, 3.2, 0.1),
     new THREE.MeshBasicMaterial({ color:0xffffff })
   );
   windowFrame.position.set(0, 4.5, -9.95);
   roomGroup.add(windowFrame);
 
   const windowGlass = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.6, 2.6),
-    new THREE.MeshBasicMaterial({ color:0xddf3ff, transparent:true, opacity:0.3, side:THREE.DoubleSide })
+    new THREE.PlaneGeometry(4, 2.8),
+    new THREE.MeshBasicMaterial({ color:0xaee3ff, transparent:true, opacity:0.15, side:THREE.DoubleSide })
   );
   windowGlass.position.set(0, 4.5, -9.9);
   roomGroup.add(windowGlass);
 
-  const sunGeo = new THREE.SphereGeometry(2, 32, 32);
+  // Создание реального мира за окном (земля, далёкие дома и деревья)
+  const outsideGroup = new THREE.Group();
+  outsideGroup.position.set(0, 0, -25);
+
+  const groundGeo = new THREE.PlaneGeometry(100, 60);
+  const groundMat = new THREE.MeshBasicMaterial({ color: 0x44aa55 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = -1.5;
+  outsideGroup.add(ground);
+
+  // Дома на заднем плане
+  for(let i = -4; i <= 4; i++) {
+    const houseWidth = 3 + Math.random()*2;
+    const houseHeight = 4 + Math.random()*4;
+    const hMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xcc9988 : 0x8899cc });
+    const house = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, houseHeight, 4), hMat);
+    house.position.set(i * 5, houseHeight/2 - 1.5, -15 - Math.random()*10);
+    outsideGroup.add(house);
+  }
+
+  // Деревья за окном
+  for(let i = -6; i <= 6; i+=2) {
+    if(Math.abs(i) < 2) continue;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 3), new THREE.MeshBasicMaterial({ color: 0x775533 }));
+    trunk.position.set(i * 2.5, 0, -8 - Math.random()*5);
+    outsideGroup.add(trunk);
+
+    const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0x228833 }));
+    leaves.position.set(i * 2.5, 2, -8 - Math.random()*5);
+    outsideGroup.add(leaves);
+  }
+
+  roomGroup.add(outsideGroup);
+
+  const sunGeo = new THREE.SphereGeometry(2.5, 32, 32);
   const sunMat = new THREE.MeshBasicMaterial({ color: 0xffea88 });
   sunMesh = new THREE.Mesh(sunGeo, sunMat);
-  sunMesh.position.set(0, 10, -20);
+  sunMesh.position.set(12, 12, -35);
   roomGroup.add(sunMesh);
 
-  // ===== QUEST ITEMS / INTERACTIVE PROPS =====
-  // 1. Книга (Shared Notes) на журнальном столике
+  // ===== QUEST ITEMS =====
   const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.1, 16), new THREE.MeshBasicMaterial({ color:0xffffff }));
   tableTop.position.set(0, 0.6, -3);
   roomGroup.add(tableTop);
@@ -2110,7 +2228,6 @@ function init3DRoom() {
   bookMesh.userData = { isQuestItem: true, itemType: 'book' };
   roomGroup.add(bookMesh);
 
-  // 2. Зеркало на левой стене
   const mirrorFrame = new THREE.Mesh(
     new THREE.BoxGeometry(0.1, 2.2, 1.4),
     new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -2127,7 +2244,6 @@ function init3DRoom() {
   mirrorGlass.userData = { isQuestItem: true, itemType: 'mirror' };
   roomGroup.add(mirrorGlass);
 
-  // 3. Лампа на тумбочке (включение/выключение света)
   const lampBase = new THREE.Mesh(
     new THREE.CylinderGeometry(0.3, 0.3, 0.8, 12),
     new THREE.MeshBasicMaterial({ color: 0xff8da1 })
@@ -2168,7 +2284,6 @@ function init3DRoom() {
   tvScreen.userData = { isTvScreen: true };
   roomGroup.add(tvScreen);
 
-  // LIGHTS
   const ambientLight = new THREE.AmbientLight(0xfff0f3, 1.3);
   scene.add(ambientLight);
 
@@ -2184,17 +2299,18 @@ function init3DRoom() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Controls
   let isDragging = false, prevX = 0, prevY = 0, rotX = 0, rotY = 0;
 
   canvas.addEventListener('touchstart',e=>{
-    isDragging = true;
-    prevX = e.touches[0].clientX;
-    prevY = e.touches[0].clientY;
+    if(e.touches.length === 1) {
+      isDragging = true;
+      prevX = e.touches[0].clientX;
+      prevY = e.touches[0].clientY;
+    }
   },{passive:true});
 
   canvas.addEventListener('touchmove',e=>{
-    if(!isDragging) return;
+    if(!isDragging || e.touches.length !== 1) return;
     const dx = e.touches[0].clientX - prevX;
     const dy = e.touches[0].clientY - prevY;
     rotY += dx*0.008;
@@ -2257,7 +2373,6 @@ function animate() {
 
   if(sunMesh) sunMesh.rotation.y += 0.002;
 
-  // Snow / Rain falling animation
   if(weatherSnowGroup && weatherSnowGroup.visible) {
     weatherSnowGroup.children[0].geometry.attributes.position.array.forEach((pos, idx, arr) => {
       if(idx % 3 === 1) {
@@ -2289,7 +2404,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// ===== XSS PREVENTION / SAFE HTML ENCODING =====
 function escapeHtmlXSS(str) {
   return str.replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -2348,9 +2462,7 @@ function createPartner3DAvatar(data) {
     const loader = new THREE.TextureLoader();
     loader.load(data.avatar, texture=>{
       const aspect = texture.image.width / texture.image.height;
-      let w = 1.2, h = 1.2;
-      if(aspect > 1) { h = w / aspect; }
-      else { w = h * aspect; }
+      let w = 1.2, h = 1.2 / aspect;
       const geo = new THREE.PlaneGeometry(w, h);
       const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
       const mesh = new THREE.Mesh(geo, mat);
@@ -2437,46 +2549,94 @@ function updatePartner3DAvatar(data) {
   }
 }
 
-// ===== AVATAR VIEWER =====
+// ===== 3D ROTATABLE AVATAR VIEWER =====
+let avScene, avCamera, avRenderer, avMesh;
+let avIsDragging = false, avPrevX = 0, avPrevY = 0;
+
 function openAvatarViewer(url) {
+  if(!url) return;
   const viewer = document.getElementById('avatarViewer');
+  viewer.classList.add('active');
   const container = document.getElementById('avatar3d');
   container.innerHTML = '';
-  const img = document.createElement('img');
-  img.src = url;
-  container.appendChild(img);
-  viewer.classList.add('active');
+
+  avScene = new THREE.Scene();
+  avScene.background = new THREE.Color(0x140a0f);
+
+  avCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+  avCamera.position.z = 5;
+
+  avRenderer = new THREE.WebGLRenderer({ antialias: true });
+  avRenderer.setSize(container.clientWidth, container.clientHeight);
+  avRenderer.setPixelRatio(window.devicePixelRatio);
+  container.appendChild(avRenderer.domElement);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+  avScene.add(ambient);
+
+  const loader = new THREE.TextureLoader();
+  loader.load(url, texture => {
+    const aspect = texture.image.width / texture.image.height;
+    let w = 2.5, h = 2.5 / aspect;
+    const geometry = new THREE.PlaneGeometry(w, h);
+    const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+    avMesh = new THREE.Mesh(geometry, material);
+    avScene.add(avMesh);
+  });
+
+  container.addEventListener('mousedown', e => { avIsDragging = true; avPrevX = e.clientX; avPrevY = e.clientY; });
+  container.addEventListener('mousemove', e => {
+    if(!avIsDragging || !avMesh) return;
+    const dx = e.clientX - avPrevX;
+    const dy = e.clientY - avPrevY;
+    avMesh.rotation.y += dx * 0.01;
+    avMesh.rotation.x += dy * 0.01;
+    avPrevX = e.clientX; avPrevY = e.clientY;
+  });
+  window.addEventListener('mouseup', () => { avIsDragging = false; });
+
+  container.addEventListener('touchstart', e => {
+    if(e.touches.length === 1) { avIsDragging = true; avPrevX = e.touches[0].clientX; avPrevY = e.touches[0].clientY; }
+  }, {passive:true});
+  container.addEventListener('touchmove', e => {
+    if(!avIsDragging || !avMesh || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - avPrevX;
+    const dy = e.touches[0].clientY - avPrevY;
+    avMesh.rotation.y += dx * 0.01;
+    avMesh.rotation.x += dy * 0.01;
+    avPrevX = e.touches[0].clientX; avPrevY = e.touches[0].clientY;
+  }, {passive:true});
+  container.addEventListener('touchend', () => { avIsDragging = false; });
+
+  animateAvatarViewer();
+}
+
+function animateAvatarViewer() {
+  if(!avRenderer) return;
+  requestAnimationFrame(animateAvatarViewer);
+  avRenderer.render(avScene, avCamera);
 }
 
 function closeAvatarViewer() {
   document.getElementById('avatarViewer').classList.remove('active');
+  if(avRenderer) { avRenderer.dispose(); avRenderer = null; }
 }
 
 // ===== 3D TV CONTROLS & SYNCHRONIZATION =====
 function toggleTvControlPanel() {
-  if (!chatId) {
-    alert('Сначала выберите собеседника!');
-    return;
-  }
+  if (!chatId) { alert('Сначала выберите собеседника!'); return; }
   isTvControlPanelOpen = !isTvControlPanelOpen;
   document.getElementById('tvControlPanel').classList.toggle('active', isTvControlPanelOpen);
 }
 
-function triggerTvUpload() {
-  document.getElementById('tvFileInput').click();
-}
+function triggerTvUpload() { document.getElementById('tvFileInput').click(); }
 
 function handleTvFile(input) {
   const file = input.files[0];
   if(!file) return;
-  if(file.size > 8 * 1024 * 1024) {
-    alert('Файл слишком велик! Максимум 8 МБ.');
-    return;
-  }
+  if(file.size > 8 * 1024 * 1024) { alert('Файл слишком велик! Максимум 8 МБ.'); return; }
   const reader = new FileReader();
-  reader.onload = function(e) {
-    syncTvState(e.target.result, false, 0);
-  };
+  reader.onload = function(e) { syncTvState(e.target.result, false, 0); };
   reader.readAsDataURL(file);
 }
 
@@ -2499,11 +2659,8 @@ function syncTvState(url, playing, time) {
 }
 
 function sendTvCommand(command) {
-  if(command === 'play') {
-    syncTvState(null, true, tvVideoElement.currentTime);
-  } else if(command === 'pause') {
-    syncTvState(null, false, tvVideoElement.currentTime);
-  }
+  if(command === 'play') { syncTvState(null, true, tvVideoElement.currentTime); }
+  else if(command === 'pause') { syncTvState(null, false, tvVideoElement.currentTime); }
 }
 
 function onTvSliderSeek(val) {
@@ -2519,30 +2676,23 @@ function initTvSync() {
   db.ref('chats/'+chatId+'/tvState').on('value', snap => {
     const state = snap.val();
     if(!state) return;
-
     if(state.url && tvVideoElement.src !== state.url) {
       tvVideoElement.src = state.url;
       tvVideoElement.load();
     }
-
     if(state.playing) {
       const elapsed = (Date.now() - state.lastUpdated) / 1000;
       const targetTime = state.time + (state.changedBy !== currentUser.uid ? elapsed : 0);
-      
-      if(Math.abs(tvVideoElement.currentTime - targetTime) > 1.5) {
-        tvVideoElement.currentTime = targetTime;
-      }
+      if(Math.abs(tvVideoElement.currentTime - targetTime) > 1.5) { tvVideoElement.currentTime = targetTime; }
       tvVideoElement.play().catch(()=>{});
     } else {
       tvVideoElement.pause();
-      if(Math.abs(tvVideoElement.currentTime - state.time) > 0.5) {
-        tvVideoElement.currentTime = state.time;
-      }
+      if(Math.abs(tvVideoElement.currentTime - state.time) > 0.5) { tvVideoElement.currentTime = state.time; }
     }
   });
 }
 
-// ===== MEDIA ATTACHMENTS =====
+// ===== MEDIA ATTACHMENTS & FLYING 3D PREVIEW =====
 function triggerFile() {
   document.getElementById('fileInput').accept = 'image/*';
   document.getElementById('fileInput').click();
@@ -2552,11 +2702,7 @@ function triggerFile() {
 function handleFile(input) {
   const file = input.files[0];
   if(!file || !chatId) return;
-  if(file.size > 3 * 1024 * 1024) {
-    alert('Файл слишком большой! Максимум 3 МБ.');
-    input.value = '';
-    return;
-  }
+  if(file.size > 4 * 1024 * 1024) { alert('Файл слишком большой! Максимум 4 МБ.'); input.value = ''; return; }
   const isVideo = file.type.startsWith('video');
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -2577,33 +2723,26 @@ function create3DMedia(url, type, isOwn) {
 
   if(type === 'video') {
     const video = document.createElement('video');
-    video.src = url; video.crossOrigin = 'anonymous';
+    video.src = url; video.crossOrigin = 'anonymous'; video.muted = true; video.playsInline = true;
     video.onloadeddata = ()=>{
-      const canvas = document.createElement('canvas');
-      canvas.width = 256; canvas.height = 144;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, 256, 144);
-      const thumbUrl = canvas.toDataURL();
-      const loader = new THREE.TextureLoader();
-      loader.load(thumbUrl, texture=>{
-        const w = 2.5; const h = w * 0.56;
-        const geo = new THREE.PlaneGeometry(w, h);
-        const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
-        mesh.userData = {url:url, type:type};
-        roomGroup.add(mesh);
-        mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
-      });
+      const aspect = video.videoWidth / video.videoHeight || 16/9;
+      const w = 2.8, h = w / aspect;
+      const texture = new THREE.VideoTexture(video);
+      const geo = new THREE.PlaneGeometry(w, h);
+      const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set((Math.random()-0.5)*5, 2+Math.random()*2, (Math.random()-0.5)*5);
+      mesh.userData = {url:url, type:type, isFlyingVideo:true, videoElement:video};
+      roomGroup.add(mesh);
+      mediaObjects.push({mesh, baseY:mesh.position.y, url, type});
+      video.play().catch(()=>{});
     };
     video.load();
   } else {
     const loader = new THREE.TextureLoader();
     loader.load(url, texture=>{
       const aspect = texture.image.width / texture.image.height;
-      let w = 2.5, h = 2.5;
-      if(aspect > 1) { h = w / aspect; }
-      else { w = h * aspect; }
+      let w = 2.8, h = w / aspect;
       const geo = new THREE.PlaneGeometry(w, h);
       const mat = new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide});
       const mesh = new THREE.Mesh(geo, mat);
@@ -2615,7 +2754,7 @@ function create3DMedia(url, type, isOwn) {
   }
 }
 
-// Raycasting
+// Raycasting (Клик на летающие объекты в комнате)
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let lastClickTime = 0;
@@ -2635,24 +2774,18 @@ document.getElementById('room-canvas').addEventListener('click',e=>{
       if(lastClickedObject === obj && now - lastClickTime < 400) {
         sendGesture('love');
         addRelation(1);
-        lastClickTime = 0;
-        lastClickedObject = null;
+        lastClickTime = 0; lastClickedObject = null;
         break;
       } else {
-        lastClickTime = now;
-        lastClickedObject = obj;
+        lastClickTime = now; lastClickedObject = obj;
       }
     }
 
     if(obj.userData && obj.userData.isQuestItem) {
       const type = obj.userData.itemType;
-      if(type === 'book') {
-        openPopup('popupNotes');
-      } else if(type === 'mirror') {
-        openPopup('popupMirror');
-      } else if(type === 'lamp') {
-        toggleRoomLights();
-      }
+      if(type === 'book') openPopup('popupNotes');
+      else if(type === 'mirror') openPopup('popupMirror');
+      else if(type === 'lamp') toggleRoomLights();
       break;
     }
 
@@ -2671,7 +2804,7 @@ document.getElementById('room-canvas').addEventListener('click',e=>{
   }
 });
 
-// ===== 3D MEDIA VIEWER =====
+// ===== 3D MEDIA VIEWER (CORRECT ASPECT RATIO & RUSSIAN CONTROLS) =====
 let viewerScene, viewerCamera, viewerRenderer, viewerMesh, viewerVideoElement;
 let viewerIsDragging = false, viewerPrevX = 0, viewerPrevY = 0;
 let viewerScale = 1;
@@ -2691,52 +2824,34 @@ function init3DViewer() {
   viewerRenderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(viewerRenderer.domElement);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  const ambient = new THREE.AmbientLight(0xffffff, 1.0);
   viewerScene.add(ambient);
-
-  const direct = new THREE.DirectionalLight(0xffffff, 0.5);
-  direct.position.set(0, 4, 5);
-  viewerScene.add(direct);
 
   window.addEventListener('resize', onViewerResize);
 
-  container.addEventListener('mousedown', (e) => {
-    viewerIsDragging = true;
-    viewerPrevX = e.clientX;
-    viewerPrevY = e.clientY;
-  });
-
+  container.addEventListener('mousedown', (e) => { viewerIsDragging = true; viewerPrevX = e.clientX; viewerPrevY = e.clientY; });
   container.addEventListener('mousemove', (e) => {
     if (!viewerIsDragging || !viewerMesh) return;
     const dx = e.clientX - viewerPrevX;
     const dy = e.clientY - viewerPrevY;
     viewerMesh.rotation.y += dx * 0.01;
     viewerMesh.rotation.x += dy * 0.01;
-    viewerPrevX = e.clientX;
-    viewerPrevY = e.clientY;
+    viewerPrevX = e.clientX; viewerPrevY = e.clientY;
   });
-
   window.addEventListener('mouseup', () => { viewerIsDragging = false; });
 
   container.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1) {
-      viewerIsDragging = true;
-      viewerPrevX = e.touches[0].clientX;
-      viewerPrevY = e.touches[0].clientY;
-    }
+    if (e.touches.length === 1) { viewerIsDragging = true; viewerPrevX = e.touches[0].clientX; viewerPrevY = e.touches[0].clientY; }
   }, {passive: true});
-
   container.addEventListener('touchmove', (e) => {
     if (e.touches.length === 1 && viewerIsDragging && viewerMesh) {
       const dx = e.touches[0].clientX - viewerPrevX;
       const dy = e.touches[0].clientY - viewerPrevY;
       viewerMesh.rotation.y += dx * 0.01;
       viewerMesh.rotation.x += dy * 0.01;
-      viewerPrevX = e.touches[0].clientX;
-      viewerPrevY = e.touches[0].clientY;
+      viewerPrevX = e.touches[0].clientX; viewerPrevY = e.touches[0].clientY;
     }
   }, {passive: true});
-
   container.addEventListener('touchend', () => { viewerIsDragging = false; });
 
   container.addEventListener('wheel', (e) => {
@@ -2779,24 +2894,27 @@ function openMedia(url, type) {
     viewerVideoElement.crossOrigin = "anonymous";
     viewerVideoElement.autoplay = true;
 
-    const texture = new THREE.VideoTexture(viewerVideoElement);
-    const geometry = new THREE.PlaneGeometry(3.2, 1.8);
-    const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-    viewerMesh = new THREE.Mesh(geometry, material);
-    viewerScene.add(viewerMesh);
-    viewerVideoElement.play();
+    viewerVideoElement.onloadedmetadata = () => {
+      const aspect = viewerVideoElement.videoWidth / viewerVideoElement.videoHeight || 16/9;
+      let w = 3.2, h = w / aspect;
+      const geometry = new THREE.PlaneGeometry(w, h);
+      const texture = new THREE.VideoTexture(viewerVideoElement);
+      const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+      if(viewerMesh) viewerScene.remove(viewerMesh);
+      viewerMesh = new THREE.Mesh(geometry, material);
+      viewerScene.add(viewerMesh);
+      viewerVideoElement.play();
+      updatePlayPauseButtonText();
+    };
+    viewerVideoElement.load();
   } else {
     const loader = new THREE.TextureLoader();
     loader.load(url, (texture) => {
       const aspect = texture.image.width / texture.image.height;
-      let w = 3;
-      let h = w / aspect;
-      if (h > 3.5) {
-        h = 3.5;
-        w = h * aspect;
-      }
+      let w = 3.2, h = w / aspect;
       const geometry = new THREE.PlaneGeometry(w, h);
       const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+      if(viewerMesh) viewerScene.remove(viewerMesh);
       viewerMesh = new THREE.Mesh(geometry, material);
       viewerScene.add(viewerMesh);
     });
@@ -2807,6 +2925,16 @@ function toggleMedia3dVideoPlay() {
   if (viewerVideoElement) {
     if (viewerVideoElement.paused) viewerVideoElement.play();
     else viewerVideoElement.pause();
+    updatePlayPauseButtonText();
+  }
+}
+
+function updatePlayPauseButtonText() {
+  const btn = document.getElementById('mediaPlayBtnText');
+  if(viewerVideoElement && viewerVideoElement.paused) {
+    btn.textContent = 'Воспроизведение ▶';
+  } else {
+    btn.textContent = 'Пауза ⏸';
   }
 }
 
