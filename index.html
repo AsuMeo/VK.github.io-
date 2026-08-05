@@ -5372,7 +5372,9 @@ const messageDateStr = new Date(m.time).toDateString();
         let _resizeTimer = null;
         window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(() => { if(window.onResizeDebounced) window.onResizeDebounced(); }, 250); });
         if ('storage' in navigator && navigator.storage && navigator.storage.estimate) {
-            setInterval(async () => { try { const est = await navigator.storage.estimate(); if(est.usage && est.quota && est.usage / est.quota > 0.85) { console.warn('Memory pressure'); if(window._meowCleanup) window._meowCleanup.clearAll(); } } catch(e){}
+            setInterval(async () => { try { const est = await navigator.storage.estimate(); if(est.usage && est.quota && est.usage / est.quota > 0.85) { console.warn('Memory pressure'); if(window._meowCleanup) window._meowCleanup.clearAll(); } } catch(e){} }, 30000);
+        }
+
         // ===== BURN MESSAGE CHECKER =====
         let burnCheckerInterval = null;
         function startBurnChecker() {
@@ -5406,7 +5408,8 @@ const messageDateStr = new Date(m.time).toDateString();
         }
         function stopBurnChecker() {
             if (burnCheckerInterval) { clearInterval(burnCheckerInterval); burnCheckerInterval = null; }
-        
+        }
+
         // ===== HASHTAG & MENTION HANDLERS =====
         window.searchHashtag = (tag) => {
             const input = document.getElementById('global-search-input');
@@ -5421,7 +5424,6 @@ const messageDateStr = new Date(m.time).toDateString();
                     return;
                 }
             }
-            // Try searching in users
             try {
                 const snap = await window.fb.get(window.fb.ref(window.fb.db, 'users'));
                 if (snap.exists()) {
@@ -5436,11 +5438,6 @@ const messageDateStr = new Date(m.time).toDateString();
             } catch(e) {}
             alert('Пользователь @' + username + ' не найден');
         };
-
-        }
-
-         }, 30000);
-        }
 
                 function getReactionsHtmlInline(msgId, reactionsObj) {
             if (!reactionsObj) return "";
